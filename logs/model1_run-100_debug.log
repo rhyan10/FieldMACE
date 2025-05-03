@@ -1,0 +1,702 @@
+2025-05-03 08:39:51.339 INFO: ===========VERIFYING SETTINGS===========
+2025-05-03 08:39:51.339 INFO: MACE version: 0.3.6
+2025-05-03 08:39:51.340 DEBUG: Configuration: Namespace(config=None, name='model1', seed=100, work_dir='.', nacs_key='smooth_nacs', log_dir='./logs', model_dir='.', checkpoints_dir='./checkpoints', results_dir='./results', downloads_dir='./downloads', device='cuda', default_dtype='float32', distributed=False, log_level='INFO', n_energies=1, error_table='EnergyNacsDipoleMAE', model='FieldEMACE', r_max=5.0, radial_type='bessel', num_radial_basis=8, num_cutoff_basis=5, pair_repulsion=False, distance_transform='None', interaction='RealAgnosticResidualInteractionBlock', interaction_first='RealAgnosticResidualInteractionBlock', max_ell=3, correlation=3, num_interactions=2, MLP_irreps='128x0e', field_irreps='16x0e + 16x1o + 16x2e + 16x3o', radial_MLP='[64, 64, 64]', hidden_irreps='128x0e + 128x1o', num_channels=128, max_L=1, gate='silu', scaling='rms_forces_scaling', avg_num_neighbors=1, compute_avg_num_neighbors=True, compute_stress=False, compute_forces=True, compute_dipoles=False, compute_nacs=False, train_file='benzene_train.xyz', valid_file=None, valid_fraction=0.1, test_file=None, test_dir=None, multi_processed_test=False, num_workers=0, pin_memory=True, atomic_numbers=None, mean=None, std=None, statistics_file=None, E0s='average', keep_isolated_atoms=False, energy_key='REF_energy', forces_key='REF_forces', virials_key='REF_virials', stress_key='REF_stress', dipoles_key='REF_dipoles', charges_key='REF_charges', loss='weighted', forces_weight=100.0, nacs_weight=100.0, swa_forces_weight=100.0, energy_weight=100.0, swa_energy_weight=1000.0, virials_weight=1.0, swa_virials_weight=10.0, stress_weight=1.0, swa_stress_weight=10.0, dipoles_weight=1.0, swa_dipole_weight=1.0, config_type_weights='{"Default":1.0}', huber_delta=0.01, optimizer='adam', beta=0.9, batch_size=20, valid_batch_size=10, lr=0.001, swa_lr=0.001, weight_decay=5e-07, amsgrad=True, scheduler='ReduceLROnPlateau', lr_factor=0.8, scheduler_patience=50, lr_scheduler_gamma=0.9993, swa=False, start_swa=None, ema=True, ema_decay=0.99, max_num_epochs=100, patience=2048, foundation_model=None, foundation_model_readout=True, eval_interval=1, keep_checkpoints=False, save_all_checkpoints=False, restart_latest=False, save_cpu=False, clip_grad=10.0, wandb=False, wandb_dir=None, wandb_project='', wandb_entity='', wandb_name='', wandb_log_hypers=['num_channels', 'max_L', 'correlation', 'lr', 'swa_lr', 'weight_decay', 'batch_size', 'max_num_epochs', 'start_swa', 'energy_weight', 'forces_weight'])
+2025-05-03 08:39:51.519 INFO: CUDA version: 12.1, CUDA device: 0
+2025-05-03 08:39:51.546 DEBUG: Popen(['git', 'version'], cwd=/home/rhyan/FieldMACE, stdin=None, shell=False, universal_newlines=False)
+2025-05-03 08:39:51.554 DEBUG: Popen(['git', 'version'], cwd=/home/rhyan/FieldMACE, stdin=None, shell=False, universal_newlines=False)
+2025-05-03 08:39:51.556 DEBUG: Popen(['git', 'cat-file', '--batch-check'], cwd=/home/rhyan/FieldMACE, stdin=<valid stream>, shell=False, universal_newlines=False)
+2025-05-03 08:39:51.560 DEBUG: Current Git commit: a7e5863781f29986b35b43c4fef1e119c42f21ed
+2025-05-03 08:39:51.560 INFO: 
+2025-05-03 08:39:51.560 INFO: ===========LOADING INPUT DATA===========
+2025-05-03 08:39:59.820 INFO: Using random 10% of training set for validation with indices saved in: ./valid_indices_100.txt
+2025-05-03 08:39:59.834 INFO: Atomic Numbers used: [1, 6]
+2025-05-03 08:39:59.835 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2025-05-03 08:39:59.835 INFO: Computing average Atomic Energies using least squares regression
+2025-05-03 08:39:59.890 INFO: Atomic Energies used (z: eV): {1: 0.057360763074352714, 6: 0.05736076307435251}
+2025-05-03 08:40:01.847 INFO: 
+2025-05-03 08:40:01.847 INFO: ===========MODEL DETAILS===========
+2025-05-03 08:40:02.743 INFO: Average number of neighbors: 10.8
+2025-05-03 08:40:02.743 INFO: During training the following quantities will be reported: energy, forces
+2025-05-03 08:40:03.494 INFO: Building model
+2025-05-03 08:40:03.494 INFO: Message passing with 128 channels and max_L=1 (128x0e + 128x1o)
+2025-05-03 08:40:03.495 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2025-05-03 08:40:03.495 INFO: 8 radial and 5 basis functions
+2025-05-03 08:40:03.495 INFO: Radial cutoff: 5.0 Å (total receptive field for each atom: 10.0 Å)
+2025-05-03 08:40:03.495 INFO: Distance transform for radial basis functions: None
+2025-05-03 08:40:04.609 DEBUG: FieldEMACE(
+  (node_embedding): LinearNodeEmbeddingBlock(
+    (linear): Linear(2x0e -> 128x0e | 256 weights)
+  )
+  (radial_embedding): RadialEmbeddingBlock(
+    (bessel_fn): BesselBasis(r_max=5.0, num_basis=8, trainable=False)
+    (cutoff_fn): PolynomialCutoff(p=5.0, r_max=5.0)
+  )
+  (multipole_radial_embedding): MultipoleRadialEmbeddingBlock(
+    (rbf_layer): GaussianBasis()
+  )
+  (multipole_spherical_harmonics): SphericalHarmonics()
+  (spherical_harmonics): SphericalHarmonics()
+  (atomic_energies_fn): AtomicEnergiesBlock(energies=[0.0574, 0.0574])
+  (linear_up): Linear(1x0e+1x1o+1x2e+1x3o -> 16x0e+16x1o+16x2e+16x3o | 64 weights)
+  (interactions): ModuleList(
+    (0): RealAgnosticInteractionBlock(
+      (linear_up): Linear(128x0e -> 128x0e | 16384 weights)
+      (conv_tp): TensorProduct(128x0e x 1x0e+1x1o+1x2e+1x3o -> 128x0e+128x1o+128x2e+128x3o | 512 paths | 512 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 512]
+      (linear): Linear(128x0e+128x1o+128x2e+128x3o -> 128x0e+128x1o+128x2e+128x3o | 65536 weights)
+      (skip_tp): FullyConnectedTensorProduct(128x0e+128x1o+128x2e+128x3o x 2x0e -> 128x0e+128x1o+128x2e+128x3o | 131072 paths | 131072 weights)
+      (reshape): reshape_irreps()
+    )
+    (1): RealAgnosticResidualInteractionBlock(
+      (linear_up): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+      (conv_tp): TensorProduct(128x0e+128x1o x 1x0e+1x1o+1x2e+1x3o -> 256x0e+384x1o+384x2e+256x3o | 1280 paths | 1280 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 1280]
+      (linear): Linear(256x0e+384x1o+384x2e+256x3o -> 128x0e+128x1o+128x2e+128x3o | 163840 weights)
+      (skip_tp): FullyConnectedTensorProduct(128x0e+128x1o x 2x0e -> 128x0e | 32768 paths | 32768 weights)
+      (reshape): reshape_irreps()
+    )
+  )
+  (field_interactions): ModuleList(
+    (0): ElectrostaticFieldInteractionBlock(
+      (linear_up): Linear(128x0e -> 128x0e | 16384 weights)
+      (conv_tp): TensorProduct(128x0e x 16x0e+16x1o+16x2e+16x3o -> 128x0e+128x1o+128x2e+128x3o | 8192 paths | 8192 weights)
+      (linear): Linear(128x0e+128x1o+128x2e+128x3o -> 128x0e+128x1o+128x2e+128x3o | 65536 weights)
+      (reshape): reshape_irreps()
+    )
+    (1): ElectrostaticFieldInteractionBlock(
+      (linear_up): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+      (conv_tp): TensorProduct(128x0e+128x1o x 16x0e+16x1o+16x2e+16x3o -> 256x0e+384x1o+384x2e+256x3o | 20480 paths | 20480 weights)
+      (linear): Linear(256x0e+384x1o+384x2e+256x3o -> 128x0e+128x1o+128x2e+128x3o | 163840 weights)
+      (reshape): reshape_irreps()
+    )
+  )
+  (products): ModuleList(
+    (0): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x4x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+          (1): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x6x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+    )
+    (1): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x4x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(128x0e -> 128x0e | 16384 weights)
+    )
+  )
+  (readouts): ModuleList(
+    (0): LinearReadoutBlock(
+      (linear): Linear(128x0e+128x1o -> 1x0e | 128 weights)
+    )
+    (1): NonLinearReadoutBlock(
+      (linear_1): Linear(128x0e -> 128x0e | 16384 weights)
+      (non_linearity): Activation [x] (128x0e -> 128x0e)
+      (linear_2): Linear(128x0e -> 1x0e | 128 weights)
+    )
+  )
+)
+2025-05-03 08:40:04.610 INFO: Total number of parameters: 977024
+2025-05-03 08:40:04.611 INFO: 
+2025-05-03 08:40:04.611 INFO: ===========OPTIMIZER INFORMATION===========
+2025-05-03 08:40:04.611 INFO: Using ADAM as parameter optimizer
+2025-05-03 08:40:04.611 INFO: Batch size: 20
+2025-05-03 08:40:04.611 INFO: Using Exponential Moving Average with decay: 0.99
+2025-05-03 08:40:04.611 INFO: Number of gradient updates: 40500
+2025-05-03 08:40:04.611 INFO: Learning rate: 0.001, weight decay: 5e-07
+2025-05-03 08:40:04.611 INFO: WeightedEnergyForcesNacsDipoleLoss(energy_weight=100.000, forces_weight=100.000, dipole_weight=1.000)
+2025-05-03 08:40:04.613 INFO: Using gradient clipping with tolerance=10.000
+2025-05-03 08:40:04.613 INFO: 
+2025-05-03 08:40:04.613 INFO: ===========TRAINING===========
+2025-05-03 08:40:04.613 INFO: Started training, reporting errors on validation set
+2025-05-03 08:40:04.613 INFO: Loss metrics on validation set
+2025-05-03 08:40:13.025 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:13.228 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:14.785 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:16.726 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:19.342 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:21.314 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:21.466 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:21.606 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:21.745 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:21.883 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:22.022 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:22.161 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:22.300 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:22.439 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:22.578 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:22.717 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:22.856 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:22.995 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:23.135 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:23.275 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:23.414 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:23.554 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:23.693 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:23.832 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:23.972 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:24.112 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:24.251 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:24.390 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:24.530 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:24.669 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:24.808 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:24.947 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:25.087 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:25.226 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:25.365 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:25.505 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:40:44.924 INFO: ===========VERIFYING SETTINGS===========
+2025-05-03 08:40:44.924 INFO: MACE version: 0.3.6
+2025-05-03 08:40:44.924 DEBUG: Configuration: Namespace(config=None, name='model1', seed=100, work_dir='.', nacs_key='smooth_nacs', log_dir='./logs', model_dir='.', checkpoints_dir='./checkpoints', results_dir='./results', downloads_dir='./downloads', device='cuda', default_dtype='float32', distributed=False, log_level='INFO', n_energies=1, error_table='EnergyNacsDipoleMAE', model='AttentionFieldEMACE', r_max=5.0, radial_type='bessel', num_radial_basis=8, num_cutoff_basis=5, pair_repulsion=False, distance_transform='None', interaction='RealAgnosticResidualInteractionBlock', interaction_first='RealAgnosticResidualInteractionBlock', max_ell=3, correlation=3, num_interactions=2, MLP_irreps='128x0e', field_irreps='16x0e + 16x1o + 16x2e + 16x3o', radial_MLP='[64, 64, 64]', hidden_irreps='128x0e + 128x1o', num_channels=128, max_L=1, gate='silu', scaling='rms_forces_scaling', avg_num_neighbors=1, compute_avg_num_neighbors=True, compute_stress=False, compute_forces=True, compute_dipoles=False, compute_nacs=False, train_file='benzene_train.xyz', valid_file=None, valid_fraction=0.1, test_file=None, test_dir=None, multi_processed_test=False, num_workers=0, pin_memory=True, atomic_numbers=None, mean=None, std=None, statistics_file=None, E0s='average', keep_isolated_atoms=False, energy_key='REF_energy', forces_key='REF_forces', virials_key='REF_virials', stress_key='REF_stress', dipoles_key='REF_dipoles', charges_key='REF_charges', loss='weighted', forces_weight=100.0, nacs_weight=100.0, swa_forces_weight=100.0, energy_weight=100.0, swa_energy_weight=1000.0, virials_weight=1.0, swa_virials_weight=10.0, stress_weight=1.0, swa_stress_weight=10.0, dipoles_weight=1.0, swa_dipole_weight=1.0, config_type_weights='{"Default":1.0}', huber_delta=0.01, optimizer='adam', beta=0.9, batch_size=20, valid_batch_size=10, lr=0.001, swa_lr=0.001, weight_decay=5e-07, amsgrad=True, scheduler='ReduceLROnPlateau', lr_factor=0.8, scheduler_patience=50, lr_scheduler_gamma=0.9993, swa=False, start_swa=None, ema=True, ema_decay=0.99, max_num_epochs=100, patience=2048, foundation_model=None, foundation_model_readout=True, eval_interval=1, keep_checkpoints=False, save_all_checkpoints=False, restart_latest=False, save_cpu=False, clip_grad=10.0, wandb=False, wandb_dir=None, wandb_project='', wandb_entity='', wandb_name='', wandb_log_hypers=['num_channels', 'max_L', 'correlation', 'lr', 'swa_lr', 'weight_decay', 'batch_size', 'max_num_epochs', 'start_swa', 'energy_weight', 'forces_weight'])
+2025-05-03 08:40:44.937 INFO: CUDA version: 12.1, CUDA device: 0
+2025-05-03 08:40:44.956 DEBUG: Popen(['git', 'version'], cwd=/home/rhyan/FieldMACE, stdin=None, shell=False, universal_newlines=False)
+2025-05-03 08:40:44.957 DEBUG: Popen(['git', 'version'], cwd=/home/rhyan/FieldMACE, stdin=None, shell=False, universal_newlines=False)
+2025-05-03 08:40:44.959 DEBUG: Popen(['git', 'cat-file', '--batch-check'], cwd=/home/rhyan/FieldMACE, stdin=<valid stream>, shell=False, universal_newlines=False)
+2025-05-03 08:40:44.961 DEBUG: Current Git commit: a7e5863781f29986b35b43c4fef1e119c42f21ed
+2025-05-03 08:40:44.961 INFO: 
+2025-05-03 08:40:44.961 INFO: ===========LOADING INPUT DATA===========
+2025-05-03 08:40:53.226 INFO: Using random 10% of training set for validation with indices saved in: ./valid_indices_100.txt
+2025-05-03 08:40:53.241 INFO: Atomic Numbers used: [1, 6]
+2025-05-03 08:40:53.241 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2025-05-03 08:40:53.241 INFO: Computing average Atomic Energies using least squares regression
+2025-05-03 08:40:53.278 INFO: Atomic Energies used (z: eV): {1: 0.057360763074352714, 6: 0.05736076307435251}
+2025-05-03 08:40:55.171 INFO: 
+2025-05-03 08:40:55.171 INFO: ===========MODEL DETAILS===========
+2025-05-03 08:40:56.032 INFO: Average number of neighbors: 10.8
+2025-05-03 08:40:56.032 INFO: During training the following quantities will be reported: energy, forces
+2025-05-03 08:40:56.779 INFO: Building model
+2025-05-03 08:40:56.779 INFO: Message passing with 128 channels and max_L=1 (128x0e + 128x1o)
+2025-05-03 08:40:56.779 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2025-05-03 08:40:56.779 INFO: 8 radial and 5 basis functions
+2025-05-03 08:40:56.779 INFO: Radial cutoff: 5.0 Å (total receptive field for each atom: 10.0 Å)
+2025-05-03 08:40:56.779 INFO: Distance transform for radial basis functions: None
+2025-05-03 08:42:33.437 INFO: ===========VERIFYING SETTINGS===========
+2025-05-03 08:42:33.437 INFO: MACE version: 0.3.6
+2025-05-03 08:42:33.437 DEBUG: Configuration: Namespace(config=None, name='model1', seed=100, work_dir='.', nacs_key='smooth_nacs', log_dir='./logs', model_dir='.', checkpoints_dir='./checkpoints', results_dir='./results', downloads_dir='./downloads', device='cuda', default_dtype='float32', distributed=False, log_level='INFO', n_energies=1, error_table='EnergyNacsDipoleMAE', model='AttentionFieldEMACE', r_max=5.0, radial_type='bessel', num_radial_basis=8, num_cutoff_basis=5, pair_repulsion=False, distance_transform='None', interaction='RealAgnosticResidualInteractionBlock', interaction_first='RealAgnosticResidualInteractionBlock', max_ell=3, correlation=3, num_interactions=2, MLP_irreps='128x0e', field_irreps='16x0e + 16x1o + 16x2e + 16x3o', radial_MLP='[64, 64, 64]', hidden_irreps='128x0e + 128x1o', num_channels=128, max_L=1, gate='silu', scaling='rms_forces_scaling', avg_num_neighbors=1, compute_avg_num_neighbors=True, compute_stress=False, compute_forces=True, compute_dipoles=False, compute_nacs=False, train_file='benzene_train.xyz', valid_file=None, valid_fraction=0.1, test_file=None, test_dir=None, multi_processed_test=False, num_workers=0, pin_memory=True, atomic_numbers=None, mean=None, std=None, statistics_file=None, E0s='average', keep_isolated_atoms=False, energy_key='REF_energy', forces_key='REF_forces', virials_key='REF_virials', stress_key='REF_stress', dipoles_key='REF_dipoles', charges_key='REF_charges', loss='weighted', forces_weight=100.0, nacs_weight=100.0, swa_forces_weight=100.0, energy_weight=100.0, swa_energy_weight=1000.0, virials_weight=1.0, swa_virials_weight=10.0, stress_weight=1.0, swa_stress_weight=10.0, dipoles_weight=1.0, swa_dipole_weight=1.0, config_type_weights='{"Default":1.0}', huber_delta=0.01, optimizer='adam', beta=0.9, batch_size=20, valid_batch_size=10, lr=0.001, swa_lr=0.001, weight_decay=5e-07, amsgrad=True, scheduler='ReduceLROnPlateau', lr_factor=0.8, scheduler_patience=50, lr_scheduler_gamma=0.9993, swa=False, start_swa=None, ema=True, ema_decay=0.99, max_num_epochs=100, patience=2048, foundation_model=None, foundation_model_readout=True, eval_interval=1, keep_checkpoints=False, save_all_checkpoints=False, restart_latest=False, save_cpu=False, clip_grad=10.0, wandb=False, wandb_dir=None, wandb_project='', wandb_entity='', wandb_name='', wandb_log_hypers=['num_channels', 'max_L', 'correlation', 'lr', 'swa_lr', 'weight_decay', 'batch_size', 'max_num_epochs', 'start_swa', 'energy_weight', 'forces_weight'])
+2025-05-03 08:42:33.451 INFO: CUDA version: 12.1, CUDA device: 0
+2025-05-03 08:42:33.469 DEBUG: Popen(['git', 'version'], cwd=/home/rhyan/FieldMACE, stdin=None, shell=False, universal_newlines=False)
+2025-05-03 08:42:33.470 DEBUG: Popen(['git', 'version'], cwd=/home/rhyan/FieldMACE, stdin=None, shell=False, universal_newlines=False)
+2025-05-03 08:42:33.472 DEBUG: Popen(['git', 'cat-file', '--batch-check'], cwd=/home/rhyan/FieldMACE, stdin=<valid stream>, shell=False, universal_newlines=False)
+2025-05-03 08:42:33.473 DEBUG: Current Git commit: a7e5863781f29986b35b43c4fef1e119c42f21ed
+2025-05-03 08:42:33.473 INFO: 
+2025-05-03 08:42:33.473 INFO: ===========LOADING INPUT DATA===========
+2025-05-03 08:42:41.739 INFO: Using random 10% of training set for validation with indices saved in: ./valid_indices_100.txt
+2025-05-03 08:42:41.753 INFO: Atomic Numbers used: [1, 6]
+2025-05-03 08:42:41.753 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2025-05-03 08:42:41.753 INFO: Computing average Atomic Energies using least squares regression
+2025-05-03 08:42:41.793 INFO: Atomic Energies used (z: eV): {1: 0.057360763074352714, 6: 0.05736076307435251}
+2025-05-03 08:42:43.673 INFO: 
+2025-05-03 08:42:43.674 INFO: ===========MODEL DETAILS===========
+2025-05-03 08:42:44.527 INFO: Average number of neighbors: 10.8
+2025-05-03 08:42:44.527 INFO: During training the following quantities will be reported: energy, forces
+2025-05-03 08:42:45.282 INFO: Building model
+2025-05-03 08:42:45.282 INFO: Message passing with 128 channels and max_L=1 (128x0e + 128x1o)
+2025-05-03 08:42:45.282 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2025-05-03 08:42:45.282 INFO: 8 radial and 5 basis functions
+2025-05-03 08:42:45.283 INFO: Radial cutoff: 5.0 Å (total receptive field for each atom: 10.0 Å)
+2025-05-03 08:42:45.283 INFO: Distance transform for radial basis functions: None
+2025-05-03 08:42:46.573 DEBUG: AttentionFieldEMACE(
+  (node_embedding): LinearNodeEmbeddingBlock(
+    (linear): Linear(2x0e -> 128x0e | 256 weights)
+  )
+  (radial_embedding): RadialEmbeddingBlock(
+    (bessel_fn): BesselBasis(r_max=5.0, num_basis=8, trainable=False)
+    (cutoff_fn): PolynomialCutoff(p=5.0, r_max=5.0)
+  )
+  (multipole_radial_embedding): MultipoleRadialEmbeddingBlock(
+    (rbf_layer): GaussianBasis()
+  )
+  (multipole_spherical_harmonics): SphericalHarmonics()
+  (spherical_harmonics): SphericalHarmonics()
+  (atomic_energies_fn): AtomicEnergiesBlock(energies=[0.0574, 0.0574])
+  (interactions): ModuleList(
+    (0): RealAgnosticInteractionBlock(
+      (linear_up): Linear(128x0e -> 128x0e | 16384 weights)
+      (conv_tp): TensorProduct(128x0e x 1x0e+1x1o+1x2e+1x3o -> 128x0e+128x1o+128x2e+128x3o | 512 paths | 512 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 512]
+      (linear): Linear(128x0e+128x1o+128x2e+128x3o -> 128x0e+128x1o+128x2e+128x3o | 65536 weights)
+      (skip_tp): FullyConnectedTensorProduct(128x0e+128x1o+128x2e+128x3o x 2x0e -> 128x0e+128x1o+128x2e+128x3o | 131072 paths | 131072 weights)
+      (reshape): reshape_irreps()
+    )
+    (1): RealAgnosticResidualInteractionBlock(
+      (linear_up): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+      (conv_tp): TensorProduct(128x0e+128x1o x 1x0e+1x1o+1x2e+1x3o -> 256x0e+384x1o+384x2e+256x3o | 1280 paths | 1280 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 1280]
+      (linear): Linear(256x0e+384x1o+384x2e+256x3o -> 128x0e+128x1o+128x2e+128x3o | 163840 weights)
+      (skip_tp): FullyConnectedTensorProduct(128x0e+128x1o x 2x0e -> 128x0e | 32768 paths | 32768 weights)
+      (reshape): reshape_irreps()
+    )
+  )
+  (field_interactions): ModuleList(
+    (0): ElectrostaticFieldInteractionBlock(
+      (linear_up): Linear(128x0e -> 128x0e | 16384 weights)
+      (conv_tp): TensorProduct(128x0e x 16x0e+16x1o+16x2e+16x3o -> 128x0e+128x1o+128x2e+128x3o | 8192 paths | 8192 weights)
+      (linear): Linear(128x0e+128x1o+128x2e+128x3o -> 128x0e+128x1o+128x2e+128x3o | 65536 weights)
+      (reshape): reshape_irreps()
+    )
+    (1): ElectrostaticFieldInteractionBlock(
+      (linear_up): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+      (conv_tp): TensorProduct(128x0e+128x1o x 16x0e+16x1o+16x2e+16x3o -> 256x0e+384x1o+384x2e+256x3o | 20480 paths | 20480 weights)
+      (linear): Linear(256x0e+384x1o+384x2e+256x3o -> 128x0e+128x1o+128x2e+128x3o | 163840 weights)
+      (reshape): reshape_irreps()
+    )
+  )
+  (products): ModuleList(
+    (0): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x4x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+          (1): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x6x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+    )
+    (1): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x4x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(128x0e -> 128x0e | 16384 weights)
+    )
+  )
+  (readouts): ModuleList(
+    (0): LinearReadoutBlock(
+      (linear): Linear(128x0e+128x1o -> 1x0e | 128 weights)
+    )
+    (1): NonLinearReadoutBlock(
+      (linear_1): Linear(128x0e -> 128x0e | 16384 weights)
+      (non_linearity): Activation [x] (128x0e -> 128x0e)
+      (linear_2): Linear(128x0e -> 1x0e | 128 weights)
+    )
+  )
+  (multipole_attention): ModuleList(
+    (0-1): 2 x RotInvariantAttention(
+      (to_queries): Linear(1x0e+1x1o+1x2e+1x3o -> 16x0e+16x1o+16x2e+16x3o | 64 weights)
+      (to_keys): Linear(128x0e -> 16x0e+16x1o+16x2e+16x3o | 2048 weights)
+      (to_values): Linear(1x0e+1x1o+1x2e+1x3o -> 16x0e+16x1o+16x2e+16x3o | 64 weights)
+      (scores_multi): Linear(16x0e+16x1o+16x2e+16x3o -> 1x0e | 16 weights)
+      (to_out): Linear(16x0e+16x1o+16x2e+16x3o -> 16x0e+16x1o+16x2e+16x3o | 1024 weights)
+    )
+  )
+)
+2025-05-03 08:42:46.575 INFO: Total number of parameters: 983392
+2025-05-03 08:42:46.575 INFO: 
+2025-05-03 08:42:46.575 INFO: ===========OPTIMIZER INFORMATION===========
+2025-05-03 08:42:46.575 INFO: Using ADAM as parameter optimizer
+2025-05-03 08:42:46.575 INFO: Batch size: 20
+2025-05-03 08:42:46.575 INFO: Using Exponential Moving Average with decay: 0.99
+2025-05-03 08:42:46.575 INFO: Number of gradient updates: 40500
+2025-05-03 08:42:46.575 INFO: Learning rate: 0.001, weight decay: 5e-07
+2025-05-03 08:42:46.575 INFO: WeightedEnergyForcesNacsDipoleLoss(energy_weight=100.000, forces_weight=100.000, dipole_weight=1.000)
+2025-05-03 08:42:46.576 INFO: Using gradient clipping with tolerance=10.000
+2025-05-03 08:42:46.576 INFO: 
+2025-05-03 08:42:46.576 INFO: ===========TRAINING===========
+2025-05-03 08:42:46.576 INFO: Started training, reporting errors on validation set
+2025-05-03 08:42:46.576 INFO: Loss metrics on validation set
+2025-05-03 08:43:57.609 INFO: ===========VERIFYING SETTINGS===========
+2025-05-03 08:43:57.609 INFO: MACE version: 0.3.6
+2025-05-03 08:43:57.609 DEBUG: Configuration: Namespace(config=None, name='model1', seed=100, work_dir='.', nacs_key='smooth_nacs', log_dir='./logs', model_dir='.', checkpoints_dir='./checkpoints', results_dir='./results', downloads_dir='./downloads', device='cuda', default_dtype='float32', distributed=False, log_level='INFO', n_energies=1, error_table='EnergyNacsDipoleMAE', model='AttentionFieldEMACE', r_max=5.0, radial_type='bessel', num_radial_basis=8, num_cutoff_basis=5, pair_repulsion=False, distance_transform='None', interaction='RealAgnosticResidualInteractionBlock', interaction_first='RealAgnosticResidualInteractionBlock', max_ell=3, correlation=3, num_interactions=2, MLP_irreps='128x0e', field_irreps='16x0e + 16x1o + 16x2e + 16x3o', radial_MLP='[64, 64, 64]', hidden_irreps='128x0e + 128x1o', num_channels=128, max_L=1, gate='silu', scaling='rms_forces_scaling', avg_num_neighbors=1, compute_avg_num_neighbors=True, compute_stress=False, compute_forces=True, compute_dipoles=False, compute_nacs=False, train_file='benzene_train.xyz', valid_file=None, valid_fraction=0.1, test_file=None, test_dir=None, multi_processed_test=False, num_workers=0, pin_memory=True, atomic_numbers=None, mean=None, std=None, statistics_file=None, E0s='average', keep_isolated_atoms=False, energy_key='REF_energy', forces_key='REF_forces', virials_key='REF_virials', stress_key='REF_stress', dipoles_key='REF_dipoles', charges_key='REF_charges', loss='weighted', forces_weight=100.0, nacs_weight=100.0, swa_forces_weight=100.0, energy_weight=100.0, swa_energy_weight=1000.0, virials_weight=1.0, swa_virials_weight=10.0, stress_weight=1.0, swa_stress_weight=10.0, dipoles_weight=1.0, swa_dipole_weight=1.0, config_type_weights='{"Default":1.0}', huber_delta=0.01, optimizer='adam', beta=0.9, batch_size=20, valid_batch_size=10, lr=0.001, swa_lr=0.001, weight_decay=5e-07, amsgrad=True, scheduler='ReduceLROnPlateau', lr_factor=0.8, scheduler_patience=50, lr_scheduler_gamma=0.9993, swa=False, start_swa=None, ema=True, ema_decay=0.99, max_num_epochs=100, patience=2048, foundation_model=None, foundation_model_readout=True, eval_interval=1, keep_checkpoints=False, save_all_checkpoints=False, restart_latest=False, save_cpu=False, clip_grad=10.0, wandb=False, wandb_dir=None, wandb_project='', wandb_entity='', wandb_name='', wandb_log_hypers=['num_channels', 'max_L', 'correlation', 'lr', 'swa_lr', 'weight_decay', 'batch_size', 'max_num_epochs', 'start_swa', 'energy_weight', 'forces_weight'])
+2025-05-03 08:43:57.622 INFO: CUDA version: 12.1, CUDA device: 0
+2025-05-03 08:43:57.640 DEBUG: Popen(['git', 'version'], cwd=/home/rhyan/FieldMACE, stdin=None, shell=False, universal_newlines=False)
+2025-05-03 08:43:57.641 DEBUG: Popen(['git', 'version'], cwd=/home/rhyan/FieldMACE, stdin=None, shell=False, universal_newlines=False)
+2025-05-03 08:43:57.644 DEBUG: Popen(['git', 'cat-file', '--batch-check'], cwd=/home/rhyan/FieldMACE, stdin=<valid stream>, shell=False, universal_newlines=False)
+2025-05-03 08:43:57.645 DEBUG: Current Git commit: a7e5863781f29986b35b43c4fef1e119c42f21ed
+2025-05-03 08:43:57.645 INFO: 
+2025-05-03 08:43:57.645 INFO: ===========LOADING INPUT DATA===========
+2025-05-03 08:44:05.911 INFO: Using random 10% of training set for validation with indices saved in: ./valid_indices_100.txt
+2025-05-03 08:44:05.925 INFO: Atomic Numbers used: [1, 6]
+2025-05-03 08:44:05.925 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2025-05-03 08:44:05.925 INFO: Computing average Atomic Energies using least squares regression
+2025-05-03 08:44:05.966 INFO: Atomic Energies used (z: eV): {1: 0.057360763074352714, 6: 0.05736076307435251}
+2025-05-03 08:44:07.862 INFO: 
+2025-05-03 08:44:07.862 INFO: ===========MODEL DETAILS===========
+2025-05-03 08:44:08.707 INFO: Average number of neighbors: 10.8
+2025-05-03 08:44:08.707 INFO: During training the following quantities will be reported: energy, forces
+2025-05-03 08:44:09.453 INFO: Building model
+2025-05-03 08:44:09.453 INFO: Message passing with 128 channels and max_L=1 (128x0e + 128x1o)
+2025-05-03 08:44:09.453 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2025-05-03 08:44:09.453 INFO: 8 radial and 5 basis functions
+2025-05-03 08:44:09.453 INFO: Radial cutoff: 5.0 Å (total receptive field for each atom: 10.0 Å)
+2025-05-03 08:44:09.453 INFO: Distance transform for radial basis functions: None
+2025-05-03 08:44:10.697 DEBUG: AttentionFieldEMACE(
+  (node_embedding): LinearNodeEmbeddingBlock(
+    (linear): Linear(2x0e -> 128x0e | 256 weights)
+  )
+  (radial_embedding): RadialEmbeddingBlock(
+    (bessel_fn): BesselBasis(r_max=5.0, num_basis=8, trainable=False)
+    (cutoff_fn): PolynomialCutoff(p=5.0, r_max=5.0)
+  )
+  (multipole_radial_embedding): MultipoleRadialEmbeddingBlock(
+    (rbf_layer): GaussianBasis()
+  )
+  (multipole_spherical_harmonics): SphericalHarmonics()
+  (spherical_harmonics): SphericalHarmonics()
+  (atomic_energies_fn): AtomicEnergiesBlock(energies=[0.0574, 0.0574])
+  (interactions): ModuleList(
+    (0): RealAgnosticInteractionBlock(
+      (linear_up): Linear(128x0e -> 128x0e | 16384 weights)
+      (conv_tp): TensorProduct(128x0e x 1x0e+1x1o+1x2e+1x3o -> 128x0e+128x1o+128x2e+128x3o | 512 paths | 512 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 512]
+      (linear): Linear(128x0e+128x1o+128x2e+128x3o -> 128x0e+128x1o+128x2e+128x3o | 65536 weights)
+      (skip_tp): FullyConnectedTensorProduct(128x0e+128x1o+128x2e+128x3o x 2x0e -> 128x0e+128x1o+128x2e+128x3o | 131072 paths | 131072 weights)
+      (reshape): reshape_irreps()
+    )
+    (1): RealAgnosticResidualInteractionBlock(
+      (linear_up): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+      (conv_tp): TensorProduct(128x0e+128x1o x 1x0e+1x1o+1x2e+1x3o -> 256x0e+384x1o+384x2e+256x3o | 1280 paths | 1280 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 1280]
+      (linear): Linear(256x0e+384x1o+384x2e+256x3o -> 128x0e+128x1o+128x2e+128x3o | 163840 weights)
+      (skip_tp): FullyConnectedTensorProduct(128x0e+128x1o x 2x0e -> 128x0e | 32768 paths | 32768 weights)
+      (reshape): reshape_irreps()
+    )
+  )
+  (field_interactions): ModuleList(
+    (0): ElectrostaticFieldInteractionBlock(
+      (linear_up): Linear(128x0e -> 128x0e | 16384 weights)
+      (conv_tp): TensorProduct(128x0e x 16x0e+16x1o+16x2e+16x3o -> 128x0e+128x1o+128x2e+128x3o | 8192 paths | 8192 weights)
+      (linear): Linear(128x0e+128x1o+128x2e+128x3o -> 128x0e+128x1o+128x2e+128x3o | 65536 weights)
+      (reshape): reshape_irreps()
+    )
+    (1): ElectrostaticFieldInteractionBlock(
+      (linear_up): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+      (conv_tp): TensorProduct(128x0e+128x1o x 16x0e+16x1o+16x2e+16x3o -> 256x0e+384x1o+384x2e+256x3o | 20480 paths | 20480 weights)
+      (linear): Linear(256x0e+384x1o+384x2e+256x3o -> 128x0e+128x1o+128x2e+128x3o | 163840 weights)
+      (reshape): reshape_irreps()
+    )
+  )
+  (products): ModuleList(
+    (0): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x4x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+          (1): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x6x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+    )
+    (1): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x4x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(128x0e -> 128x0e | 16384 weights)
+    )
+  )
+  (readouts): ModuleList(
+    (0): LinearReadoutBlock(
+      (linear): Linear(128x0e+128x1o -> 1x0e | 128 weights)
+    )
+    (1): NonLinearReadoutBlock(
+      (linear_1): Linear(128x0e -> 128x0e | 16384 weights)
+      (non_linearity): Activation [x] (128x0e -> 128x0e)
+      (linear_2): Linear(128x0e -> 1x0e | 128 weights)
+    )
+  )
+  (multipole_attention): ModuleList(
+    (0-1): 2 x RotInvariantAttention(
+      (to_queries): Linear(1x0e+1x1o+1x2e+1x3o -> 16x0e+16x1o+16x2e+16x3o | 64 weights)
+      (to_keys): Linear(128x0e -> 16x0e+16x1o+16x2e+16x3o | 2048 weights)
+      (to_values): Linear(1x0e+1x1o+1x2e+1x3o -> 16x0e+16x1o+16x2e+16x3o | 64 weights)
+      (scores_multi): Linear(16x0e+16x1o+16x2e+16x3o -> 1x0e | 16 weights)
+      (to_out): Linear(16x0e+16x1o+16x2e+16x3o -> 16x0e+16x1o+16x2e+16x3o | 1024 weights)
+    )
+  )
+)
+2025-05-03 08:44:10.699 INFO: Total number of parameters: 983392
+2025-05-03 08:44:10.699 INFO: 
+2025-05-03 08:44:10.699 INFO: ===========OPTIMIZER INFORMATION===========
+2025-05-03 08:44:10.699 INFO: Using ADAM as parameter optimizer
+2025-05-03 08:44:10.699 INFO: Batch size: 20
+2025-05-03 08:44:10.699 INFO: Using Exponential Moving Average with decay: 0.99
+2025-05-03 08:44:10.699 INFO: Number of gradient updates: 40500
+2025-05-03 08:44:10.699 INFO: Learning rate: 0.001, weight decay: 5e-07
+2025-05-03 08:44:10.699 INFO: WeightedEnergyForcesNacsDipoleLoss(energy_weight=100.000, forces_weight=100.000, dipole_weight=1.000)
+2025-05-03 08:44:10.700 INFO: Using gradient clipping with tolerance=10.000
+2025-05-03 08:44:10.700 INFO: 
+2025-05-03 08:44:10.700 INFO: ===========TRAINING===========
+2025-05-03 08:44:10.701 INFO: Started training, reporting errors on validation set
+2025-05-03 08:44:10.701 INFO: Loss metrics on validation set
+2025-05-03 08:46:57.578 INFO: ===========VERIFYING SETTINGS===========
+2025-05-03 08:46:57.578 INFO: MACE version: 0.3.6
+2025-05-03 08:46:57.578 DEBUG: Configuration: Namespace(config=None, name='model1', seed=100, work_dir='.', nacs_key='smooth_nacs', log_dir='./logs', model_dir='.', checkpoints_dir='./checkpoints', results_dir='./results', downloads_dir='./downloads', device='cuda', default_dtype='float32', distributed=False, log_level='INFO', n_energies=1, error_table='EnergyNacsDipoleMAE', model='AttentionFieldEMACE', r_max=5.0, radial_type='bessel', num_radial_basis=8, num_cutoff_basis=5, pair_repulsion=False, distance_transform='None', interaction='RealAgnosticResidualInteractionBlock', interaction_first='RealAgnosticResidualInteractionBlock', max_ell=3, correlation=3, num_interactions=2, MLP_irreps='128x0e', field_irreps='16x0e + 16x1o + 16x2e + 16x3o', radial_MLP='[64, 64, 64]', hidden_irreps='128x0e + 128x1o', num_channels=128, max_L=1, gate='silu', scaling='rms_forces_scaling', avg_num_neighbors=1, compute_avg_num_neighbors=True, compute_stress=False, compute_forces=True, compute_dipoles=False, compute_nacs=False, train_file='benzene_train.xyz', valid_file=None, valid_fraction=0.1, test_file=None, test_dir=None, multi_processed_test=False, num_workers=0, pin_memory=True, atomic_numbers=None, mean=None, std=None, statistics_file=None, E0s='average', keep_isolated_atoms=False, energy_key='REF_energy', forces_key='REF_forces', virials_key='REF_virials', stress_key='REF_stress', dipoles_key='REF_dipoles', charges_key='REF_charges', loss='weighted', forces_weight=100.0, nacs_weight=100.0, swa_forces_weight=100.0, energy_weight=100.0, swa_energy_weight=1000.0, virials_weight=1.0, swa_virials_weight=10.0, stress_weight=1.0, swa_stress_weight=10.0, dipoles_weight=1.0, swa_dipole_weight=1.0, config_type_weights='{"Default":1.0}', huber_delta=0.01, optimizer='adam', beta=0.9, batch_size=20, valid_batch_size=10, lr=0.001, swa_lr=0.001, weight_decay=5e-07, amsgrad=True, scheduler='ReduceLROnPlateau', lr_factor=0.8, scheduler_patience=50, lr_scheduler_gamma=0.9993, swa=False, start_swa=None, ema=True, ema_decay=0.99, max_num_epochs=100, patience=2048, foundation_model=None, foundation_model_readout=True, eval_interval=1, keep_checkpoints=False, save_all_checkpoints=False, restart_latest=False, save_cpu=False, clip_grad=10.0, wandb=False, wandb_dir=None, wandb_project='', wandb_entity='', wandb_name='', wandb_log_hypers=['num_channels', 'max_L', 'correlation', 'lr', 'swa_lr', 'weight_decay', 'batch_size', 'max_num_epochs', 'start_swa', 'energy_weight', 'forces_weight'])
+2025-05-03 08:46:57.591 INFO: CUDA version: 12.1, CUDA device: 0
+2025-05-03 08:46:57.610 DEBUG: Popen(['git', 'version'], cwd=/home/rhyan/FieldMACE, stdin=None, shell=False, universal_newlines=False)
+2025-05-03 08:46:57.611 DEBUG: Popen(['git', 'version'], cwd=/home/rhyan/FieldMACE, stdin=None, shell=False, universal_newlines=False)
+2025-05-03 08:46:57.614 DEBUG: Popen(['git', 'cat-file', '--batch-check'], cwd=/home/rhyan/FieldMACE, stdin=<valid stream>, shell=False, universal_newlines=False)
+2025-05-03 08:46:57.615 DEBUG: Current Git commit: a7e5863781f29986b35b43c4fef1e119c42f21ed
+2025-05-03 08:46:57.615 INFO: 
+2025-05-03 08:46:57.615 INFO: ===========LOADING INPUT DATA===========
+2025-05-03 08:47:05.921 INFO: Using random 10% of training set for validation with indices saved in: ./valid_indices_100.txt
+2025-05-03 08:47:05.936 INFO: Atomic Numbers used: [1, 6]
+2025-05-03 08:47:05.936 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2025-05-03 08:47:05.936 INFO: Computing average Atomic Energies using least squares regression
+2025-05-03 08:47:05.974 INFO: Atomic Energies used (z: eV): {1: 0.057360763074352714, 6: 0.05736076307435251}
+2025-05-03 08:47:07.855 INFO: 
+2025-05-03 08:47:07.855 INFO: ===========MODEL DETAILS===========
+2025-05-03 08:47:08.693 INFO: Average number of neighbors: 10.8
+2025-05-03 08:47:08.693 INFO: During training the following quantities will be reported: energy, forces
+2025-05-03 08:47:09.427 INFO: Building model
+2025-05-03 08:47:09.427 INFO: Message passing with 128 channels and max_L=1 (128x0e + 128x1o)
+2025-05-03 08:47:09.427 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2025-05-03 08:47:09.427 INFO: 8 radial and 5 basis functions
+2025-05-03 08:47:09.427 INFO: Radial cutoff: 5.0 Å (total receptive field for each atom: 10.0 Å)
+2025-05-03 08:47:09.427 INFO: Distance transform for radial basis functions: None
+2025-05-03 08:47:10.651 DEBUG: AttentionFieldEMACE(
+  (node_embedding): LinearNodeEmbeddingBlock(
+    (linear): Linear(2x0e -> 128x0e | 256 weights)
+  )
+  (radial_embedding): RadialEmbeddingBlock(
+    (bessel_fn): BesselBasis(r_max=5.0, num_basis=8, trainable=False)
+    (cutoff_fn): PolynomialCutoff(p=5.0, r_max=5.0)
+  )
+  (multipole_radial_embedding): MultipoleRadialEmbeddingBlock(
+    (rbf_layer): GaussianBasis()
+  )
+  (multipole_spherical_harmonics): SphericalHarmonics()
+  (spherical_harmonics): SphericalHarmonics()
+  (atomic_energies_fn): AtomicEnergiesBlock(energies=[0.0574, 0.0574])
+  (interactions): ModuleList(
+    (0): RealAgnosticInteractionBlock(
+      (linear_up): Linear(128x0e -> 128x0e | 16384 weights)
+      (conv_tp): TensorProduct(128x0e x 1x0e+1x1o+1x2e+1x3o -> 128x0e+128x1o+128x2e+128x3o | 512 paths | 512 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 512]
+      (linear): Linear(128x0e+128x1o+128x2e+128x3o -> 128x0e+128x1o+128x2e+128x3o | 65536 weights)
+      (skip_tp): FullyConnectedTensorProduct(128x0e+128x1o+128x2e+128x3o x 2x0e -> 128x0e+128x1o+128x2e+128x3o | 131072 paths | 131072 weights)
+      (reshape): reshape_irreps()
+    )
+    (1): RealAgnosticResidualInteractionBlock(
+      (linear_up): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+      (conv_tp): TensorProduct(128x0e+128x1o x 1x0e+1x1o+1x2e+1x3o -> 256x0e+384x1o+384x2e+256x3o | 1280 paths | 1280 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 1280]
+      (linear): Linear(256x0e+384x1o+384x2e+256x3o -> 128x0e+128x1o+128x2e+128x3o | 163840 weights)
+      (skip_tp): FullyConnectedTensorProduct(128x0e+128x1o x 2x0e -> 128x0e | 32768 paths | 32768 weights)
+      (reshape): reshape_irreps()
+    )
+  )
+  (field_interactions): ModuleList(
+    (0): ElectrostaticFieldInteractionBlock(
+      (linear_up): Linear(128x0e -> 128x0e | 16384 weights)
+      (conv_tp): TensorProduct(128x0e x 16x0e+16x1o+16x2e+16x3o -> 128x0e+128x1o+128x2e+128x3o | 8192 paths | 8192 weights)
+      (linear): Linear(128x0e+128x1o+128x2e+128x3o -> 128x0e+128x1o+128x2e+128x3o | 65536 weights)
+      (reshape): reshape_irreps()
+    )
+    (1): ElectrostaticFieldInteractionBlock(
+      (linear_up): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+      (conv_tp): TensorProduct(128x0e+128x1o x 16x0e+16x1o+16x2e+16x3o -> 256x0e+384x1o+384x2e+256x3o | 20480 paths | 20480 weights)
+      (linear): Linear(256x0e+384x1o+384x2e+256x3o -> 128x0e+128x1o+128x2e+128x3o | 163840 weights)
+      (reshape): reshape_irreps()
+    )
+  )
+  (products): ModuleList(
+    (0): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x4x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+          (1): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x6x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+    )
+    (1): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float32 of size 2x4x128 (cuda:0)]
+                (1): Parameter containing: [torch.float32 of size 2x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(128x0e -> 128x0e | 16384 weights)
+    )
+  )
+  (readouts): ModuleList(
+    (0): LinearReadoutBlock(
+      (linear): Linear(128x0e+128x1o -> 1x0e | 128 weights)
+    )
+    (1): NonLinearReadoutBlock(
+      (linear_1): Linear(128x0e -> 128x0e | 16384 weights)
+      (non_linearity): Activation [x] (128x0e -> 128x0e)
+      (linear_2): Linear(128x0e -> 1x0e | 128 weights)
+    )
+  )
+  (multipole_attention): ModuleList(
+    (0): RotInvariantAttention(
+      (to_queries): Linear(1x0e+1x1o+1x2e+1x3o -> 16x0e+16x1o+16x2e+16x3o | 64 weights)
+      (to_keys): Linear(128x0e -> 16x0e+16x1o+16x2e+16x3o | 2048 weights)
+      (to_values): Linear(1x0e+1x1o+1x2e+1x3o -> 16x0e+16x1o+16x2e+16x3o | 64 weights)
+      (scores_multi): Linear(16x0e+16x1o+16x2e+16x3o -> 1x0e | 16 weights)
+      (to_out): Linear(16x0e+16x1o+16x2e+16x3o -> 16x0e+16x1o+16x2e+16x3o | 1024 weights)
+    )
+    (1): RotInvariantAttention(
+      (to_queries): Linear(1x0e+1x1o+1x2e+1x3o -> 16x0e+16x1o+16x2e+16x3o | 64 weights)
+      (to_keys): Linear(128x0e+128x1o -> 16x0e+16x1o+16x2e+16x3o | 4096 weights)
+      (to_values): Linear(1x0e+1x1o+1x2e+1x3o -> 16x0e+16x1o+16x2e+16x3o | 64 weights)
+      (scores_multi): Linear(16x0e+16x1o+16x2e+16x3o -> 1x0e | 16 weights)
+      (to_out): Linear(16x0e+16x1o+16x2e+16x3o -> 16x0e+16x1o+16x2e+16x3o | 1024 weights)
+    )
+  )
+)
+2025-05-03 08:47:10.652 INFO: Total number of parameters: 985440
+2025-05-03 08:47:10.652 INFO: 
+2025-05-03 08:47:10.652 INFO: ===========OPTIMIZER INFORMATION===========
+2025-05-03 08:47:10.653 INFO: Using ADAM as parameter optimizer
+2025-05-03 08:47:10.653 INFO: Batch size: 20
+2025-05-03 08:47:10.653 INFO: Using Exponential Moving Average with decay: 0.99
+2025-05-03 08:47:10.653 INFO: Number of gradient updates: 40500
+2025-05-03 08:47:10.653 INFO: Learning rate: 0.001, weight decay: 5e-07
+2025-05-03 08:47:10.653 INFO: WeightedEnergyForcesNacsDipoleLoss(energy_weight=100.000, forces_weight=100.000, dipole_weight=1.000)
+2025-05-03 08:47:10.654 INFO: Using gradient clipping with tolerance=10.000
+2025-05-03 08:47:10.654 INFO: 
+2025-05-03 08:47:10.654 INFO: ===========TRAINING===========
+2025-05-03 08:47:10.654 INFO: Started training, reporting errors on validation set
+2025-05-03 08:47:10.654 INFO: Loss metrics on validation set
+2025-05-03 08:47:19.371 DEBUG: Saving info: ./results/model1_run-100_train.txt
+2025-05-03 08:47:19.566 DEBUG: Saving info: ./results/model1_run-100_train.txt

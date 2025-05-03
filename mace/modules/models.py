@@ -1132,8 +1132,6 @@ class AttentionFieldEMACE(torch.nn.Module):
             radial_MLP=radial_MLP,
         )
 
-        self.multipole_attention = RotInvariantAttention(irreps_in = '0e + 1o + 2e + 3o', irreps_hidden = field_irreps, irreps_out = field_irreps, node_feats_irreps=node_feats_irreps)
-
         electrofield_inter = ElectrostaticFieldInteractionBlock(
                 node_feats_irreps=node_feats_irreps,
                 target_irreps=interaction_irreps,
@@ -1163,6 +1161,10 @@ class AttentionFieldEMACE(torch.nn.Module):
         self.products = torch.nn.ModuleList([prod])
 
         self.readouts = torch.nn.ModuleList()
+
+        self.multipole_attention = torch.nn.ModuleList([RotInvariantAttention(irreps_in = '0e + 1o + 2e + 3o', irreps_hidden = field_irreps, irreps_out = field_irreps, 
+            node_feats_irreps=node_feats_irreps)])
+
         if compute_dipoles:
             self.readouts.append(LinearDipoleReadoutBlock(hidden_irreps, n_energies, compute_nacs))
         else:
@@ -1203,7 +1205,13 @@ class AttentionFieldEMACE(torch.nn.Module):
                 use_sc=True,
             )
 
+            multipole_attention = RotInvariantAttention(irreps_in = '0e + 1o + 2e + 3o', irreps_hidden = field_irreps, irreps_out = field_irreps, 
+                node_feats_irreps=hidden_irreps)
+
             self.products.append(prod)
+
+            self.multipole_attention.append(multipole_attention)
+
             if i == num_interactions - 2:
                 if compute_dipoles:
                     self.readouts.append(NonLinearDipoleReadoutBlock(hidden_irreps_out, MLP_irreps, gate, n_energies, compute_nacs))
@@ -1251,9 +1259,7 @@ class AttentionFieldEMACE(torch.nn.Module):
         )
         mm_spherical_harmonics = self.multipole_spherical_harmonics(data["mm_positions"])
         multipole_moments = _calc_multipole_moments(data["mm_charges"], data["mm_positions"], mm_spherical_harmonics, self.multipole_max_ell)
-        attention_aggregated_moments = self.multipole_attention(multipole_moments, node_feats)
-        multipoles = compute_multipole_expansion_attention(positions_internal=data["positions"], multipoles=attention_aggregated_moments, batch=data["batch"], lmax=self.lmax)
-        multipole_feats = self.multipole_radial_embedding(multipoles).squeeze()
+
         pair_node_energy = torch.zeros_like(node_e0)
         pair_energy = torch.zeros_like(e0)
         # Interactions
@@ -1263,8 +1269,8 @@ class AttentionFieldEMACE(torch.nn.Module):
         node_nacs_list = []
         node_dipoles_list = []
         
-        for interaction, product, readout, field_interaction in zip(
-            self.interactions, self.products, self.readouts, self.field_interactions,
+        for interaction, product, readout, field_interaction, multipole_attention in zip(
+            self.interactions, self.products, self.readouts, self.field_interactions, self.multipole_attention,
         ):
             intermed_node_feats, sc = interaction(
                 node_attrs=data["node_attrs"],
@@ -1273,6 +1279,10 @@ class AttentionFieldEMACE(torch.nn.Module):
                 edge_feats=edge_feats,
                 edge_index=data["edge_index"],
             )
+
+            attention_aggregated_moments = multipole_attention(multipole_moments, node_feats)
+            multipoles = compute_multipole_expansion_attention(positions_internal=data["positions"], multipoles=attention_aggregated_moments, batch=data["batch"], lmax=self.lmax)
+            multipole_feats = self.multipole_radial_embedding(multipoles).squeeze()
 
             field_feats = field_interaction(
                 node_feats=node_feats,

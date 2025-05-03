@@ -1,4 +1,4 @@
-Metadata-Version: 2.2
+Metadata-Version: 2.4
 Name: mace-torch
 Version: 0.3.6
 Home-page: https://github.com/ACEsuit/mace
@@ -35,3 +35,4 @@ Requires-Dist: pytest; extra == "dev"
 Requires-Dist: pylint; extra == "dev"
 Provides-Extra: schedulefree
 Requires-Dist: schedulefree; extra == "schedulefree"
+Dynamic: license-file
