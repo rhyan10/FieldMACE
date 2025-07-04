@@ -195,7 +195,7 @@ def run(args: argparse.Namespace) -> None:
         z_table = tools.get_atomic_number_table_from_zs(zs_list)
     # yapf: enable
     logging.info(f"Atomic Numbers used: {z_table.zs}")
-    print("~~~~~~~~~~Model:"+args.model)
+    print("Model:"+args.model)
     if atomic_energies_dict is None or len(atomic_energies_dict) == 0:
         if args.E0s.lower() == "foundation":
             assert args.foundation_model is not None
@@ -253,6 +253,23 @@ def run(args: argparse.Namespace) -> None:
             f"Atomic Energies used (z: eV): {{{', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}}}"
         )
     
+    if args.model == "PerAtomFieldEMACE" or args.model == "AttentionPerAtomFieldEMACE":
+        atomic_energies = None
+        compute_dipole = False
+        compute_energy = True
+        args.compute_forces = True
+        compute_nacs = False
+        compute_virials = False
+        args.compute_stress = False
+
+        atomic_energies: np.ndarray = np.array(
+            [atomic_energies_dict[z] for z in z_table.zs]
+        )
+
+        logging.info(
+            f"Atomic Energies used (z: eV): {{{', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}}}"
+        )
+
     if args.model == "AttentionFieldEMACE":
         atomic_energies = None
         compute_dipole = False
@@ -270,7 +287,6 @@ def run(args: argparse.Namespace) -> None:
             f"Atomic Energies used (z: eV): {{{', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}}}"
         )
     
-    print(args.compute_dipoles)
 
     if args.train_file.endswith(".xyz"):
         train_set = [
@@ -322,7 +338,7 @@ def run(args: argparse.Namespace) -> None:
     )
     valid_loader = torch_geometric.dataloader.DataLoader(
         dataset=valid_set,
-        batch_size=args.valid_batch_size,
+        batch_size=args.batch_size,
         sampler=valid_sampler,
         shuffle=False,
         drop_last=False,
@@ -453,6 +469,7 @@ def run(args: argparse.Namespace) -> None:
     model: torch.nn.Module
 
     if args.model == "ExcitedMACE":
+        print(args)
         model = modules.ExcitedMACE(
             **model_config,
             pair_repulsion=args.pair_repulsion,
@@ -475,7 +492,7 @@ def run(args: argparse.Namespace) -> None:
             pair_repulsion=args.pair_repulsion,
             n_energies=args.n_energies,
             distance_transform=args.distance_transform,
-            multipole_max_ell = 3,
+            multipole_max_ell = args.multipole_max_ell,
             correlation=args.correlation,
             gate=modules.gate_dict[args.gate],
             interaction_cls_first=modules.interaction_classes[
@@ -488,14 +505,51 @@ def run(args: argparse.Namespace) -> None:
             compute_nacs=args.compute_nacs,
             compute_dipoles=args.compute_dipoles,
         )
-    
+    elif args.model == "PerAtomFieldEMACE":
+        model = modules.PerAtomFieldEMACE(
+            **model_config,
+            pair_repulsion=args.pair_repulsion,
+            n_energies=args.n_energies,
+            distance_transform=args.distance_transform,
+            multipole_max_ell = args.multipole_max_ell,
+            correlation=args.correlation,
+            gate=modules.gate_dict[args.gate],
+            interaction_cls_first=modules.interaction_classes[
+                "RealAgnosticInteractionBlock"
+            ],
+            MLP_irreps=o3.Irreps(args.MLP_irreps),
+            field_irreps=o3.Irreps(args.field_irreps),
+            radial_MLP=ast.literal_eval(args.radial_MLP),
+            radial_type=args.radial_type,
+            compute_nacs=args.compute_nacs,
+            compute_dipoles=args.compute_dipoles,
+        )
+    elif args.model == "AttentionPerAtomFieldEMACE":
+        model = modules.AttentionPerAtomFieldEMACE(
+            **model_config,
+            pair_repulsion=args.pair_repulsion,
+            n_energies=args.n_energies,
+            distance_transform=args.distance_transform,
+            multipole_max_ell = args.multipole_max_ell,
+            correlation=args.correlation,
+            gate=modules.gate_dict[args.gate],
+            interaction_cls_first=modules.interaction_classes[
+                "RealAgnosticInteractionBlock"
+            ],
+            MLP_irreps=o3.Irreps(args.MLP_irreps),
+            field_irreps=o3.Irreps(args.field_irreps),
+            radial_MLP=ast.literal_eval(args.radial_MLP),
+            radial_type=args.radial_type,
+            compute_nacs=args.compute_nacs,
+            compute_dipoles=args.compute_dipoles,
+        )
     elif args.model == "AttentionFieldEMACE":
         model = modules.AttentionFieldEMACE(
             **model_config,
             pair_repulsion=args.pair_repulsion,
             n_energies=args.n_energies,
             distance_transform=args.distance_transform,
-            multipole_max_ell = 3,
+            multipole_max_ell = args.multipole_max_ell,
             correlation=args.correlation,
             gate=modules.gate_dict[args.gate],
             interaction_cls_first=modules.interaction_classes[
@@ -544,7 +598,7 @@ def run(args: argparse.Namespace) -> None:
 
     field_decay_interactions = {}
     field_no_decay_interactions = {}
-    if args.model == "FieldEMACE" or "AttentionFieldEMACE":
+    if args.model != "ExcitedMACE":
         for name, param in model.field_interactions.named_parameters():
             if "linear.weight" in name:
                 field_decay_interactions[name] = param
@@ -596,7 +650,7 @@ def run(args: argparse.Namespace) -> None:
         amsgrad=args.amsgrad,
         betas=(args.beta, 0.999),
     )
-
+    print(model)
     optimizer: torch.optim.Optimizer
     if args.optimizer == "adamw":
         optimizer = torch.optim.AdamW(**param_options)

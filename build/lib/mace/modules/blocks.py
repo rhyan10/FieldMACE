@@ -66,17 +66,14 @@ class RotInvariantAttention(torch.nn.Module):
         keys_expanded = keys.unsqueeze(1)
 
         diff = queries_expanded-keys_expanded
-
         scores = torch.squeeze(self.scores_multi(diff), dim=-1)
 
         scores = torch.transpose(scores, 1, 2)
 
         # Compute attention weights
         attention_weights = torch.softmax(scores / scores.size(-1)**0.5, dim=-1)
-
         # Apply attention weights to values
         context = torch.einsum('bqk,bkd->bqd', attention_weights, values)
-
         output = torch.sum(self.to_out(context), dim=1)
 
         return output

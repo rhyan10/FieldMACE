@@ -27,6 +27,8 @@ from .models import (
     ExcitedMACE,
     FieldEMACE,
     AttentionFieldEMACE,
+    PerAtomFieldEMACE,
+    AttentionPerAtomFieldEMACE,
 )
 from .loss import (
     DipoleSingleLoss,

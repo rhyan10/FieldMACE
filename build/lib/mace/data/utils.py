@@ -147,7 +147,7 @@ def config_from_atoms(
     nacs = atoms.info.get(nacs_key, None)
     dipoles = atoms.info.get(dipoles_key, None)  # Debye
     mm_charges = np.expand_dims(atoms.info.get(mm_charges, None) , axis=0)
-    mm_positions = np.expand_dims((atoms.info.get(mm_positions, None) - np.average(atoms.positions, axis=0)), axis=0)
+    mm_positions = np.expand_dims((atoms.info.get(mm_positions, None)), axis=0)
     charges = atoms.arrays.get(charges_key, np.zeros(len(atoms)))  # atomic unit
     atomic_numbers = np.array(
         [ase.data.atomic_numbers[symbol] for symbol in atoms.symbols]

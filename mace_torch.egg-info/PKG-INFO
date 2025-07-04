@@ -7,32 +7,15 @@ Classifier: Operating System :: OS Independent
 Classifier: License :: OSI Approved :: MIT License
 Requires-Python: >=3.7
 Description-Content-Type: text/markdown
-License-File: LICENSE.md
 Requires-Dist: torch>=1.12
-Requires-Dist: e3nn==0.4.4
-Requires-Dist: numpy<2.0
+Requires-Dist: e3nn==0.5.1
+Requires-Dist: numpy
 Requires-Dist: opt_einsum
 Requires-Dist: ase
 Requires-Dist: torch-ema
 Requires-Dist: prettytable
 Requires-Dist: matscipy
-Requires-Dist: h5py
-Requires-Dist: torchmetrics
-Requires-Dist: python-hostlist
-Requires-Dist: configargparse
-Requires-Dist: GitPython
-Requires-Dist: tqdm
 Requires-Dist: matplotlib
 Requires-Dist: pandas
 Provides-Extra: wandb
 Requires-Dist: wandb; extra == "wandb"
-Provides-Extra: dev
-Requires-Dist: black; extra == "dev"
-Requires-Dist: isort; extra == "dev"
-Requires-Dist: mypy; extra == "dev"
-Requires-Dist: pre-commit; extra == "dev"
-Requires-Dist: pytest; extra == "dev"
-Requires-Dist: pylint; extra == "dev"
-Provides-Extra: schedulefree
-Requires-Dist: schedulefree; extra == "schedulefree"
-Dynamic: license-file

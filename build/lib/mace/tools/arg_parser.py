@@ -114,10 +114,15 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
             "ExcitedMACE",
             "FieldEMACE",
             "AttentionFieldEMACE",
+            "PerAtomFieldEMACE",
+            "AttentionPerAtomFieldEMACE"
         ],
     )
     parser.add_argument(
         "--r_max", help="distance cutoff (in Ang)", type=float, default=5.0
+    )
+    parser.add_argument(
+        "--multipole_max_ell", help="Maximum multipole value", type=int, default=1
     )
     parser.add_argument(
         "--radial_type",
@@ -190,7 +195,7 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         "--field_irreps",
         help="Number of ",
         type=str,
-        default="16x0e + 16x1o + 16x2e + 16x3o",
+        default="4x0e + 4x1o + 4x2e + 4x3o",
     )
     parser.add_argument(
         "--radial_MLP",

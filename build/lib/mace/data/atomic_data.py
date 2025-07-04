@@ -227,12 +227,12 @@ class AtomicData(torch_geometric.data.Data):
         )
         mm_charges = (
             torch.tensor(config.mm_charges, dtype=torch.get_default_dtype())
-            if config.mm_charges is not None
+            if config.mm_charges[0] is not None
             else None
         )
         mm_positions = (
             torch.tensor(config.mm_positions, dtype=torch.get_default_dtype())
-            if config.mm_positions is not None
+            if config.mm_positions[0] is not None
             else None
         )
         

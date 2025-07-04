@@ -16,7 +16,8 @@ from torch import linalg as LA
 from mace.tools import to_numpy
 from mace.tools.scatter import scatter_sum
 from mace.tools.torch_geometric.batch import Batch
-
+import time
+import math
 from .blocks import AtomicEnergiesBlock
 
 
@@ -40,7 +41,6 @@ def compute_forces(
         )[
         0
         ]  # [n_nodes, 3]
-        #print(gradient)
         excited_gradients.append(gradient)
     
     excited_gradients = torch.stack(excited_gradients, dim=0)
@@ -56,7 +56,7 @@ def _calc_multipole_moments(mm_charges, mm_positions, mm_spherical_harmonics, l_
     for l in range(0, l_max+1):
         for m in range(-l, l + 1):
             prefac = torch.sqrt(torch.tensor(4 * np.pi / (2 * l + 1)))
-            q_lm = mm_charges / LA.norm(mm_positions, dim=-1) ** (l + 1) * torch.conj(mm_spherical_harmonics)[:,:,index]
+            q_lm = (mm_charges / (LA.norm(mm_positions, dim=-1) ** (l + 1))) * torch.conj(mm_spherical_harmonics)[:,:,index]
             q_lm *= prefac
             moments.append(q_lm.real)
             index += 1
@@ -84,6 +84,114 @@ def compute_multipole_expansion(
         all_mp_contribs.append(mp_contribs)
     all_mp_contribs = torch.cat(all_mp_contribs, dim=0)
     return all_mp_contribs
+
+def compute_columb_potential(
+    qm_positions: torch.Tensor,   # [2520, 3]
+    mm_positions: torch.Tensor,   # [40, 3500, 3]
+    mm_charges: torch.Tensor      # [40, 3500]
+) -> torch.Tensor:
+    """
+    Computes Coulomb potential per QM point by looping over batches.
+    Returns a flattened tensor of shape [2520, 1].
+    """
+    B = mm_positions.size(0)
+    P = qm_positions.size(0) // B
+
+    # reshape QM → [B, P, 3]
+    qm = qm_positions.view(B, P, 3)
+
+    # pairwise distances: [B, P, M]
+    dists = torch.cdist(qm, mm_positions, p=2)
+    
+    # Coulomb: q / r  → [B, P, M]   
+    pot = mm_charges.unsqueeze(1) / (dists + 1e-12)
+
+    # sum over M → [B, P]
+    pot = pot.sum(dim=2)
+
+    # flatten back to [B*P, 1]
+    return pot.view(-1, 1)#.detach()       # [2520, 1]
+
+def compute_ewald_sum_loop(
+    qm_positions: torch.Tensor,   # [B*P, 3]
+    mm_positions: torch.Tensor,   # [B, M, 3]
+    mm_charges:   torch.Tensor,   # [B, M]
+    alpha:        float = 0.5,    # damping parameter
+    r_cut:        float = None,   # real-space cutoff
+    k_cut:        int   = None    # reciprocal-space cutoff
+) -> torch.Tensor:
+    """
+    Vectorized Ewald sum over batch.
+    Inputs:
+      - qm_positions: flattened ([B*P,3]) queries, where P = pts_per_batch
+      - mm_positions: ([B, M, 3]) MM sites per batch
+      - mm_charges:   ([B, M])    MM charges per batch
+    Returns:
+      - potentials ([B*P,1])
+    """
+    B, M, _ = mm_positions.shape
+    Nq = qm_positions.shape[0]
+    P = Nq // B
+
+    # --- derive box_length and volume ---
+    max_r = mm_positions.norm(dim=-1).max()
+    L = (2 * max_r).item()
+    V = L**3
+
+    # default cutoffs
+    if r_cut is None:
+        r_cut = L / 2
+    if k_cut is None:
+        k_cut = int(2 * alpha * L / math.pi) + 1
+
+    # --- build k‐vector list all at once ---
+    device, dtype = qm_positions.device, qm_positions.dtype
+    n = torch.arange(-k_cut, k_cut+1, device=device)
+    nx, ny, nz = torch.meshgrid(n, n, n, indexing='ij')
+    idx = torch.stack([nx.reshape(-1), ny.reshape(-1), nz.reshape(-1)], dim=1)
+    # remove zero‐vector
+    idx = idx[(idx.abs().sum(dim=1) != 0)]
+    two_pi_L = 2*math.pi / L
+    kstack = (two_pi_L * idx).to(dtype)           # [K,3]
+    ksq    = (kstack**2).sum(dim=1)               # [K]
+    rec_factor = (4*math.pi/V) * torch.exp(-ksq/(4*alpha**2)) / ksq  # [K]
+
+    # reshape qm back to [B,P,3]
+    qm = qm_positions.view(B, P, 3)
+
+    # --- REAL‐SPACE TERM ---
+    # delta: [B, P, M, 3]
+    delta = qm[:, :, None, :] - mm_positions[:, None, :, :]
+    delta = delta - L * torch.round(delta / L)
+    dist  = delta.norm(dim=-1)                    # [B,P,M]
+    mask  = (dist <= r_cut).float()
+    real_k = torch.erfc(alpha * dist) / (dist + 1e-12)
+    real_k = real_k * mask
+    real_p = (mm_charges[:, None, :] * real_k).sum(dim=2, keepdim=True)  # [B,P,1]
+
+    # --- RECIPROCAL‐SPACE TERM ---
+    # mm phases: [B, M, K]
+    phase_mm = torch.einsum('bmi,kj->bmk', mm_positions, kstack)
+    c_mm = (torch.cos(phase_mm) * mm_charges[:,:,None]).sum(dim=1)  # [B,K]
+    s_mm = (torch.sin(phase_mm) * mm_charges[:,:,None]).sum(dim=1)  # [B,K]
+
+    # qm phases: [B, P, K]
+    phase_qm = torch.einsum('bpi,kj->bpk', qm, kstack)
+    c_q = torch.cos(phase_qm)
+    s_q = torch.sin(phase_qm)
+
+    # combine and sum
+    rec_term = c_q * c_mm[:,None,:] + s_q * s_mm[:,None,:]  # [B,P,K]
+    rec_p    = (rec_term * rec_factor[None,None,:]).sum(dim=2, keepdim=True)  # [B,P,1]
+
+    # --- SELF‐TERM ---
+    self_scalar = - (alpha / math.sqrt(math.pi)) * mm_charges.sum(dim=1)  # [B]
+    self_p = self_scalar.view(B,1,1).expand(-1, P, -1)                   # [B,P,1]
+
+    # total potential
+    total = real_p + rec_p + self_p  # [B,P,1]
+    return total.view(-1,1)#.detach()          # [B*P,1] 
+
 
 def compute_multipole_expansion_attention(
     positions_internal : torch.Tensor,
