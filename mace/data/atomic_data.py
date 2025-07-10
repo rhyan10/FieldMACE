@@ -34,16 +34,13 @@ class AtomicData(torch_geometric.data.Data):
     cell: torch.Tensor
     forces: torch.Tensor
     energy: torch.Tensor
-    stress: torch.Tensor
-    virials: torch.Tensor
-    nacs: torch.Tensor
-    dipole: torch.Tensor
-    charges: torch.Tensor
+    vectors: torch.Tensor
+    scalars: torch.Tensor
     weight: torch.Tensor
     energy_weight: torch.Tensor
     forces_weight: torch.Tensor
-    stress_weight: torch.Tensor
-    virials_weight: torch.Tensor
+    vectors_weight: torch.Tensor
+    scalars_weight: torch.Tensor
 
     def __init__(
         self,
@@ -58,17 +55,12 @@ class AtomicData(torch_geometric.data.Data):
         weight: Optional[torch.Tensor],  # [,]
         energy_weight: Optional[torch.Tensor],  # [,]
         forces_weight: Optional[torch.Tensor],  # [,]
-        stress_weight: Optional[torch.Tensor],  # [,]
-        virials_weight: Optional[torch.Tensor],  # [,]
-        dipoles_weight: Optional[torch.tensor],
-        nacs_weight: Optional[torch.tensor],
+        vectors_weight: Optional[torch.Tensor],  # [,]
+        scalars_weight: Optional[torch.Tensor],  # [,]
         forces: Optional[torch.Tensor],  # [n_nodes, 3]
         energy: Optional[torch.Tensor],  # [, ]
-        stress: Optional[torch.Tensor],  # [1,3,3]
-        virials: Optional[torch.Tensor],  # [1,3,3]
-        dipoles: Optional[torch.Tensor],  # [, 3]
-        charges: Optional[torch.Tensor],  # [n_nodes, ]
-        nacs: Optional[torch.Tensor]
+        vectors: Optional[torch.Tensor],  # [1,3,3]
+        scalars: Optional[torch.Tensor],  # [1,3,3]
     ):
         # Check shapes
         num_nodes = node_attrs.shape[0]
@@ -81,16 +73,8 @@ class AtomicData(torch_geometric.data.Data):
         assert weight is None or len(weight.shape) == 0
         assert energy_weight is None or len(energy_weight.shape) == 0
         assert forces_weight is None or len(forces_weight.shape) == 0
-        assert stress_weight is None or len(stress_weight.shape) == 0
-        assert dipoles_weight is None or len(dipoles_weight.shape) == 0
-        assert nacs_weight is None or len(nacs_weight.shape) == 0
         assert cell is None or cell.shape == (3, 3)
         assert forces is None or forces.shape[-1] == 3
-        assert stress is None or stress.shape == (1, 3, 3)
-        assert virials is None or virials.shape == (1, 3, 3)
-        assert dipoles is None or dipoles.shape[-1] == 3
-        assert nacs is None or nacs.shape[-1] == 3
-        assert charges is None or charges.shape == (num_nodes,)
         # Aggregate data
         data = {
             "num_nodes": num_nodes,
@@ -105,17 +89,12 @@ class AtomicData(torch_geometric.data.Data):
             "weight": weight,
             "energy_weight": energy_weight,
             "forces_weight": forces_weight,
-            "stress_weight": stress_weight,
-            "virials_weight": virials_weight,
-            "dipoles_weight": dipoles_weight,
-            "nacs_weight": nacs_weight,
+            "vectors_weight": vectors_weight,
+            "scalars_weight": scalars_weight,
             "forces": forces,
             "energy": energy,
-            "stress": stress,
-            "virials": virials,
-            "dipoles": dipoles,
-            "nacs": nacs,
-            "charges": charges,
+            "vectors": vectors,
+            "scalars": scalars,
         }
         super().__init__(**data)
 
@@ -162,27 +141,15 @@ class AtomicData(torch_geometric.data.Data):
             else 1
         )
 
-        stress_weight = (
-            torch.tensor(config.stress_weight, dtype=torch.get_default_dtype())
-            if config.stress_weight is not None
+        vectors_weight = (
+            torch.tensor(config.vectors_weight, dtype=torch.get_default_dtype())
+            if config.vectors_weight is not None
             else 1
         )
 
-        virials_weight = (
-            torch.tensor(config.virials_weight, dtype=torch.get_default_dtype())
-            if config.virials_weight is not None
-            else 1
-        )
-
-        nacs_weight = (
-            torch.tensor(config.nacs_weight, dtype=torch.get_default_dtype())
-            if config.nacs_weight is not None
-            else 1
-        )
-
-        dipoles_weight = (
-            torch.tensor(config.dipoles_weight, dtype=torch.get_default_dtype())
-            if config.dipoles_weight is not None
+        scalars_weight = (
+            torch.tensor(config.scalars_weight, dtype=torch.get_default_dtype())
+            if config.scalars_weight is not None
             else 1
         )
 
@@ -196,33 +163,14 @@ class AtomicData(torch_geometric.data.Data):
             if config.energy is not None
             else None
         )
-        stress = (
-            voigt_to_matrix(
-                torch.tensor(config.stress, dtype=torch.get_default_dtype())
-            ).unsqueeze(0)
-            if config.stress is not None
+        scalars = (
+            torch.tensor(config.scalars, dtype=torch.get_default_dtype())
+            if config.scalars is not None
             else None
         )
-        virials = (
-            voigt_to_matrix(
-                torch.tensor(config.virials, dtype=torch.get_default_dtype())
-            ).unsqueeze(0)
-            if config.virials is not None
-            else None
-        )
-        dipoles = (
-            torch.tensor(config.dipoles, dtype=torch.get_default_dtype()).unsqueeze(0)
-            if config.dipoles is not None
-            else None
-        )
-        nacs = (
-            torch.tensor(config.nacs, dtype=torch.get_default_dtype())
-            if config.nacs is not None
-            else None
-        )
-        charges = (
-            torch.tensor(config.charges, dtype=torch.get_default_dtype())
-            if config.charges is not None
+        vectors = (
+            torch.tensor(config.vectors, dtype=torch.get_default_dtype())
+            if config.vectors is not None
             else None
         )
         mm_charges = (
@@ -247,17 +195,12 @@ class AtomicData(torch_geometric.data.Data):
             weight=weight,
             energy_weight=energy_weight,
             forces_weight=forces_weight,
-            stress_weight=stress_weight,
-            virials_weight=virials_weight,
-            dipoles_weight=dipoles_weight,
-            nacs_weight=nacs_weight,
+            vectors_weight=vectors_weight,
+            scalars_weight=scalars_weight,
             forces=forces,
             energy=energy,
-            stress=stress,
-            virials=virials,
-            dipoles=dipoles,
-            nacs=nacs,
-            charges=charges,
+            vectors=vectors,
+            scalars=scalars,
             mm_charges=mm_charges,
             mm_positions=mm_positions,
         )

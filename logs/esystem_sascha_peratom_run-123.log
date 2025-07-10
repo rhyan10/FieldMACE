@@ -1,0 +1,57 @@
+2025-07-07 15:51:16.779 INFO: ===========VERIFYING SETTINGS===========
+2025-07-07 15:51:16.779 INFO: MACE version: 0.3.6
+2025-07-07 15:51:16.933 INFO: CUDA version: 12.1, CUDA device: 0
+2025-07-07 15:51:16.958 INFO: 
+2025-07-07 15:51:16.958 INFO: ===========LOADING INPUT DATA===========
+2025-07-07 15:52:20.966 INFO: Using random 10% of training set for validation with indices saved in: ./valid_indices_123.txt
+2025-07-07 15:52:20.971 INFO: Atomic Numbers used: [1, 6, 8]
+2025-07-07 15:52:20.971 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2025-07-07 15:52:20.971 INFO: Computing average Atomic Energies using least squares regression
+2025-07-07 15:52:20.990 INFO: Atomic Energies used (z: eV): {1: -758.0612371133467, 6: -758.0612371133541, 8: -189.51530927833852}
+2025-07-07 15:52:21.880 INFO: 
+2025-07-07 15:52:21.880 INFO: ===========MODEL DETAILS===========
+2025-07-07 15:52:22.730 INFO: Average number of neighbors: 7.9
+2025-07-07 15:52:22.730 INFO: During training the following quantities will be reported: energy, forces
+2025-07-07 15:52:23.487 INFO: Building model
+2025-07-07 15:52:23.487 INFO: Message passing with 128 channels and max_L=1 (128x0e + 128x1o)
+2025-07-07 15:52:23.487 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2025-07-07 15:52:23.487 INFO: 8 radial and 5 basis functions
+2025-07-07 15:52:23.487 INFO: Radial cutoff: 5.0 Å (total receptive field for each atom: 10.0 Å)
+2025-07-07 15:52:23.487 INFO: Distance transform for radial basis functions: None
+2025-07-07 15:52:24.541 INFO: Total number of parameters: 1052616
+2025-07-07 15:52:24.541 INFO: 
+2025-07-07 15:52:24.541 INFO: ===========OPTIMIZER INFORMATION===========
+2025-07-07 15:52:24.541 INFO: Using ADAM as parameter optimizer
+2025-07-07 15:52:24.541 INFO: Batch size: 20
+2025-07-07 15:52:24.541 INFO: Using Exponential Moving Average with decay: 0.99
+2025-07-07 15:52:24.541 INFO: Number of gradient updates: 1725
+2025-07-07 15:52:24.541 INFO: Learning rate: 0.01, weight decay: 5e-07
+2025-07-07 15:52:24.541 INFO: WeightedEnergyForcesNacsDipoleLoss(energy_weight=100.000, forces_weight=100.000, dipole_weight=1.000)
+2025-07-07 15:52:24.543 INFO: Using gradient clipping with tolerance=10.000
+2025-07-07 15:52:24.543 INFO: 
+2025-07-07 15:52:24.543 INFO: ===========TRAINING===========
+2025-07-07 15:52:24.543 INFO: Started training, reporting errors on validation set
+2025-07-07 15:52:24.543 INFO: Loss metrics on validation set
+2025-07-07 16:00:31.369 INFO: Training complete
+2025-07-07 16:00:31.369 INFO: 
+2025-07-07 16:00:31.369 INFO: ===========RESULTS===========
+2025-07-07 16:00:31.369 INFO: Computing metrics for training, validation, and test sets
+2025-07-07 16:00:31.369 INFO: Loading checkpoint: ./checkpoints/esystem_sascha_peratom_run-123_epoch-9.pt
+2025-07-07 16:00:31.388 INFO: Loaded Stage one model from epoch 9 for evaluation
+2025-07-07 16:00:31.388 INFO: Evaluating train ...
+2025-07-07 16:00:48.548 INFO: Evaluating valid ...
+2025-07-07 16:00:50.533 INFO: Error-table on TRAIN and VALID:
++-------------+--------------------+-----------------+-------------+
+| config_type | MAE E / meV / atom | MAE F / meV / A | rel F MAE % |
++-------------+--------------------+-----------------+-------------+
+|    train    |           7.1      |        175.4    |       12.3  |
+|    valid    |           7.8      |        187.4    |       13.0  |
++-------------+--------------------+-----------------+-------------+
+2025-07-07 16:00:50.533 INFO: Error-table on TEST:
++-------------+--------------------+-----------------+-------------+
+| config_type | MAE E / meV / atom | MAE F / meV / A | rel F MAE % |
++-------------+--------------------+-----------------+-------------+
++-------------+--------------------+-----------------+-------------+
+2025-07-07 16:00:50.533 INFO: Saving model to checkpoints/esystem_sascha_peratom_run-123.model
+2025-07-07 16:00:50.602 INFO: Compiling model, saving metadata to esystem_sascha_peratom_compiled.model
+2025-07-07 16:00:50.805 INFO: Done

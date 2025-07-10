@@ -92,12 +92,9 @@ class LinearNodeEmbeddingBlock(torch.nn.Module):
 
 @compile_mode("script")
 class LinearReadoutBlock(torch.nn.Module):
-    def __init__(self, irreps_in: o3.Irreps, n_energies: int, compute_nacs: bool):
+    def __init__(self, irreps_in: o3.Irreps, n_energies: int, n_scalars: int):
         super().__init__()
-        if compute_nacs == True:
-            self.linear = o3.Linear(irreps_in=irreps_in, irreps_out=o3.Irreps(str(int(n_energies)))+"x0e + "+ str(int(n_energies*(n_energies-1)/2)) + "x1o")
-        else:
-            self.linear = o3.Linear(irreps_in=irreps_in, irreps_out=o3.Irreps(str(n_energies)+"x0e"))
+        self.linear = o3.Linear(irreps_in=irreps_in, irreps_out=o3.Irreps(str(n_energies+n_scalars)+"x0e"))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # [n_nodes, irreps]  # [..., ]
         return self.linear(x)  # [n_nodes, 1]
@@ -107,20 +104,15 @@ class LinearReadoutBlock(torch.nn.Module):
 @compile_mode("script")
 class NonLinearReadoutBlock(torch.nn.Module):
     def __init__(
-        self, irreps_in: o3.Irreps, MLP_irreps: o3.Irreps, gate: Optional[Callable], n_energies: int, compute_nacs: bool
+        self, irreps_in: o3.Irreps, MLP_irreps: o3.Irreps, gate: Optional[Callable], n_energies: int, n_scalars: int
     ):
         super().__init__()
         self.hidden_irreps = MLP_irreps
         self.linear_1 = o3.Linear(irreps_in=irreps_in, irreps_out=self.hidden_irreps)
         self.non_linearity = nn.Activation(irreps_in=self.hidden_irreps, acts=[gate])
-        if compute_nacs == True:
-            self.linear_2 = o3.Linear(
-                irreps_in=self.hidden_irreps, irreps_out=o3.Irreps(str(int(n_energies))+"x0e + " + str(int(n_energies*(n_energies-1)/2)) + "x1o")
-            )
-        else:
-            self.linear_2 = o3.Linear(
-                irreps_in=self.hidden_irreps, irreps_out=o3.Irreps(str(n_energies)+"x0e")
-            )
+        self.linear_2 = o3.Linear(
+            irreps_in=self.hidden_irreps, irreps_out=o3.Irreps(str(n_energies+n_scalars)+"x0e")
+        )
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # [n_nodes, irreps]  # [..., ]
@@ -130,12 +122,9 @@ class NonLinearReadoutBlock(torch.nn.Module):
 
 @compile_mode("script")
 class LinearDipoleReadoutBlock(torch.nn.Module):
-    def __init__(self, irreps_in: o3.Irreps, n_energies: int, compute_nacs: bool):
+    def __init__(self, irreps_in: o3.Irreps, n_energies: int, n_scalars: int, n_vectors: int):
         super().__init__()
-        if compute_nacs == True:
-            self.irreps_out = o3.Irreps(str(int(n_energies))+"x0e + " + str(n_energies + int(n_energies*(n_energies-1))) + "x1o")
-        else:
-            self.irreps_out = o3.Irreps(str(int(n_energies))+"x0e + " + str(n_energies + int(n_energies*(n_energies-1)/2)) + "x1o")
+        self.irreps_out = o3.Irreps(str(n_energies+n_scalars)+"x0e + " + str(n_vectors) + "x1o")
         self.linear = o3.Linear(irreps_in=irreps_in, irreps_out=self.irreps_out)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # [n_nodes, irreps]  # [..., ]
@@ -149,15 +138,13 @@ class NonLinearDipoleReadoutBlock(torch.nn.Module):
         irreps_in: o3.Irreps,
         MLP_irreps: o3.Irreps,
         gate: Callable,
-        n_energies: int, 
-        compute_nacs: bool
+        n_energies: int,
+        n_scalars:int, 
+        n_vectors: int,
     ):
         super().__init__()
         self.hidden_irreps = MLP_irreps
-        if compute_nacs == True:
-            self.irreps_out = o3.Irreps(str(int(n_energies))+"x0e + " + str(n_energies + int(n_energies*(n_energies-1))) + "x1o")
-        else:
-            self.irreps_out = o3.Irreps(str(int(n_energies))+"x0e +" + str(n_energies + int(n_energies*(n_energies-1)/2)) + "x1o")
+        self.irreps_out = o3.Irreps(str(n_energies+n_scalars)+"x0e +" + str(n_vectors) + "x1o")
         irreps_scalars = o3.Irreps(
             [(mul, ir) for mul, ir in MLP_irreps if ir.l == 0 and ir in self.irreps_out]
         )

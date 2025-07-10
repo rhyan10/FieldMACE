@@ -24,11 +24,7 @@ from .blocks import (
     RotInvariantAttention,
 )
 from .models import (
-    ExcitedMACE,
-    FieldEMACE,
-    AttentionFieldEMACE,
-    PerAtomFieldEMACE,
-    AttentionPerAtomFieldEMACE,
+    FranckCondonMACE
 )
 from .loss import (
     DipoleSingleLoss,
@@ -40,9 +36,6 @@ from .loss import (
     WeightedForcesLoss,
     WeightedHuberEnergyForcesStressLoss,
     WeightedEnergyForcesNacsDipoleLoss,
-)
-from .models import (
-    ExcitedMACE
 )
 from .radial import BesselBasis, GaussianBasis, PolynomialCutoff, ZBLBasis
 from .symmetric_contraction import SymmetricContraction

@@ -39,8 +39,8 @@ class Configuration:
     energy: Optional[float] = None  # eV
     forces: Optional[Forces] = None  # eV/Angstrom
     stress: Optional[Stress] = None  # eV/Angstrom^3
-    virials: Optional[Virials] = None  # eV
-    dipoles: Optional[Vector] = None  # Debye
+    scalars: Optional[Virials] = None  # eV
+    vectors: Optional[Vector] = None  # Debye
     charges: Optional[Charges] = None  # atomic unit
     cell: Optional[Cell] = None
     pbc: Optional[Pbc] = None
@@ -50,10 +50,8 @@ class Configuration:
     weight: float = 1.0  # weight of config in loss
     energy_weight: float = 1.0  # weight of config energy in loss
     forces_weight: float = 1.0  # weight of config forces in loss
-    stress_weight: float = 1.0  # weight of config stress in loss
-    virials_weight: float = 1.0  # weight of config virial in loss
-    dipoles_weight: float = 1.0
-    nacs_weight: float = 1.0
+    scalars_weight: float = 1.0  # weight of config stress in loss
+    vectors_weight: float = 1.0
     config_type: Optional[str] = DEFAULT_CONFIG_TYPE  # config_type of config
 
 
@@ -95,10 +93,8 @@ def config_from_atoms_list(
     atoms_list: List[ase.Atoms],
     energy_key="REF_energy",
     forces_key="REF_forces",
-    stress_key="REF_stress",
-    virials_key="REF_virials",
-    dipoles_key="REF_dipoles",
-    nacs_key="REF_nacs",
+    vectors_key="REF_vectors",
+    scalars_key="REF_scalars",
     charges_key="REF_charges",
     config_type_weights: Dict[str, float] = None,
 ) -> Configurations:
@@ -113,11 +109,8 @@ def config_from_atoms_list(
                 atoms,
                 energy_key=energy_key,
                 forces_key=forces_key,
-                stress_key=stress_key,
-                virials_key=virials_key,
-                dipoles_key=dipoles_key,
-                nacs_key=nacs_key,
-                charges_key=charges_key,
+                vectors_key=vectors_key,
+                scalars_key=scalars_key,
                 config_type_weights=config_type_weights,
             )
         )
@@ -127,11 +120,8 @@ def config_from_atoms(
     atoms: ase.Atoms,
     energy_key="REF_energy",
     forces_key="REF_forces",
-    stress_key="REF_stress",
-    virials_key="REF_virials",
-    dipoles_key="dipoles",
-    charges_key="REF_charges",
-    nacs_key="nacs",
+    vectors_key="REF_vectors",
+    scalars_key="REF_scalars",
     mm_charges="mm_charges",
     mm_positions="mm_positions",
     config_type_weights: Dict[str, float] = None,
@@ -142,13 +132,10 @@ def config_from_atoms(
 
     energy = atoms.info.get(energy_key, None)  # eV
     forces = atoms.info.get(forces_key, None) #* 27.211407952  # eV / Ang
-    stress = atoms.info.get(stress_key, None)  # eV / Ang ^ 3
-    virials = atoms.info.get(virials_key, None)
-    nacs = atoms.info.get(nacs_key, None)
-    dipoles = atoms.info.get(dipoles_key, None)  # Debye
+    vectors = atoms.info.get(vectors_key, None)  # eV / Ang ^ 3
+    scalars = atoms.info.get(scalars_key, None)
     mm_charges = np.expand_dims(atoms.info.get(mm_charges, None) , axis=0)
     mm_positions = np.expand_dims((atoms.info.get(mm_positions, None)), axis=0)
-    charges = atoms.arrays.get(charges_key, np.zeros(len(atoms)))  # atomic unit
     atomic_numbers = np.array(
         [ase.data.atomic_numbers[symbol] for symbol in atoms.symbols]
     )
@@ -160,10 +147,8 @@ def config_from_atoms(
     )
     energy_weight = atoms.info.get("config_energy_weight", 1.0)
     forces_weight = atoms.info.get("config_forces_weight", 1.0)
-    stress_weight = atoms.info.get("config_stress_weight", 1.0)
-    virials_weight = atoms.info.get("config_virials_weight", 1.0)
-    dipoles_weight = atoms.info.get("config_dipoles_weight", 1.0)
-    nacs_weight = atoms.info.get("config_nacs_weight", 1.0)
+    vectors_weight = atoms.info.get("config_vectors_weight", 1.0)
+    scalars_weight = atoms.info.get("config_scalars_weight", 1.0)
 
     # fill in missing quantities but set their weight to 0.0
     if energy is None:
@@ -172,38 +157,27 @@ def config_from_atoms(
     if forces is None:
         forces = np.zeros(np.shape(atoms.positions))
         forces_weight = 0.0
-    if stress is None:
-        stress = np.zeros(6)
-        stress_weight = 0.0
-    if virials is None:
-        virials = np.zeros((3, 3))
-        virials_weight = 0.0
-    if dipoles is None:
-        dipoles = np.zeros(3)
-        dipoles_weight = 0.0
-    if nacs is None:
-        nacs = np.zeros(3)
-        nacs_weight = 0.0
+    if vectors is None:
+        vectors = None
+        vectors_weight = 0.0
+    if scalars is None:
+        scalars = None
+        scalars_weight = 0.0
 
     return Configuration(
         atomic_numbers=atomic_numbers,
         positions=atoms.get_positions(),
         energy=energy,
         forces=forces,
-        stress=stress,
-        virials=virials,
-        dipoles=dipoles,
-        charges=charges,
-        nacs=nacs,
+        vectors=vectors,
+        scalars=scalars,
         weight=weight,
         mm_charges=mm_charges,
         mm_positions=mm_positions,
         energy_weight=energy_weight,
         forces_weight=forces_weight,
-        stress_weight=stress_weight,
-        virials_weight=virials_weight,
-        dipoles_weight=dipoles_weight,
-        nacs_weight=nacs_weight,
+        vectors_weight=vectors_weight,
+        scalars_weight=scalars_weight,
         config_type=config_type,
         pbc=pbc,
         cell=cell,
@@ -229,13 +203,10 @@ def test_config_types(
 def load_from_xyz(
     file_path: str,
     config_type_weights: Dict,
-    energy_key: str = "REF_energy",
-    forces_key: str = "REF_forces",
-    stress_key: str = "REF_stress",
-    virials_key: str = "REF_virials",
-    dipoles_key: str = "REF_dipoles",
-    charges_key: str = "REF_charges",
-    nacs_key: str = 'REF_nacs',
+    energy_key="REF_energy",
+    forces_key="REF_forces",
+    vectors_key="REF_vectors",
+    scalars_key="REF_scalars",
     extract_atomic_energies: bool = False,
     keep_isolated_atoms: bool = False,
 ) -> Tuple[Dict[int, float], Configurations]:
@@ -262,16 +233,7 @@ def load_from_xyz(
             except Exception as e:  # pylint: disable=W0703
                 logging.error(f"Failed to extract forces: {e}")
                 atoms.arrays["REF_forces"] = None
-    if stress_key == "stress":
-        logging.warning(
-            "Since ASE version 3.23.0b1, using stress_key 'stress' is no longer safe when communicating between MACE and ASE. We recommend using a different key, rewriting 'stress' to 'REF_stress'. You need to use --stress_key='REF_stress' to specify the chosen key name."
-        )
-        stress_key = "REF_stress"
-        for atoms in atoms_list:
-            try:
-                atoms.info["REF_stress"] = atoms.get_stress()
-            except Exception as e:  # pylint: disable=W0703
-                atoms.info["REF_stress"] = None
+
     if not isinstance(atoms_list, list):
         atoms_list = [atoms_list]
 
@@ -307,11 +269,8 @@ def load_from_xyz(
         config_type_weights=config_type_weights,
         energy_key=energy_key,
         forces_key=forces_key,
-        stress_key=stress_key,
-        virials_key=virials_key,
-        dipoles_key=dipoles_key,
-        nacs_key=nacs_key,
-        charges_key=charges_key,
+        vectors_key=vectors_key,
+        scalars_key=scalars_key
     )
     return atomic_energies_dict, configs
 

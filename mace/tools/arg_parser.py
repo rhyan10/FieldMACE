@@ -37,10 +37,10 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         default=".",
     )
     parser.add_argument(
-        "--nacs_key",
-        help="Key of reference nacs in training xyz",
+        "--scalars_key",
+        help="Key of reference scalars in training xyz",
         type=str,
-        default="smooth_nacs",
+        default="REF_scalars",
     )
     parser.add_argument(
         "--log_dir", help="directory for log files", type=str, default=None
@@ -86,6 +86,10 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("--n_energies", help="Number of energies", type=int)
 
+    parser.add_argument("--n_scalars", help="Number of scalars", type=int)
+
+    parser.add_argument("--n_vectors", help="Number of vectors", type=int)
+
     parser.add_argument(
         "--error_table",
         help="Type of error table produced at the end of the training",
@@ -109,13 +113,9 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--model",
         help="model type",
-        default="FieldEMACE",
+        default="FranckCondonMACE",
         choices=[
-            "ExcitedMACE",
-            "FieldEMACE",
-            "AttentionFieldEMACE",
-            "PerAtomFieldEMACE",
-            "AttentionPerAtomFieldEMACE"
+            "FranckCondonMACE",
         ],
     )
     parser.add_argument(
@@ -390,10 +390,10 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         default="REF_stress",
     )
     parser.add_argument(
-        "--dipoles_key",
-        help="Key of reference dipoles in training xyz",
+        "--vectors_key",
+        help="Key of reference vectors in training xyz",
         type=str,
-        default="REF_dipoles",
+        default="REF_vectors",
     )
     parser.add_argument(
         "--charges_key",
@@ -424,7 +424,7 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         )
     
     parser.add_argument(
-        "--nacs_weight", help="weight of nacs loss", type=float, default=100.0
+        "--scalars_weight", help="weight of scalars loss", type=float, default=100.0
     )
     
     parser.add_argument(
@@ -469,15 +469,15 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         dest="swa_stress_weight",
     )
     parser.add_argument(
-        "--dipoles_weight", help="weight of dipoles loss", type=float, default=1.0
+        "--vectors_weight", help="weight of vectors loss", type=float, default=1.0
     )
     parser.add_argument(
-        "--swa_dipole_weight",
-        "--stage_two_dipole_weight",
-        help="weight of dipoles after starting Stage Two (previously called swa)",
+        "--swa_vectors_weight",
+        "--stage_two_vectors_weight",
+        help="weight of vectors after starting Stage Two (previously called swa)",
         type=float,
         default=1.0,
-        dest="swa_dipole_weight",
+        dest="swa_vectors_weight",
     )
     parser.add_argument(
         "--config_type_weights",
@@ -730,10 +730,10 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         default='{"Default":1.0}',
     )
     parser.add_argument(
-        "--nacs_key",
-        help="Key of reference nacs in training xyz",
+        "--scalars_key",
+        help="Key of reference scalars in training xyz",
         type=str,
-        default="smooth_nacs",
+        default="REF_scalars",
     )
     parser.add_argument(
         "--energy_key",
@@ -760,10 +760,10 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         default="REF_stress",
     )
     parser.add_argument(
-        "--dipoles_key",
-        help="Key of reference dipoles in training xyz",
+        "--vectors_key",
+        help="Key of reference vectors in training xyz",
         type=str,
-        default="REF_dipole",
+        default="REF_vectors",
     )
     parser.add_argument(
         "--charges_key",
