@@ -1,0 +1,23 @@
+Metadata-Version: 2.4
+Name: mace-torch
+Version: 0.3.6
+Home-page: https://github.com/ACEsuit/mace
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: License :: OSI Approved :: MIT License
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE.md
+Requires-Dist: torch>=1.12
+Requires-Dist: e3nn==0.5.1
+Requires-Dist: numpy
+Requires-Dist: opt_einsum
+Requires-Dist: ase
+Requires-Dist: torch-ema
+Requires-Dist: prettytable
+Requires-Dist: matscipy
+Requires-Dist: matplotlib
+Requires-Dist: pandas
+Provides-Extra: wandb
+Requires-Dist: wandb; extra == "wandb"
+Dynamic: license-file
