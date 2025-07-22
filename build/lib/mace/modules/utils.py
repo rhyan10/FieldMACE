@@ -347,8 +347,6 @@ def get_outputs(
     cell: torch.Tensor,
     training: bool = False,
     compute_force: bool = True,
-    compute_virials: bool = False,
-    compute_stress: bool = False,
     compute_hessian: bool = False,
 ) -> Tuple[
     Optional[torch.Tensor],
@@ -366,14 +364,12 @@ def get_outputs(
             None,
             None,
         )
-    else:
-        forces, virials, stress = (None, None, None)
     if compute_hessian:
         assert forces is not None, "Forces must be computed to get the hessian"
         hessian = compute_hessians_vmap(forces, positions)
     else:
         hessian = None
-    return forces, virials, stress, hessian
+    return forces, hessian
 
 
 def get_edge_vectors_and_lengths(

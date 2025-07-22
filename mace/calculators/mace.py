@@ -46,7 +46,7 @@ class MACECalculator(Calculator):
 
     Dipoles are returned in units of Debye
     """
-    implemented_properties = ['energy', 'forces']
+
     def __init__(
         self,
         model_paths: Union[list, str],
@@ -65,7 +65,7 @@ class MACECalculator(Calculator):
 
         self.model_type = model_type
         self.use_hessian_approx = True
-        if model_type in ["FieldEMACE", "PerAtomFieldEMACE"]:
+        if model_type == "MACE":
             self.implemented_properties = [
                 "energy",
                 "free_energy",
@@ -73,6 +73,21 @@ class MACECalculator(Calculator):
                 "forces",
                 "stress",
             ]
+        elif model_type == "DipoleMACE":
+            self.implemented_properties = ["dipole"]
+        elif model_type == "EnergyDipoleMACE":
+            self.implemented_properties = [
+                "energy",
+                "free_energy",
+                "node_energy",
+                "forces",
+                "stress",
+                "dipole",
+            ]
+        else:
+            raise ValueError(
+                f"Give a valid model_type: [MACE, DipoleMACE, EnergyDipoleMACE], {model_type} not supported"
+            )
 
         if "model_path" in kwargs:
             print("model_path argument deprecated, use model_paths")
@@ -282,7 +297,7 @@ class MACECalculator(Calculator):
         return dict_of_tensors
 
     def _atoms_to_batch(self, atoms):
-        config = data.config_from_atoms(atoms, charges_key=self.charges_key)
+        config = data.config_from_atoms(atoms)
         data_loader = torch_geometric.dataloader.DataLoader(
             dataset=[
                 data.AtomicData.from_config(
@@ -314,15 +329,11 @@ class MACECalculator(Calculator):
         """
         # call to base-class to set atoms attribute
         Calculator.calculate(self, atoms)
+
         batch_base = self._atoms_to_batch(atoms)
 
-        if self.model_type in ["FieldEMACE", "PerAtomFieldEMACE"]:
-            batch = self._clone_batch(batch_base)
-            node_e0 = self.models[0].atomic_energies_fn(batch["node_attrs"])
-            compute_stress = not self.use_compile
-        else:
-            compute_stress = False
-
+        batch = self._clone_batch(batch_base)
+        node_e0 = self.models[0].atomic_energies_fn(batch["node_attrs"])
         ret_tensors = self._create_result_tensors(
             self.model_type, self.num_models, len(atoms)
         )
@@ -330,137 +341,19 @@ class MACECalculator(Calculator):
             batch = self._clone_batch(batch_base)
             out = model(
                 batch.to_dict(),
-                compute_stress=compute_stress,
                 compute_hessian=False,
                 training=self.use_compile,
             )
-#            H = out["hessian"].to("cpu")
-#            m = torch.tensor(atoms.get_masses()) * units._amu
-#            M = m.repeat_interleave(3).sqrt()
-#            H_si = H.reshape(132, 132) * 16.02176634
-#            H_mass = H_si / (M[:,None] * M[None,:])
-#            vals, vecs = torch.linalg.eigh(H_mass)
-#            num_modes = vecs.shape[1] - 6  # Excluding 6 rotational and translational modes
-#            normal_modes = vecs[:, 6:]  # Remove the first 6 columns
-#            normal_modes = normal_modes.T.reshape(num_modes, 44, 3)  # Shape: (-1, num_atoms, 3)
-#            vals = vals[6:]
-#            c_cm_s = units._c * 100.0  # convert m/s to cm/s
-#            freqs_cm = torch.sqrt(vals) / (2 * 3.141592653589793 * c_cm_s)
-            # 2) Temperature
-#            T = 298.15  # K  ← change this to whatever T you need
 
-            # 3) Constants
- #           h   = 6.62607015e-34   # J·s
- #           c   = 2.99792458e10    # cm/s
- #           kB  = 1.380649e-23     # J/K
- #           NA  = 6.02214076e23    # 1/mol
- #           R   = NA * kB          # J/(mol·K)
-
-            # 4) Filter out the NaNs
- #           ν = freqs_cm[~torch.isnan(freqs_cm)]
-
-            # 5) Dimensionless x_i = h c ν_i / (kB T)
- #           x = (h * c * ν) / (kB * T)
-
-            # 6) Per-mode entropy: s_i = R * [ x/(exp(x)−1) − ln(1−exp(−x)) ]
- #           s = R * ( x/(torch.exp(x) - 1) - torch.log1p(-torch.exp(-x)) )
-
-            # 7) Sum to get S_vib (J/mol·K)
- #           S_vib = s.sum()
- #           print(f"Vibrational entropy = {(S_vib * T)/4184:.2f} kcal/mol")
- #           coords = torch.tensor(atoms.positions) * 1e-10           # (44,3), m
- #           masses = torch.tensor(atoms.get_masses()) * units._amu  # (44,), kg
-
-            # 2) Center‐of‐mass shift
- #           M_tot = masses.sum()
- #           com = (coords * masses[:,None]).sum(dim=0) / M_tot
- #           r = coords - com  # (44,3)
-
-            # 3) Build inertia tensor I = Σ m [(r·r)I − (r⊗r)]
- #           rr    = r.unsqueeze(2) * r.unsqueeze(1)               # (44,3,3)
- #           r2    = (r*r).sum(dim=1)                              # (44,)
- #           I_tens = (masses[:,None,None] * (r2[:,None,None]*torch.eye(3) - rr)).sum(dim=0)
-
-            # 4) Principal moments (kg·m²)
- #           I_vals = torch.linalg.eigvalsh(I_tens)  # (3,)
-
-            # 5) Rotational temperatures Θ_i = h²/(8π² I_i kB)
- #           Θ = h**2 / (8 * torch.pi**2 * I_vals * kB)
-
-            # 6) q_rot for non‐linear rotor: (√π/σ) T^(3/2)/(Θ_aΘ_bΘ_c)^(1/2)
- #           sigma = 1  # change if you know a higher symmetry
- #           ln_qrot = 0.5*torch.log(torch.tensor(torch.pi)) - torch.log(torch.tensor(sigma)) \
- #                   + 1.5*torch.log(torch.tensor(T)) \
- #                   - 0.5*torch.log(Θ.prod())
-
-            # 7) Entropy S_rot = R [ ln q_rot + 3/2 ]
- #           S_rot = R * (ln_qrot + 1.5)  # J/(mol·K)
-
- #           print(f"Rotational T·S term = {(S_rot * T)/4184:.2f} kcal/mol")
-
-            if self.model_type in ["FieldEMACE", "PerAtomFieldEMACE", "MACE"]:
-                ret_tensors["energies"] = out["energy"].detach()
-                ret_tensors["forces"] = out["forces"].detach()
-                ret_tensors["node_energy"] = out["node_energy"].detach()
-                #ret_tensors['frequencies'] = freqs_cm.detach()
-                #ret_tensors["normal_modes"] = normal_modes.detach()
-                #ret_tensors["dipoles"] = out["dipoles"].cpu().detach()
-                #print(
-        # if self.n_energies < 1:
-        #     if self.use_hessian_approx:
-        #         self.results["nacs"] = self.compute_nacs_from_hessian()
-        #     else:
-        #         self.results["nacs"] = out["nacs"].detach()
+            ret_tensors["energies"] = out["energy"].detach()
+            ret_tensors["forces"] = out["forces"].detach()
+            ret_tensors["multipolar_fit"] = out["scalars"].detach()
 
         self.results = {}
-        if self.model_type in ["FieldEMACE", "PerAtomFieldEMACE", "ExcitedMACE", "MACE"]:
-            self.results["energy"] = ret_tensors["energies"].cpu().numpy() * self.energy_units_to_eV
-            self.results["free_energy"] = self.results["energy"]
-            self.results["node_energy"] = ret_tensors["node_energy"]
-            self.results["forces"] = ret_tensors["forces"].squeeze().cpu().numpy() * self.energy_units_to_eV
-            
-            #self.results["frequencies"] = ret_tensors['frequencies'].numpy()
-            #self.results["normal_modes"] = ret_tensors["normal_modes"].numpy()
-            #self.results["dipoles"] = ret_tensors["dipoles"].numpy()
-            if self.num_models > 1:
-                self.results["energies"] = (
-                    ret_tensors["energies"].cpu().numpy() * self.energy_units_to_eV
-                )
-                self.results["energy_var"] = (
-                    torch.var(ret_tensors["energies"], dim=0, unbiased=False)
-                    .cpu()
-                    .item()
-                    * self.energy_units_to_eV
-                )
-                self.results["forces_comm"] = (
-                    ret_tensors["forces"].cpu().numpy()
-                    * self.energy_units_to_eV
-                    / self.length_units_to_A
-                )
-            if out["stress"] is not None:
-                self.results["stress"] = full_3x3_to_voigt_6_stress(
-                    torch.mean(ret_tensors["stress"], dim=0).cpu().numpy()
-                    * self.energy_units_to_eV
-                    / self.length_units_to_A**3
-                )
-                if self.num_models > 1:
-                    self.results["stress_var"] = full_3x3_to_voigt_6_stress(
-                        torch.var(ret_tensors["stress"], dim=0, unbiased=False)
-                        .cpu()
-                        .numpy()
-                        * self.energy_units_to_eV
-                        / self.length_units_to_A**3
-                    )
-        if self.model_type in ["DipoleMACE", "EnergyDipoleMACE"]:
-            self.results["dipole"] = (
-                torch.mean(ret_tensors["dipole"], dim=0).cpu().numpy()
-            )
-            if self.num_models > 1:
-                self.results["dipole_var"] = (
-                    torch.var(ret_tensors["dipole"], dim=0, unbiased=False)
-                    .cpu()
-                    .numpy()
-                )
+        self.results["REF_energy"] = ret_tensors["energies"].cpu().numpy()
+        self.results["REF_forces"] = ret_tensors["forces"].cpu().numpy()
+        self.results["REF_multipolar_fit"] = ret_tensors["multipolar_fit"].cpu().numpy()
+                
         return self.results
 
     def get_hessian(self, atoms=None):

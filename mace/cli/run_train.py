@@ -155,11 +155,8 @@ def run(args: argparse.Namespace) -> None:
             seed=args.seed,
             energy_key=args.energy_key,
             forces_key=args.forces_key,
-            stress_key=args.stress_key,
-            virials_key=args.virials_key,
-            dipoles_key=args.dipoles_key,
-            charges_key=args.charges_key,
-            nacs_key=args.nacs_key,
+            vectors_key=args.vectors_key,
+            scalars_key=args.scalars_key,
             keep_isolated_atoms=args.keep_isolated_atoms,
         )
         if len(collections.train) < args.batch_size:
@@ -218,66 +215,12 @@ def run(args: argparse.Namespace) -> None:
                 )
             else:
                 atomic_energies_dict = get_atomic_energies(args.E0s, None, z_table)
-  
-    if args.model == "ExcitedMACE":
-        atomic_energies = None
-        compute_dipole = True
-        compute_energy = True
-        args.compute_forces = True
-        compute_nacs = True
-        compute_virials = False
-        args.compute_stress = False
-
-        atomic_energies: np.ndarray = np.array(
-            [atomic_energies_dict[z] for z in z_table.zs]
-        )
-
-        logging.info(
-            f"Atomic Energies used (z: eV): {{{', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}}}"
-        )
         
-    if args.model == "FieldEMACE":
+    if args.model == "FranckCondonMACE":
         atomic_energies = None
-        compute_dipole = False
         compute_energy = True
         args.compute_forces = True
-        compute_nacs = False
-        compute_virials = False
-        args.compute_stress = False
-
-        atomic_energies: np.ndarray = np.array(
-            [atomic_energies_dict[z] for z in z_table.zs]
-        )
-
-        logging.info(
-            f"Atomic Energies used (z: eV): {{{', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}}}"
-        )
-    
-    if args.model == "PerAtomFieldEMACE" or args.model == "AttentionPerAtomFieldEMACE":
-        atomic_energies = None
-        compute_dipole = False
-        compute_energy = True
-        args.compute_forces = True
-        compute_nacs = False
-        compute_virials = False
-        args.compute_stress = False
-
-        atomic_energies: np.ndarray = np.array(
-            [atomic_energies_dict[z] for z in z_table.zs]
-        )
-
-        logging.info(
-            f"Atomic Energies used (z: eV): {{{', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}}}"
-        )
-
-    if args.model == "AttentionFieldEMACE":
-        atomic_energies = None
-        compute_dipole = False
-        compute_energy = True
-        args.compute_forces = True
-        compute_nacs = False
-        compute_virials = False
-        args.compute_stress = False
+        compute_vectors = True
 
         atomic_energies: np.ndarray = np.array(
             [atomic_energies_dict[z] for z in z_table.zs]
@@ -352,8 +295,8 @@ def run(args: argparse.Namespace) -> None:
     loss_fn = modules.WeightedEnergyForcesNacsDipoleLoss(
         energy_weight=args.energy_weight,
         forces_weight=args.forces_weight,
-        dipoles_weight=args.dipoles_weight,
-        nacs_weight = args.nacs_weight,
+        vectors_weight=args.vectors_weight,
+        scalars_weight = args.scalars_weight,
     )
     
     if args.compute_avg_num_neighbors:
@@ -388,10 +331,7 @@ def run(args: argparse.Namespace) -> None:
     output_args = {
         "energy": compute_energy,
         "forces": args.compute_forces,
-        "virials": compute_virials,
-        "stress": args.compute_stress,
-        "dipoles": compute_dipole,
-        "nacs": compute_nacs
+        "vectors": compute_vectors,
     }
 
     logging.info(
@@ -468,29 +408,13 @@ def run(args: argparse.Namespace) -> None:
 
     model: torch.nn.Module
 
-    if args.model == "ExcitedMACE":
-        print(args)
-        model = modules.ExcitedMACE(
+    if args.model == "FranckCondonMACE":
+        model = modules.FranckCondonMACE(
             **model_config,
             pair_repulsion=args.pair_repulsion,
             n_energies=args.n_energies,
-            distance_transform=args.distance_transform,
-            correlation=args.correlation,
-            gate=modules.gate_dict[args.gate],
-            interaction_cls_first=modules.interaction_classes[
-                "RealAgnosticInteractionBlock"
-            ],
-            MLP_irreps=o3.Irreps(args.MLP_irreps),
-            radial_MLP=ast.literal_eval(args.radial_MLP),
-            radial_type=args.radial_type,
-            compute_nacs=args.compute_nacs,
-            compute_dipoles=args.compute_dipoles,
-        )
-    elif args.model == "FieldEMACE":
-        model = modules.FieldEMACE(
-            **model_config,
-            pair_repulsion=args.pair_repulsion,
-            n_energies=args.n_energies,
+            n_scalars=args.n_scalars,
+            n_vectors=args.n_vectors,
             distance_transform=args.distance_transform,
             multipole_max_ell = args.multipole_max_ell,
             correlation=args.correlation,
@@ -502,66 +426,8 @@ def run(args: argparse.Namespace) -> None:
             field_irreps=o3.Irreps(args.field_irreps),
             radial_MLP=ast.literal_eval(args.radial_MLP),
             radial_type=args.radial_type,
-            compute_nacs=args.compute_nacs,
-            compute_dipoles=args.compute_dipoles,
         )
-    elif args.model == "PerAtomFieldEMACE":
-        model = modules.PerAtomFieldEMACE(
-            **model_config,
-            pair_repulsion=args.pair_repulsion,
-            n_energies=args.n_energies,
-            distance_transform=args.distance_transform,
-            multipole_max_ell = args.multipole_max_ell,
-            correlation=args.correlation,
-            gate=modules.gate_dict[args.gate],
-            interaction_cls_first=modules.interaction_classes[
-                "RealAgnosticInteractionBlock"
-            ],
-            MLP_irreps=o3.Irreps(args.MLP_irreps),
-            field_irreps=o3.Irreps(args.field_irreps),
-            radial_MLP=ast.literal_eval(args.radial_MLP),
-            radial_type=args.radial_type,
-            compute_nacs=args.compute_nacs,
-            compute_dipoles=args.compute_dipoles,
-        )
-    elif args.model == "AttentionPerAtomFieldEMACE":
-        model = modules.AttentionPerAtomFieldEMACE(
-            **model_config,
-            pair_repulsion=args.pair_repulsion,
-            n_energies=args.n_energies,
-            distance_transform=args.distance_transform,
-            multipole_max_ell = args.multipole_max_ell,
-            correlation=args.correlation,
-            gate=modules.gate_dict[args.gate],
-            interaction_cls_first=modules.interaction_classes[
-                "RealAgnosticInteractionBlock"
-            ],
-            MLP_irreps=o3.Irreps(args.MLP_irreps),
-            field_irreps=o3.Irreps(args.field_irreps),
-            radial_MLP=ast.literal_eval(args.radial_MLP),
-            radial_type=args.radial_type,
-            compute_nacs=args.compute_nacs,
-            compute_dipoles=args.compute_dipoles,
-        )
-    elif args.model == "AttentionFieldEMACE":
-        model = modules.AttentionFieldEMACE(
-            **model_config,
-            pair_repulsion=args.pair_repulsion,
-            n_energies=args.n_energies,
-            distance_transform=args.distance_transform,
-            multipole_max_ell = args.multipole_max_ell,
-            correlation=args.correlation,
-            gate=modules.gate_dict[args.gate],
-            interaction_cls_first=modules.interaction_classes[
-                "RealAgnosticInteractionBlock"
-            ],
-            MLP_irreps=o3.Irreps(args.MLP_irreps),
-            field_irreps=o3.Irreps(args.field_irreps),
-            radial_MLP=ast.literal_eval(args.radial_MLP),
-            radial_type=args.radial_type,
-            compute_nacs=args.compute_nacs,
-            compute_dipoles=args.compute_dipoles,
-        )
+    
     else:
         raise RuntimeError(f"Unknown model: '{args.model}'")
 
@@ -706,8 +572,8 @@ def run(args: argparse.Namespace) -> None:
             loss_fn_energy = modules.WeightedEnergyForcesNacsDipoleLoss(
                 energy_weight=args.swa_energy_weight,
                 forces_weight=args.swa_forces_weight,
-                dipole_weight=args.swa_dipoles_weight,
-                nacs_weight=args.swa_nacs_weight
+                vectors_weight=args.swa_vectors_weight,
+                scalars_weight=args.swa_scalars_weight
             )
         logging.info(loss_fn_energy)
         swa = tools.SWAContainer(
