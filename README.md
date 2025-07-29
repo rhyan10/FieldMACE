@@ -14,7 +14,7 @@ The framework is designed to handle long range effects from the MM region on the
 Key features include:
 - **Multi-level Energy Learning:** Use the `--n_energies` parameter to specify how many energy levels the model should learn.
 - **Transfer Learning Capability:** Leverage pre-trained ground state representations by specifying the `--foundation_model` parameter.
-- **Multipole Expansion Parameters:** Parameter controlling the number of higher order tensors used
+- **Multipole Expansion Parameter:** Use the --multipole_max_ell parameter for controlling the number of higher order tensors used
 ---
 
 ## System Requirements
