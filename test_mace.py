@@ -3,11 +3,12 @@ import ase.io
 from mace.calculators import MACECalculator
 import numpy as np
 
+
 # Load molecules
 mols = ase.io.read("dmabn_test.xyz", ":")
 
 # Initialize calculator once (assumes model can be reused)
-calc = MACECalculator(model_paths="dmabn_test.model", n_energies=4, device="cuda")
+calc = MACECalculator(model_paths="dmabn_L1.model", n_energies=4, device="cuda")
 
 # Containers for accumulating errors
 energy_errors = []
@@ -33,7 +34,14 @@ for mol in tqdm(mols):
     # Multipolar fit
     pred_mfit = results.get("REF_multipolar_fit", 0.0)  
     ref_mfit = mol.info.get("REF_scalars", 0.0)
-    multipolar_fit_errors.append(abs(pred_mfit - ref_mfit))
+    neg = np.square(ref_mfit - pred_mfit)[..., np.newaxis]
+    pos = np.square(ref_mfit + pred_mfit)[..., np.newaxis]
+
+    # stack them along the last axis
+    vec = np.concatenate((pos, neg), axis=-1)
+
+    # take the min over that last axis and append
+    multipolar_fit_errors.append(np.min(vec, axis=-1))
 
 
 # Compute MAEs

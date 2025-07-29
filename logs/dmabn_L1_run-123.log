@@ -1,0 +1,1226 @@
+2025-07-28 12:16:02.661 INFO: ===========VERIFYING SETTINGS===========
+2025-07-28 12:16:02.661 INFO: MACE version: 0.3.6
+2025-07-28 12:16:02.822 INFO: CUDA version: 12.4, CUDA device: 0
+2025-07-28 12:16:02.864 INFO: 
+2025-07-28 12:16:02.864 INFO: ===========LOADING INPUT DATA===========
+2025-07-28 12:16:03.519 INFO: Using random 10% of training set for validation with indices saved in: ./valid_indices_123.txt
+2025-07-28 12:16:03.521 INFO: Atomic Numbers used: [1, 6, 7]
+2025-07-28 12:16:03.521 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2025-07-28 12:16:03.521 INFO: Computing average Atomic Energies using least squares regression
+2025-07-28 12:16:03.526 INFO: Atomic Energies used (z: eV): {1: -24.74135307183524, 6: -22.267217764651864, 7: -4.948270614367011}
+2025-07-28 12:16:03.722 INFO: 
+2025-07-28 12:16:03.722 INFO: ===========MODEL DETAILS===========
+2025-07-28 12:16:03.897 INFO: Average number of neighbors: 16.4
+2025-07-28 12:16:03.897 INFO: During training the following quantities will be reported: energy, forces, vectors
+2025-07-28 12:16:03.957 INFO: Building model
+2025-07-28 12:16:03.957 INFO: Message passing with 128 channels and max_L=1 (128x0e + 128x1o)
+2025-07-28 12:16:03.957 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2025-07-28 12:16:03.957 INFO: 8 radial and 5 basis functions
+2025-07-28 12:16:03.957 INFO: Radial cutoff: 10.0 Å (total receptive field for each atom: 20.0 Å)
+2025-07-28 12:16:03.957 INFO: Distance transform for radial basis functions: None
+2025-07-28 12:16:05.050 INFO: Total number of parameters: 1053640
+2025-07-28 12:16:05.050 INFO: 
+2025-07-28 12:16:05.050 INFO: ===========OPTIMIZER INFORMATION===========
+2025-07-28 12:16:05.050 INFO: Using ADAM as parameter optimizer
+2025-07-28 12:16:05.050 INFO: Batch size: 20
+2025-07-28 12:16:05.050 INFO: Using Exponential Moving Average with decay: 0.99
+2025-07-28 12:16:05.050 INFO: Number of gradient updates: 22525
+2025-07-28 12:16:05.050 INFO: Learning rate: 0.001, weight decay: 5e-07
+2025-07-28 12:16:05.050 INFO: WeightedEnergyForcesNacsDipoleLoss(energy_weight=0.000, forces_weight=0.000, vectors_weight=0.000)
+2025-07-28 12:16:05.052 INFO: Using gradient clipping with tolerance=10.000
+2025-07-28 12:16:05.052 INFO: 
+2025-07-28 12:16:05.052 INFO: ===========TRAINING===========
+2025-07-28 12:16:05.052 INFO: Started training, reporting errors on validation set
+2025-07-28 12:16:05.052 INFO: Loss metrics on validation set
+2025-07-28 12:16:25.200 INFO: ===========VERIFYING SETTINGS===========
+2025-07-28 12:16:25.200 INFO: MACE version: 0.3.6
+2025-07-28 12:16:25.361 INFO: CUDA version: 12.4, CUDA device: 0
+2025-07-28 12:16:25.385 INFO: 
+2025-07-28 12:16:25.385 INFO: ===========LOADING INPUT DATA===========
+2025-07-28 12:16:26.029 INFO: Using random 10% of training set for validation with indices saved in: ./valid_indices_123.txt
+2025-07-28 12:16:26.031 INFO: Atomic Numbers used: [1, 6, 7]
+2025-07-28 12:16:26.031 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2025-07-28 12:16:26.031 INFO: Computing average Atomic Energies using least squares regression
+2025-07-28 12:16:26.036 INFO: Atomic Energies used (z: eV): {1: -24.74135307183524, 6: -22.267217764651864, 7: -4.948270614367011}
+2025-07-28 12:16:26.231 INFO: 
+2025-07-28 12:16:26.232 INFO: ===========MODEL DETAILS===========
+2025-07-28 12:16:26.411 INFO: Average number of neighbors: 16.4
+2025-07-28 12:16:26.411 INFO: During training the following quantities will be reported: energy, forces, vectors
+2025-07-28 12:16:26.470 INFO: Building model
+2025-07-28 12:16:26.470 INFO: Message passing with 128 channels and max_L=1 (128x0e + 128x1o)
+2025-07-28 12:16:26.470 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2025-07-28 12:16:26.470 INFO: 8 radial and 5 basis functions
+2025-07-28 12:16:26.470 INFO: Radial cutoff: 10.0 Å (total receptive field for each atom: 20.0 Å)
+2025-07-28 12:16:26.470 INFO: Distance transform for radial basis functions: None
+2025-07-28 12:16:27.557 INFO: Total number of parameters: 1053640
+2025-07-28 12:16:27.557 INFO: 
+2025-07-28 12:16:27.557 INFO: ===========OPTIMIZER INFORMATION===========
+2025-07-28 12:16:27.557 INFO: Using ADAM as parameter optimizer
+2025-07-28 12:16:27.557 INFO: Batch size: 20
+2025-07-28 12:16:27.557 INFO: Using Exponential Moving Average with decay: 0.99
+2025-07-28 12:16:27.557 INFO: Number of gradient updates: 22525
+2025-07-28 12:16:27.557 INFO: Learning rate: 0.001, weight decay: 5e-07
+2025-07-28 12:16:27.557 INFO: WeightedEnergyForcesNacsDipoleLoss(energy_weight=0.000, forces_weight=0.000, vectors_weight=0.000)
+2025-07-28 12:16:27.559 INFO: Using gradient clipping with tolerance=10.000
+2025-07-28 12:16:27.559 INFO: 
+2025-07-28 12:16:27.559 INFO: ===========TRAINING===========
+2025-07-28 12:16:27.559 INFO: Started training, reporting errors on validation set
+2025-07-28 12:16:27.559 INFO: Loss metrics on validation set
+2025-07-28 12:16:31.216 INFO: Initial: loss=  0.9510, MAE_energy=  1971.6 meV, MAE_Forces=    28.7 meV / A, MAE_vectors=    0.00, MAE_scalars=  112.74
+2025-07-28 12:17:05.553 INFO: Epoch 0: loss=  0.1195, MAE_energy=  1963.4 meV, MAE_Forces=    28.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   31.45
+2025-07-28 12:17:38.842 INFO: Epoch 1: loss=  0.0877, MAE_energy=  1930.3 meV, MAE_Forces=    29.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   26.30
+2025-07-28 12:18:12.435 INFO: Epoch 2: loss=  0.0712, MAE_energy=  1937.2 meV, MAE_Forces=    30.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   23.65
+2025-07-28 12:18:46.300 INFO: Epoch 3: loss=  0.0582, MAE_energy=  1962.6 meV, MAE_Forces=    30.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   21.35
+2025-07-28 12:19:20.364 INFO: Epoch 4: loss=  0.0545, MAE_energy=  1964.0 meV, MAE_Forces=    30.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.46
+2025-07-28 12:19:54.598 INFO: Epoch 5: loss=  0.0531, MAE_energy=  1956.3 meV, MAE_Forces=    30.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.10
+2025-07-28 12:20:29.366 INFO: Epoch 6: loss=  0.0524, MAE_energy=  1949.1 meV, MAE_Forces=    31.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.93
+2025-07-28 12:21:05.564 INFO: Epoch 7: loss=  0.0519, MAE_energy=  1936.4 meV, MAE_Forces=    31.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.80
+2025-07-28 12:21:42.042 INFO: Epoch 8: loss=  0.0514, MAE_energy=  1927.4 meV, MAE_Forces=    31.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.67
+2025-07-28 12:22:18.741 INFO: Epoch 9: loss=  0.0511, MAE_energy=  1919.7 meV, MAE_Forces=    31.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.59
+2025-07-28 12:22:55.678 INFO: Epoch 10: loss=  0.0508, MAE_energy=  1910.7 meV, MAE_Forces=    31.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.51
+2025-07-28 12:23:32.635 INFO: Epoch 11: loss=  0.0505, MAE_energy=  1904.1 meV, MAE_Forces=    32.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.44
+2025-07-28 12:24:09.578 INFO: Epoch 12: loss=  0.0502, MAE_energy=  1896.2 meV, MAE_Forces=    32.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.39
+2025-07-28 12:24:46.519 INFO: Epoch 13: loss=  0.0500, MAE_energy=  1887.6 meV, MAE_Forces=    32.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.32
+2025-07-28 12:25:23.294 INFO: Epoch 14: loss=  0.0497, MAE_energy=  1874.2 meV, MAE_Forces=    33.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.26
+2025-07-28 12:25:59.889 INFO: Epoch 15: loss=  0.0494, MAE_energy=  1857.8 meV, MAE_Forces=    33.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.19
+2025-07-28 12:26:36.321 INFO: Epoch 16: loss=  0.0489, MAE_energy=  1841.7 meV, MAE_Forces=    34.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.10
+2025-07-28 12:27:12.806 INFO: Epoch 17: loss=  0.0483, MAE_energy=  1824.9 meV, MAE_Forces=    34.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.00
+2025-07-28 12:27:49.321 INFO: Epoch 18: loss=  0.0476, MAE_energy=  1810.1 meV, MAE_Forces=    35.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.85
+2025-07-28 12:28:25.792 INFO: Epoch 19: loss=  0.0469, MAE_energy=  1798.7 meV, MAE_Forces=    37.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.72
+2025-07-28 12:29:02.270 INFO: Epoch 20: loss=  0.0462, MAE_energy=  1787.5 meV, MAE_Forces=    38.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.61
+2025-07-28 12:29:38.766 INFO: Epoch 21: loss=  0.0458, MAE_energy=  1775.1 meV, MAE_Forces=    39.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.53
+2025-07-28 12:30:15.341 INFO: Epoch 22: loss=  0.0454, MAE_energy=  1763.8 meV, MAE_Forces=    40.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.47
+2025-07-28 12:30:51.908 INFO: Epoch 23: loss=  0.0451, MAE_energy=  1751.7 meV, MAE_Forces=    41.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.42
+2025-07-28 12:31:28.471 INFO: Epoch 24: loss=  0.0448, MAE_energy=  1740.7 meV, MAE_Forces=    42.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.38
+2025-07-28 12:32:04.968 INFO: Epoch 25: loss=  0.0446, MAE_energy=  1731.0 meV, MAE_Forces=    43.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.34
+2025-07-28 12:32:41.515 INFO: Epoch 26: loss=  0.0443, MAE_energy=  1721.2 meV, MAE_Forces=    43.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.29
+2025-07-28 12:33:17.967 INFO: Epoch 27: loss=  0.0441, MAE_energy=  1710.2 meV, MAE_Forces=    44.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.25
+2025-07-28 12:33:54.385 INFO: Epoch 28: loss=  0.0438, MAE_energy=  1699.9 meV, MAE_Forces=    45.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.19
+2025-07-28 12:34:30.938 INFO: Epoch 29: loss=  0.0435, MAE_energy=  1690.6 meV, MAE_Forces=    45.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.10
+2025-07-28 12:35:07.496 INFO: Epoch 30: loss=  0.0432, MAE_energy=  1680.2 meV, MAE_Forces=    46.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.03
+2025-07-28 12:35:44.057 INFO: Epoch 31: loss=  0.0429, MAE_energy=  1669.5 meV, MAE_Forces=    47.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.96
+2025-07-28 12:36:20.642 INFO: Epoch 32: loss=  0.0425, MAE_energy=  1660.9 meV, MAE_Forces=    48.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.89
+2025-07-28 12:36:57.178 INFO: Epoch 33: loss=  0.0422, MAE_energy=  1651.9 meV, MAE_Forces=    50.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.82
+2025-07-28 12:37:33.805 INFO: Epoch 34: loss=  0.0417, MAE_energy=  1643.6 meV, MAE_Forces=    52.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.75
+2025-07-28 12:38:10.263 INFO: Epoch 35: loss=  0.0412, MAE_energy=  1635.4 meV, MAE_Forces=    53.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.66
+2025-07-28 12:38:46.670 INFO: Epoch 36: loss=  0.0409, MAE_energy=  1627.5 meV, MAE_Forces=    55.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.59
+2025-07-28 12:39:23.162 INFO: Epoch 37: loss=  0.0405, MAE_energy=  1622.1 meV, MAE_Forces=    57.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.52
+2025-07-28 12:39:59.424 INFO: Epoch 38: loss=  0.0402, MAE_energy=  1616.8 meV, MAE_Forces=    59.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.46
+2025-07-28 12:40:35.197 INFO: Epoch 39: loss=  0.0400, MAE_energy=  1611.7 meV, MAE_Forces=    60.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.40
+2025-07-28 12:41:10.813 INFO: Epoch 40: loss=  0.0398, MAE_energy=  1608.0 meV, MAE_Forces=    61.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.35
+2025-07-28 12:41:46.644 INFO: Epoch 41: loss=  0.0395, MAE_energy=  1604.2 meV, MAE_Forces=    62.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.30
+2025-07-28 12:42:22.837 INFO: Epoch 42: loss=  0.0393, MAE_energy=  1601.2 meV, MAE_Forces=    63.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.25
+2025-07-28 12:42:59.090 INFO: Epoch 43: loss=  0.0391, MAE_energy=  1598.6 meV, MAE_Forces=    64.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.20
+2025-07-28 12:43:35.334 INFO: Epoch 44: loss=  0.0390, MAE_energy=  1595.7 meV, MAE_Forces=    65.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.17
+2025-07-28 12:44:11.643 INFO: Epoch 45: loss=  0.0388, MAE_energy=  1592.8 meV, MAE_Forces=    66.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.11
+2025-07-28 12:44:48.133 INFO: Epoch 46: loss=  0.0386, MAE_energy=  1588.6 meV, MAE_Forces=    67.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.06
+2025-07-28 12:45:24.787 INFO: Epoch 47: loss=  0.0384, MAE_energy=  1584.4 meV, MAE_Forces=    68.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.02
+2025-07-28 12:46:01.475 INFO: Epoch 48: loss=  0.0382, MAE_energy=  1576.8 meV, MAE_Forces=    68.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.98
+2025-07-28 12:46:38.236 INFO: Epoch 49: loss=  0.0380, MAE_energy=  1569.8 meV, MAE_Forces=    70.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.93
+2025-07-28 12:47:14.824 INFO: Epoch 50: loss=  0.0378, MAE_energy=  1562.0 meV, MAE_Forces=    70.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.87
+2025-07-28 12:47:51.414 INFO: Epoch 51: loss=  0.0377, MAE_energy=  1552.3 meV, MAE_Forces=    71.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.84
+2025-07-28 12:48:28.068 INFO: Epoch 52: loss=  0.0375, MAE_energy=  1545.5 meV, MAE_Forces=    72.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.80
+2025-07-28 12:49:04.647 INFO: Epoch 53: loss=  0.0374, MAE_energy=  1539.9 meV, MAE_Forces=    73.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.78
+2025-07-28 12:49:40.829 INFO: Epoch 54: loss=  0.0372, MAE_energy=  1534.8 meV, MAE_Forces=    74.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.74
+2025-07-28 12:50:16.658 INFO: Epoch 55: loss=  0.0371, MAE_energy=  1529.0 meV, MAE_Forces=    75.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.70
+2025-07-28 12:50:52.444 INFO: Epoch 56: loss=  0.0370, MAE_energy=  1524.9 meV, MAE_Forces=    76.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.68
+2025-07-28 12:51:28.621 INFO: Epoch 57: loss=  0.0368, MAE_energy=  1519.9 meV, MAE_Forces=    77.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.65
+2025-07-28 12:52:04.875 INFO: Epoch 58: loss=  0.0367, MAE_energy=  1514.2 meV, MAE_Forces=    78.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.62
+2025-07-28 12:52:41.229 INFO: Epoch 59: loss=  0.0366, MAE_energy=  1508.9 meV, MAE_Forces=    79.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.59
+2025-07-28 12:53:17.820 INFO: Epoch 60: loss=  0.0365, MAE_energy=  1504.0 meV, MAE_Forces=    80.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.56
+2025-07-28 12:53:54.563 INFO: Epoch 61: loss=  0.0364, MAE_energy=  1499.7 meV, MAE_Forces=    81.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.54
+2025-07-28 12:54:31.327 INFO: Epoch 62: loss=  0.0363, MAE_energy=  1494.2 meV, MAE_Forces=    81.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.51
+2025-07-28 12:55:08.064 INFO: Epoch 63: loss=  0.0362, MAE_energy=  1489.0 meV, MAE_Forces=    82.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.49
+2025-07-28 12:55:44.762 INFO: Epoch 64: loss=  0.0361, MAE_energy=  1482.8 meV, MAE_Forces=    83.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.47
+2025-07-28 12:56:21.294 INFO: Epoch 65: loss=  0.0360, MAE_energy=  1478.5 meV, MAE_Forces=    84.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.44
+2025-07-28 12:56:57.804 INFO: Epoch 66: loss=  0.0359, MAE_energy=  1473.1 meV, MAE_Forces=    85.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.42
+2025-07-28 12:57:34.354 INFO: Epoch 67: loss=  0.0358, MAE_energy=  1467.9 meV, MAE_Forces=    86.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.39
+2025-07-28 12:58:10.830 INFO: Epoch 68: loss=  0.0357, MAE_energy=  1461.9 meV, MAE_Forces=    86.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.37
+2025-07-28 12:58:47.339 INFO: Epoch 69: loss=  0.0356, MAE_energy=  1455.4 meV, MAE_Forces=    86.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.35
+2025-07-28 12:59:23.799 INFO: Epoch 70: loss=  0.0355, MAE_energy=  1449.2 meV, MAE_Forces=    87.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.34
+2025-07-28 13:00:00.218 INFO: Epoch 71: loss=  0.0354, MAE_energy=  1444.2 meV, MAE_Forces=    88.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.32
+2025-07-28 13:00:36.672 INFO: Epoch 72: loss=  0.0354, MAE_energy=  1440.8 meV, MAE_Forces=    89.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.30
+2025-07-28 13:01:12.940 INFO: Epoch 73: loss=  0.0353, MAE_energy=  1436.3 meV, MAE_Forces=    89.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.28
+2025-07-28 13:01:48.703 INFO: Epoch 74: loss=  0.0352, MAE_energy=  1432.9 meV, MAE_Forces=    90.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.26
+2025-07-28 13:02:24.385 INFO: Epoch 75: loss=  0.0351, MAE_energy=  1429.8 meV, MAE_Forces=    90.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.24
+2025-07-28 13:03:00.330 INFO: Epoch 76: loss=  0.0350, MAE_energy=  1428.0 meV, MAE_Forces=    91.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.21
+2025-07-28 13:03:36.743 INFO: Epoch 77: loss=  0.0349, MAE_energy=  1425.1 meV, MAE_Forces=    92.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.20
+2025-07-28 13:04:13.049 INFO: Epoch 78: loss=  0.0348, MAE_energy=  1422.0 meV, MAE_Forces=    92.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.17
+2025-07-28 13:04:49.395 INFO: Epoch 79: loss=  0.0347, MAE_energy=  1419.4 meV, MAE_Forces=    93.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.16
+2025-07-28 13:05:25.655 INFO: Epoch 80: loss=  0.0346, MAE_energy=  1417.5 meV, MAE_Forces=    94.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.14
+2025-07-28 13:06:02.175 INFO: Epoch 81: loss=  0.0345, MAE_energy=  1415.9 meV, MAE_Forces=    94.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.12
+2025-07-28 13:06:38.955 INFO: Epoch 82: loss=  0.0344, MAE_energy=  1414.3 meV, MAE_Forces=    95.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.09
+2025-07-28 13:07:15.744 INFO: Epoch 83: loss=  0.0343, MAE_energy=  1412.4 meV, MAE_Forces=    95.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.07
+2025-07-28 13:07:52.509 INFO: Epoch 84: loss=  0.0342, MAE_energy=  1410.2 meV, MAE_Forces=    96.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.05
+2025-07-28 13:08:29.125 INFO: Epoch 85: loss=  0.0341, MAE_energy=  1408.3 meV, MAE_Forces=    96.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.03
+2025-07-28 13:09:05.673 INFO: Epoch 86: loss=  0.0340, MAE_energy=  1404.1 meV, MAE_Forces=    96.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.99
+2025-07-28 13:09:42.195 INFO: Epoch 87: loss=  0.0339, MAE_energy=  1398.9 meV, MAE_Forces=    96.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.98
+2025-07-28 13:10:18.798 INFO: Epoch 88: loss=  0.0339, MAE_energy=  1392.3 meV, MAE_Forces=    96.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.96
+2025-07-28 13:10:55.311 INFO: Epoch 89: loss=  0.0337, MAE_energy=  1388.8 meV, MAE_Forces=    97.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.93
+2025-07-28 13:11:31.871 INFO: Epoch 90: loss=  0.0337, MAE_energy=  1385.1 meV, MAE_Forces=    98.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.90
+2025-07-28 13:12:08.449 INFO: Epoch 91: loss=  0.0336, MAE_energy=  1380.8 meV, MAE_Forces=    98.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.89
+2025-07-28 13:12:45.041 INFO: Epoch 92: loss=  0.0335, MAE_energy=  1377.1 meV, MAE_Forces=    99.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.87
+2025-07-28 13:13:21.583 INFO: Epoch 93: loss=  0.0334, MAE_energy=  1373.2 meV, MAE_Forces=    99.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.85
+2025-07-28 13:13:58.168 INFO: Epoch 94: loss=  0.0333, MAE_energy=  1370.0 meV, MAE_Forces=   100.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.83
+2025-07-28 13:14:34.761 INFO: Epoch 95: loss=  0.0332, MAE_energy=  1367.3 meV, MAE_Forces=   101.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.81
+2025-07-28 13:15:11.309 INFO: Epoch 96: loss=  0.0331, MAE_energy=  1365.0 meV, MAE_Forces=   101.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.79
+2025-07-28 13:15:47.868 INFO: Epoch 97: loss=  0.0330, MAE_energy=  1364.0 meV, MAE_Forces=   102.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.77
+2025-07-28 13:16:24.409 INFO: Epoch 98: loss=  0.0329, MAE_energy=  1362.4 meV, MAE_Forces=   102.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.74
+2025-07-28 14:52:02.026 INFO: ===========VERIFYING SETTINGS===========
+2025-07-28 14:52:02.026 INFO: MACE version: 0.3.6
+2025-07-28 14:52:02.185 INFO: CUDA version: 12.4, CUDA device: 0
+2025-07-28 14:52:02.209 INFO: 
+2025-07-28 14:52:02.209 INFO: ===========LOADING INPUT DATA===========
+2025-07-28 14:52:02.848 INFO: Using random 10% of training set for validation with indices saved in: ./valid_indices_123.txt
+2025-07-28 14:52:02.850 INFO: Atomic Numbers used: [1, 6, 7]
+2025-07-28 14:52:02.850 INFO: Isolated Atomic Energies (E0s) not in training file, using command line argument
+2025-07-28 14:52:02.850 INFO: Computing average Atomic Energies using least squares regression
+2025-07-28 14:52:02.855 INFO: Atomic Energies used (z: eV): {1: -24.74135307183524, 6: -22.267217764651864, 7: -4.948270614367011}
+2025-07-28 14:52:03.052 INFO: 
+2025-07-28 14:52:03.052 INFO: ===========MODEL DETAILS===========
+2025-07-28 14:52:03.247 INFO: Average number of neighbors: 16.4
+2025-07-28 14:52:03.247 INFO: During training the following quantities will be reported: energy, forces, vectors
+2025-07-28 14:52:03.326 INFO: Building model
+2025-07-28 14:52:03.326 INFO: Message passing with 128 channels and max_L=1 (128x0e + 128x1o)
+2025-07-28 14:52:03.326 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2025-07-28 14:52:03.326 INFO: 8 radial and 5 basis functions
+2025-07-28 14:52:03.326 INFO: Radial cutoff: 10.0 Å (total receptive field for each atom: 20.0 Å)
+2025-07-28 14:52:03.326 INFO: Distance transform for radial basis functions: None
+2025-07-28 14:52:04.524 INFO: Total number of parameters: 1053640
+2025-07-28 14:52:04.524 INFO: 
+2025-07-28 14:52:04.524 INFO: ===========OPTIMIZER INFORMATION===========
+2025-07-28 14:52:04.524 INFO: Using ADAM as parameter optimizer
+2025-07-28 14:52:04.524 INFO: Batch size: 10
+2025-07-28 14:52:04.524 INFO: Using Exponential Moving Average with decay: 0.99
+2025-07-28 14:52:04.524 INFO: Number of gradient updates: 90100
+2025-07-28 14:52:04.524 INFO: Learning rate: 0.001, weight decay: 5e-07
+2025-07-28 14:52:04.524 INFO: WeightedEnergyForcesNacsDipoleLoss(energy_weight=100.000, forces_weight=100.000, vectors_weight=0.000)
+2025-07-28 14:52:04.526 INFO: Using gradient clipping with tolerance=10.000
+2025-07-28 14:52:04.526 INFO: 
+2025-07-28 14:52:04.526 INFO: ===========TRAINING===========
+2025-07-28 14:52:04.526 INFO: Started training, reporting errors on validation set
+2025-07-28 14:52:04.526 INFO: Loss metrics on validation set
+2025-07-28 14:52:08.387 INFO: Initial: loss= 64.7360, MAE_energy=  1971.6 meV, MAE_Forces=    28.7 meV / A, MAE_vectors=    0.00, MAE_scalars=  112.74
+2025-07-28 14:52:44.317 INFO: Epoch 0: loss=  0.0527, MAE_energy=    17.0 meV, MAE_Forces=    28.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   36.12
+2025-07-28 14:53:19.214 INFO: Epoch 1: loss=  0.0477, MAE_energy=    16.1 meV, MAE_Forces=    27.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   33.31
+2025-07-28 14:53:54.449 INFO: Epoch 2: loss=  0.0420, MAE_energy=    15.1 meV, MAE_Forces=    26.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   30.45
+2025-07-28 14:54:29.986 INFO: Epoch 3: loss=  0.0379, MAE_energy=    14.1 meV, MAE_Forces=    25.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   28.34
+2025-07-28 14:55:05.779 INFO: Epoch 4: loss=  0.0352, MAE_energy=    13.3 meV, MAE_Forces=    23.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   27.47
+2025-07-28 14:55:41.966 INFO: Epoch 5: loss=  0.0324, MAE_energy=    12.6 meV, MAE_Forces=    22.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   26.58
+2025-07-28 14:56:20.192 INFO: Epoch 6: loss=  0.0296, MAE_energy=    12.4 meV, MAE_Forces=    21.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   25.63
+2025-07-28 14:56:58.795 INFO: Epoch 7: loss=  0.0268, MAE_energy=    12.1 meV, MAE_Forces=    19.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   24.72
+2025-07-28 14:57:37.653 INFO: Epoch 8: loss=  0.0236, MAE_energy=    11.1 meV, MAE_Forces=    17.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   23.73
+2025-07-28 14:58:16.521 INFO: Epoch 9: loss=  0.0206, MAE_energy=     9.5 meV, MAE_Forces=    15.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   22.93
+2025-07-28 14:58:55.353 INFO: Epoch 10: loss=  0.0184, MAE_energy=     8.2 meV, MAE_Forces=    13.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   22.36
+2025-07-28 14:59:34.166 INFO: Epoch 11: loss=  0.0170, MAE_energy=     7.4 meV, MAE_Forces=    12.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   21.86
+2025-07-28 15:00:12.873 INFO: Epoch 12: loss=  0.0162, MAE_energy=     6.9 meV, MAE_Forces=    12.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   21.51
+2025-07-28 15:00:51.380 INFO: Epoch 13: loss=  0.0157, MAE_energy=     6.5 meV, MAE_Forces=    11.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   21.23
+2025-07-28 15:01:29.873 INFO: Epoch 14: loss=  0.0153, MAE_energy=     6.3 meV, MAE_Forces=    11.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   21.04
+2025-07-28 15:02:08.295 INFO: Epoch 15: loss=  0.0150, MAE_energy=     6.1 meV, MAE_Forces=    11.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.85
+2025-07-28 15:02:46.728 INFO: Epoch 16: loss=  0.0147, MAE_energy=     5.9 meV, MAE_Forces=    10.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.71
+2025-07-28 15:03:25.174 INFO: Epoch 17: loss=  0.0145, MAE_energy=     5.7 meV, MAE_Forces=    10.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.61
+2025-07-28 15:04:03.655 INFO: Epoch 18: loss=  0.0142, MAE_energy=     5.6 meV, MAE_Forces=    10.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.52
+2025-07-28 15:04:42.038 INFO: Epoch 19: loss=  0.0140, MAE_energy=     5.6 meV, MAE_Forces=    10.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.44
+2025-07-28 15:05:20.469 INFO: Epoch 20: loss=  0.0138, MAE_energy=     5.4 meV, MAE_Forces=    10.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.37
+2025-07-28 15:05:58.962 INFO: Epoch 21: loss=  0.0136, MAE_energy=     5.3 meV, MAE_Forces=     9.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.30
+2025-07-28 15:06:37.385 INFO: Epoch 22: loss=  0.0134, MAE_energy=     5.2 meV, MAE_Forces=     9.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.24
+2025-07-28 15:07:15.780 INFO: Epoch 23: loss=  0.0132, MAE_energy=     5.1 meV, MAE_Forces=     9.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.19
+2025-07-28 15:07:54.206 INFO: Epoch 24: loss=  0.0130, MAE_energy=     4.9 meV, MAE_Forces=     9.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.15
+2025-07-28 15:08:32.599 INFO: Epoch 25: loss=  0.0128, MAE_energy=     4.8 meV, MAE_Forces=     8.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.11
+2025-07-28 15:09:11.048 INFO: Epoch 26: loss=  0.0127, MAE_energy=     4.7 meV, MAE_Forces=     8.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.06
+2025-07-28 15:09:49.446 INFO: Epoch 27: loss=  0.0125, MAE_energy=     4.5 meV, MAE_Forces=     8.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.04
+2025-07-28 15:10:27.838 INFO: Epoch 28: loss=  0.0124, MAE_energy=     4.4 meV, MAE_Forces=     8.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   20.00
+2025-07-28 15:11:05.450 INFO: Epoch 29: loss=  0.0122, MAE_energy=     4.3 meV, MAE_Forces=     8.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.96
+2025-07-28 15:11:42.964 INFO: Epoch 30: loss=  0.0121, MAE_energy=     4.2 meV, MAE_Forces=     7.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.94
+2025-07-28 15:12:20.783 INFO: Epoch 31: loss=  0.0120, MAE_energy=     4.2 meV, MAE_Forces=     7.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.90
+2025-07-28 15:12:59.111 INFO: Epoch 32: loss=  0.0119, MAE_energy=     4.1 meV, MAE_Forces=     7.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.87
+2025-07-28 15:13:37.512 INFO: Epoch 33: loss=  0.0119, MAE_energy=     4.0 meV, MAE_Forces=     7.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.82
+2025-07-28 15:14:15.885 INFO: Epoch 34: loss=  0.0118, MAE_energy=     3.9 meV, MAE_Forces=     7.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.80
+2025-07-28 15:14:54.261 INFO: Epoch 35: loss=  0.0117, MAE_energy=     3.9 meV, MAE_Forces=     7.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.77
+2025-07-28 15:15:32.649 INFO: Epoch 36: loss=  0.0117, MAE_energy=     3.8 meV, MAE_Forces=     7.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.74
+2025-07-28 15:16:11.209 INFO: Epoch 37: loss=  0.0116, MAE_energy=     3.8 meV, MAE_Forces=     7.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.70
+2025-07-28 15:16:49.966 INFO: Epoch 38: loss=  0.0116, MAE_energy=     3.7 meV, MAE_Forces=     7.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.66
+2025-07-28 15:17:28.710 INFO: Epoch 39: loss=  0.0115, MAE_energy=     3.7 meV, MAE_Forces=     7.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.63
+2025-07-28 15:18:07.272 INFO: Epoch 40: loss=  0.0115, MAE_energy=     3.6 meV, MAE_Forces=     6.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.60
+2025-07-28 15:18:45.753 INFO: Epoch 41: loss=  0.0114, MAE_energy=     3.6 meV, MAE_Forces=     6.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.57
+2025-07-28 15:19:24.264 INFO: Epoch 42: loss=  0.0114, MAE_energy=     3.6 meV, MAE_Forces=     6.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.53
+2025-07-28 15:20:02.501 INFO: Epoch 43: loss=  0.0113, MAE_energy=     3.5 meV, MAE_Forces=     6.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.49
+2025-07-28 15:20:40.114 INFO: Epoch 44: loss=  0.0113, MAE_energy=     3.5 meV, MAE_Forces=     6.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.47
+2025-07-28 15:21:17.685 INFO: Epoch 45: loss=  0.0112, MAE_energy=     3.5 meV, MAE_Forces=     6.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.43
+2025-07-28 15:21:55.850 INFO: Epoch 46: loss=  0.0112, MAE_energy=     3.4 meV, MAE_Forces=     6.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.40
+2025-07-28 15:22:34.113 INFO: Epoch 47: loss=  0.0111, MAE_energy=     3.4 meV, MAE_Forces=     6.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.36
+2025-07-28 15:23:12.511 INFO: Epoch 48: loss=  0.0111, MAE_energy=     3.4 meV, MAE_Forces=     6.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.32
+2025-07-28 15:23:50.977 INFO: Epoch 49: loss=  0.0110, MAE_energy=     3.4 meV, MAE_Forces=     6.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.29
+2025-07-28 15:24:29.762 INFO: Epoch 50: loss=  0.0110, MAE_energy=     3.4 meV, MAE_Forces=     6.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.25
+2025-07-28 15:25:08.485 INFO: Epoch 51: loss=  0.0109, MAE_energy=     3.3 meV, MAE_Forces=     6.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.21
+2025-07-28 15:25:47.101 INFO: Epoch 52: loss=  0.0109, MAE_energy=     3.3 meV, MAE_Forces=     6.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.18
+2025-07-28 15:26:25.647 INFO: Epoch 53: loss=  0.0108, MAE_energy=     3.3 meV, MAE_Forces=     6.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.16
+2025-07-28 15:27:04.028 INFO: Epoch 54: loss=  0.0108, MAE_energy=     3.3 meV, MAE_Forces=     6.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.13
+2025-07-28 15:27:42.521 INFO: Epoch 55: loss=  0.0107, MAE_energy=     3.3 meV, MAE_Forces=     6.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.09
+2025-07-28 15:28:20.900 INFO: Epoch 56: loss=  0.0107, MAE_energy=     3.2 meV, MAE_Forces=     6.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.06
+2025-07-28 15:28:59.340 INFO: Epoch 57: loss=  0.0106, MAE_energy=     3.2 meV, MAE_Forces=     6.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.04
+2025-07-28 15:29:37.755 INFO: Epoch 58: loss=  0.0106, MAE_energy=     3.2 meV, MAE_Forces=     6.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   19.00
+2025-07-28 15:30:16.161 INFO: Epoch 59: loss=  0.0106, MAE_energy=     3.2 meV, MAE_Forces=     6.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.97
+2025-07-28 15:30:54.647 INFO: Epoch 60: loss=  0.0105, MAE_energy=     3.2 meV, MAE_Forces=     6.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.94
+2025-07-28 15:31:33.137 INFO: Epoch 61: loss=  0.0105, MAE_energy=     3.1 meV, MAE_Forces=     6.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.91
+2025-07-28 15:32:11.651 INFO: Epoch 62: loss=  0.0104, MAE_energy=     3.1 meV, MAE_Forces=     6.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.88
+2025-07-28 15:32:49.858 INFO: Epoch 63: loss=  0.0104, MAE_energy=     3.1 meV, MAE_Forces=     6.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.87
+2025-07-28 15:33:27.416 INFO: Epoch 64: loss=  0.0104, MAE_energy=     3.1 meV, MAE_Forces=     5.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.85
+2025-07-28 15:34:05.085 INFO: Epoch 65: loss=  0.0104, MAE_energy=     3.1 meV, MAE_Forces=     5.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.82
+2025-07-28 15:34:43.417 INFO: Epoch 66: loss=  0.0103, MAE_energy=     3.0 meV, MAE_Forces=     5.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.81
+2025-07-28 15:35:21.813 INFO: Epoch 67: loss=  0.0103, MAE_energy=     3.0 meV, MAE_Forces=     5.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.78
+2025-07-28 15:36:00.209 INFO: Epoch 68: loss=  0.0103, MAE_energy=     3.0 meV, MAE_Forces=     5.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.77
+2025-07-28 15:36:38.598 INFO: Epoch 69: loss=  0.0102, MAE_energy=     3.0 meV, MAE_Forces=     5.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.74
+2025-07-28 15:37:17.000 INFO: Epoch 70: loss=  0.0102, MAE_energy=     3.0 meV, MAE_Forces=     5.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.74
+2025-07-28 15:37:55.583 INFO: Epoch 71: loss=  0.0102, MAE_energy=     3.0 meV, MAE_Forces=     5.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.72
+2025-07-28 15:38:34.252 INFO: Epoch 72: loss=  0.0102, MAE_energy=     2.9 meV, MAE_Forces=     5.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.70
+2025-07-28 15:39:12.940 INFO: Epoch 73: loss=  0.0101, MAE_energy=     2.9 meV, MAE_Forces=     5.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.69
+2025-07-28 15:39:51.493 INFO: Epoch 74: loss=  0.0101, MAE_energy=     2.9 meV, MAE_Forces=     5.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.67
+2025-07-28 15:40:30.039 INFO: Epoch 75: loss=  0.0101, MAE_energy=     2.9 meV, MAE_Forces=     5.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.66
+2025-07-28 15:41:08.493 INFO: Epoch 76: loss=  0.0101, MAE_energy=     2.9 meV, MAE_Forces=     5.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.65
+2025-07-28 15:41:46.930 INFO: Epoch 77: loss=  0.0101, MAE_energy=     2.9 meV, MAE_Forces=     5.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.63
+2025-07-28 15:42:25.293 INFO: Epoch 78: loss=  0.0100, MAE_energy=     2.8 meV, MAE_Forces=     5.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.62
+2025-07-28 15:43:03.738 INFO: Epoch 79: loss=  0.0100, MAE_energy=     2.8 meV, MAE_Forces=     5.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.61
+2025-07-28 15:43:42.147 INFO: Epoch 80: loss=  0.0100, MAE_energy=     2.8 meV, MAE_Forces=     5.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.60
+2025-07-28 15:44:20.556 INFO: Epoch 81: loss=  0.0100, MAE_energy=     2.8 meV, MAE_Forces=     5.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.60
+2025-07-28 15:44:58.891 INFO: Epoch 82: loss=  0.0100, MAE_energy=     2.8 meV, MAE_Forces=     5.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.58
+2025-07-28 15:45:36.487 INFO: Epoch 83: loss=  0.0100, MAE_energy=     2.8 meV, MAE_Forces=     5.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.56
+2025-07-28 15:46:13.986 INFO: Epoch 84: loss=  0.0099, MAE_energy=     2.7 meV, MAE_Forces=     5.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.57
+2025-07-28 15:46:51.944 INFO: Epoch 85: loss=  0.0099, MAE_energy=     2.7 meV, MAE_Forces=     5.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.54
+2025-07-28 15:47:30.339 INFO: Epoch 86: loss=  0.0099, MAE_energy=     2.7 meV, MAE_Forces=     5.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.52
+2025-07-28 15:48:08.705 INFO: Epoch 87: loss=  0.0099, MAE_energy=     2.7 meV, MAE_Forces=     5.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.51
+2025-07-28 15:48:47.186 INFO: Epoch 88: loss=  0.0099, MAE_energy=     2.7 meV, MAE_Forces=     5.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.52
+2025-07-28 15:49:25.856 INFO: Epoch 89: loss=  0.0099, MAE_energy=     2.7 meV, MAE_Forces=     5.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.51
+2025-07-28 15:50:04.530 INFO: Epoch 90: loss=  0.0098, MAE_energy=     2.7 meV, MAE_Forces=     5.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.49
+2025-07-28 15:50:43.231 INFO: Epoch 91: loss=  0.0098, MAE_energy=     2.7 meV, MAE_Forces=     5.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.48
+2025-07-28 15:51:21.799 INFO: Epoch 92: loss=  0.0098, MAE_energy=     2.7 meV, MAE_Forces=     5.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.46
+2025-07-28 15:52:00.323 INFO: Epoch 93: loss=  0.0098, MAE_energy=     2.7 meV, MAE_Forces=     5.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.44
+2025-07-28 15:52:38.815 INFO: Epoch 94: loss=  0.0098, MAE_energy=     2.6 meV, MAE_Forces=     5.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.44
+2025-07-28 15:53:17.284 INFO: Epoch 95: loss=  0.0098, MAE_energy=     2.6 meV, MAE_Forces=     5.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.41
+2025-07-28 15:53:55.669 INFO: Epoch 96: loss=  0.0097, MAE_energy=     2.6 meV, MAE_Forces=     5.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.39
+2025-07-28 15:54:34.156 INFO: Epoch 97: loss=  0.0097, MAE_energy=     2.6 meV, MAE_Forces=     5.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.37
+2025-07-28 15:55:12.670 INFO: Epoch 98: loss=  0.0097, MAE_energy=     2.6 meV, MAE_Forces=     5.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.36
+2025-07-28 15:55:51.133 INFO: Epoch 99: loss=  0.0097, MAE_energy=     2.6 meV, MAE_Forces=     5.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.34
+2025-07-28 15:56:29.640 INFO: Epoch 100: loss=  0.0097, MAE_energy=     2.6 meV, MAE_Forces=     5.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.32
+2025-07-28 15:57:08.126 INFO: Epoch 101: loss=  0.0097, MAE_energy=     2.6 meV, MAE_Forces=     5.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.31
+2025-07-28 15:57:46.645 INFO: Epoch 102: loss=  0.0096, MAE_energy=     2.6 meV, MAE_Forces=     4.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.28
+2025-07-28 15:58:25.037 INFO: Epoch 103: loss=  0.0096, MAE_energy=     2.6 meV, MAE_Forces=     4.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.28
+2025-07-28 15:59:03.428 INFO: Epoch 104: loss=  0.0096, MAE_energy=     2.5 meV, MAE_Forces=     4.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.24
+2025-07-28 15:59:41.954 INFO: Epoch 105: loss=  0.0096, MAE_energy=     2.5 meV, MAE_Forces=     4.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.21
+2025-07-28 16:00:20.427 INFO: Epoch 106: loss=  0.0096, MAE_energy=     2.5 meV, MAE_Forces=     4.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.20
+2025-07-28 16:00:58.924 INFO: Epoch 107: loss=  0.0096, MAE_energy=     2.5 meV, MAE_Forces=     4.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.18
+2025-07-28 16:01:37.382 INFO: Epoch 108: loss=  0.0096, MAE_energy=     2.5 meV, MAE_Forces=     4.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.17
+2025-07-28 16:02:15.746 INFO: Epoch 109: loss=  0.0095, MAE_energy=     2.5 meV, MAE_Forces=     4.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.15
+2025-07-28 16:02:54.240 INFO: Epoch 110: loss=  0.0095, MAE_energy=     2.5 meV, MAE_Forces=     4.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.14
+2025-07-28 16:03:32.375 INFO: Epoch 111: loss=  0.0095, MAE_energy=     2.5 meV, MAE_Forces=     4.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.15
+2025-07-28 16:04:09.851 INFO: Epoch 112: loss=  0.0095, MAE_energy=     2.5 meV, MAE_Forces=     4.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.13
+2025-07-28 16:04:47.398 INFO: Epoch 113: loss=  0.0095, MAE_energy=     2.5 meV, MAE_Forces=     4.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.12
+2025-07-28 16:05:25.592 INFO: Epoch 114: loss=  0.0095, MAE_energy=     2.5 meV, MAE_Forces=     4.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.11
+2025-07-28 16:06:03.999 INFO: Epoch 115: loss=  0.0095, MAE_energy=     2.5 meV, MAE_Forces=     4.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.11
+2025-07-28 16:06:42.412 INFO: Epoch 116: loss=  0.0095, MAE_energy=     2.5 meV, MAE_Forces=     4.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.10
+2025-07-28 16:07:20.744 INFO: Epoch 117: loss=  0.0095, MAE_energy=     2.4 meV, MAE_Forces=     4.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.09
+2025-07-28 16:07:59.201 INFO: Epoch 118: loss=  0.0095, MAE_energy=     2.4 meV, MAE_Forces=     4.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.09
+2025-07-28 16:08:37.776 INFO: Epoch 119: loss=  0.0095, MAE_energy=     2.4 meV, MAE_Forces=     4.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.07
+2025-07-28 16:09:16.476 INFO: Epoch 120: loss=  0.0095, MAE_energy=     2.4 meV, MAE_Forces=     4.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.07
+2025-07-28 16:09:55.110 INFO: Epoch 121: loss=  0.0094, MAE_energy=     2.4 meV, MAE_Forces=     4.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.06
+2025-07-28 16:10:33.710 INFO: Epoch 122: loss=  0.0094, MAE_energy=     2.4 meV, MAE_Forces=     4.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.06
+2025-07-28 16:11:12.153 INFO: Epoch 123: loss=  0.0094, MAE_energy=     2.4 meV, MAE_Forces=     4.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.05
+2025-07-28 16:11:50.634 INFO: Epoch 124: loss=  0.0094, MAE_energy=     2.4 meV, MAE_Forces=     4.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.04
+2025-07-28 16:12:28.923 INFO: Epoch 125: loss=  0.0094, MAE_energy=     2.4 meV, MAE_Forces=     4.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.03
+2025-07-28 16:13:06.511 INFO: Epoch 126: loss=  0.0094, MAE_energy=     2.4 meV, MAE_Forces=     4.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.04
+2025-07-28 16:13:44.100 INFO: Epoch 127: loss=  0.0094, MAE_energy=     2.4 meV, MAE_Forces=     4.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.02
+2025-07-28 16:14:22.337 INFO: Epoch 128: loss=  0.0094, MAE_energy=     2.4 meV, MAE_Forces=     4.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.02
+2025-07-28 16:15:00.623 INFO: Epoch 129: loss=  0.0094, MAE_energy=     2.3 meV, MAE_Forces=     4.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.02
+2025-07-28 16:15:39.027 INFO: Epoch 130: loss=  0.0094, MAE_energy=     2.3 meV, MAE_Forces=     4.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.00
+2025-07-28 16:16:17.614 INFO: Epoch 131: loss=  0.0094, MAE_energy=     2.3 meV, MAE_Forces=     4.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.00
+2025-07-28 16:16:56.422 INFO: Epoch 132: loss=  0.0094, MAE_energy=     2.4 meV, MAE_Forces=     4.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   18.00
+2025-07-28 16:17:35.225 INFO: Epoch 133: loss=  0.0093, MAE_energy=     2.4 meV, MAE_Forces=     4.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.99
+2025-07-28 16:18:13.974 INFO: Epoch 134: loss=  0.0093, MAE_energy=     2.4 meV, MAE_Forces=     4.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.99
+2025-07-28 16:18:52.694 INFO: Epoch 135: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.98
+2025-07-28 16:19:31.225 INFO: Epoch 136: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.97
+2025-07-28 16:20:09.764 INFO: Epoch 137: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.97
+2025-07-28 16:20:48.225 INFO: Epoch 138: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.96
+2025-07-28 16:21:26.729 INFO: Epoch 139: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.96
+2025-07-28 16:22:05.251 INFO: Epoch 140: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.96
+2025-07-28 16:22:43.764 INFO: Epoch 141: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.94
+2025-07-28 16:23:22.244 INFO: Epoch 142: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.94
+2025-07-28 16:24:00.685 INFO: Epoch 143: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.92
+2025-07-28 16:24:39.206 INFO: Epoch 144: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.92
+2025-07-28 16:25:17.157 INFO: Epoch 145: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.92
+2025-07-28 16:25:54.685 INFO: Epoch 146: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.92
+2025-07-28 16:26:32.429 INFO: Epoch 147: loss=  0.0093, MAE_energy=     2.3 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.91
+2025-07-28 16:27:10.750 INFO: Epoch 148: loss=  0.0092, MAE_energy=     2.3 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.90
+2025-07-28 16:27:49.172 INFO: Epoch 149: loss=  0.0092, MAE_energy=     2.3 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.89
+2025-07-28 16:28:27.637 INFO: Epoch 150: loss=  0.0092, MAE_energy=     2.3 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.89
+2025-07-28 16:29:06.057 INFO: Epoch 151: loss=  0.0092, MAE_energy=     2.3 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.89
+2025-07-28 16:29:44.479 INFO: Epoch 152: loss=  0.0092, MAE_energy=     2.2 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.87
+2025-07-28 16:30:23.239 INFO: Epoch 153: loss=  0.0092, MAE_energy=     2.2 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.88
+2025-07-28 16:31:02.068 INFO: Epoch 154: loss=  0.0092, MAE_energy=     2.2 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.87
+2025-07-28 16:31:40.872 INFO: Epoch 155: loss=  0.0092, MAE_energy=     2.2 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.86
+2025-07-28 16:32:19.662 INFO: Epoch 156: loss=  0.0092, MAE_energy=     2.2 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.87
+2025-07-28 16:32:58.292 INFO: Epoch 157: loss=  0.0092, MAE_energy=     2.2 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.86
+2025-07-28 16:33:36.791 INFO: Epoch 158: loss=  0.0092, MAE_energy=     2.2 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.86
+2025-07-28 16:34:15.192 INFO: Epoch 159: loss=  0.0092, MAE_energy=     2.2 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.84
+2025-07-28 16:34:53.284 INFO: Epoch 160: loss=  0.0092, MAE_energy=     2.2 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.83
+2025-07-28 16:35:30.999 INFO: Epoch 161: loss=  0.0092, MAE_energy=     2.2 meV, MAE_Forces=     4.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.84
+2025-07-28 16:36:08.970 INFO: Epoch 162: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.83
+2025-07-28 16:36:47.383 INFO: Epoch 163: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.83
+2025-07-28 16:37:25.768 INFO: Epoch 164: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.82
+2025-07-28 16:38:04.246 INFO: Epoch 165: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.82
+2025-07-28 16:38:42.906 INFO: Epoch 166: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.81
+2025-07-28 16:39:21.709 INFO: Epoch 167: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.80
+2025-07-28 16:40:00.494 INFO: Epoch 168: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.80
+2025-07-28 16:40:39.169 INFO: Epoch 169: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.80
+2025-07-28 16:41:17.803 INFO: Epoch 170: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.79
+2025-07-28 16:41:56.326 INFO: Epoch 171: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.79
+2025-07-28 16:42:34.849 INFO: Epoch 172: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.78
+2025-07-28 16:43:13.332 INFO: Epoch 173: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.78
+2025-07-28 16:43:51.763 INFO: Epoch 174: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.77
+2025-07-28 16:44:30.213 INFO: Epoch 175: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.77
+2025-07-28 16:45:08.762 INFO: Epoch 176: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.77
+2025-07-28 16:45:47.071 INFO: Epoch 177: loss=  0.0091, MAE_energy=     2.2 meV, MAE_Forces=     4.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.76
+2025-07-28 16:46:24.831 INFO: Epoch 178: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.74
+2025-07-28 16:47:02.586 INFO: Epoch 179: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.74
+2025-07-28 16:47:40.679 INFO: Epoch 180: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.74
+2025-07-28 16:48:19.067 INFO: Epoch 181: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.74
+2025-07-28 16:48:57.467 INFO: Epoch 182: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.72
+2025-07-28 16:49:35.943 INFO: Epoch 183: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.73
+2025-07-28 16:50:14.421 INFO: Epoch 184: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.72
+2025-07-28 16:50:52.988 INFO: Epoch 185: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.72
+2025-07-28 16:51:31.778 INFO: Epoch 186: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.71
+2025-07-28 16:52:10.633 INFO: Epoch 187: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.71
+2025-07-28 16:52:49.428 INFO: Epoch 188: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.69
+2025-07-28 16:53:27.992 INFO: Epoch 189: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.70
+2025-07-28 16:54:06.536 INFO: Epoch 190: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.70
+2025-07-28 16:54:44.986 INFO: Epoch 191: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.69
+2025-07-28 16:55:23.468 INFO: Epoch 192: loss=  0.0090, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.69
+2025-07-28 16:56:01.965 INFO: Epoch 193: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.68
+2025-07-28 16:56:40.470 INFO: Epoch 194: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.67
+2025-07-28 16:57:18.999 INFO: Epoch 195: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.67
+2025-07-28 16:57:57.543 INFO: Epoch 196: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.66
+2025-07-28 16:58:35.632 INFO: Epoch 197: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.66
+2025-07-28 16:59:13.201 INFO: Epoch 198: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.65
+2025-07-28 16:59:50.861 INFO: Epoch 199: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.64
+2025-07-28 17:00:29.123 INFO: Epoch 200: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.65
+2025-07-28 17:01:07.385 INFO: Epoch 201: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.65
+2025-07-28 17:01:45.750 INFO: Epoch 202: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.63
+2025-07-28 17:02:24.402 INFO: Epoch 203: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.63
+2025-07-28 17:03:03.187 INFO: Epoch 204: loss=  0.0089, MAE_energy=     2.2 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.62
+2025-07-28 17:03:41.948 INFO: Epoch 205: loss=  0.0089, MAE_energy=     2.1 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.61
+2025-07-28 17:04:20.696 INFO: Epoch 206: loss=  0.0089, MAE_energy=     2.1 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.61
+2025-07-28 17:04:59.375 INFO: Epoch 207: loss=  0.0089, MAE_energy=     2.1 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.60
+2025-07-28 17:05:37.878 INFO: Epoch 208: loss=  0.0089, MAE_energy=     2.1 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.61
+2025-07-28 17:06:16.377 INFO: Epoch 209: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.60
+2025-07-28 17:06:54.889 INFO: Epoch 210: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.59
+2025-07-28 17:07:33.378 INFO: Epoch 211: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.58
+2025-07-28 17:08:11.891 INFO: Epoch 212: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.58
+2025-07-28 17:08:50.384 INFO: Epoch 213: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.58
+2025-07-28 17:09:28.907 INFO: Epoch 214: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.57
+2025-07-28 17:10:07.460 INFO: Epoch 215: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.56
+2025-07-28 17:10:45.907 INFO: Epoch 216: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.55
+2025-07-28 17:11:24.392 INFO: Epoch 217: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.55
+2025-07-28 17:12:02.467 INFO: Epoch 218: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.54
+2025-07-28 17:12:40.006 INFO: Epoch 219: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.55
+2025-07-28 17:13:17.711 INFO: Epoch 220: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.54
+2025-07-28 17:13:56.120 INFO: Epoch 221: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.53
+2025-07-28 17:14:34.556 INFO: Epoch 222: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.52
+2025-07-28 17:15:12.950 INFO: Epoch 223: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.52
+2025-07-28 17:15:51.295 INFO: Epoch 224: loss=  0.0088, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.51
+2025-07-28 17:16:29.773 INFO: Epoch 225: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.52
+2025-07-28 17:17:08.509 INFO: Epoch 226: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.50
+2025-07-28 17:17:47.370 INFO: Epoch 227: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.50
+2025-07-28 17:18:26.221 INFO: Epoch 228: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.48
+2025-07-28 17:19:04.944 INFO: Epoch 229: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.47
+2025-07-28 17:19:43.512 INFO: Epoch 230: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.47
+2025-07-28 17:20:22.056 INFO: Epoch 231: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.46
+2025-07-28 17:21:00.437 INFO: Epoch 232: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.46
+2025-07-28 17:21:38.269 INFO: Epoch 233: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.45
+2025-07-28 17:22:16.031 INFO: Epoch 234: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.44
+2025-07-28 17:22:54.316 INFO: Epoch 235: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.44
+2025-07-28 17:23:32.696 INFO: Epoch 236: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.43
+2025-07-28 17:24:11.186 INFO: Epoch 237: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.42
+2025-07-28 17:24:49.793 INFO: Epoch 238: loss=  0.0087, MAE_energy=     2.1 meV, MAE_Forces=     4.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.43
+2025-07-28 17:25:28.634 INFO: Epoch 239: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.41
+2025-07-28 17:26:07.478 INFO: Epoch 240: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.41
+2025-07-28 17:26:46.198 INFO: Epoch 241: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.41
+2025-07-28 17:27:24.822 INFO: Epoch 242: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.40
+2025-07-28 17:28:03.379 INFO: Epoch 243: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.38
+2025-07-28 17:28:41.918 INFO: Epoch 244: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.38
+2025-07-28 17:29:20.432 INFO: Epoch 245: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.39
+2025-07-28 17:29:58.986 INFO: Epoch 246: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.38
+2025-07-28 17:30:37.480 INFO: Epoch 247: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.37
+2025-07-28 17:31:16.008 INFO: Epoch 248: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.36
+2025-07-28 17:31:54.545 INFO: Epoch 249: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.36
+2025-07-28 17:32:33.090 INFO: Epoch 250: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.34
+2025-07-28 17:33:11.609 INFO: Epoch 251: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.34
+2025-07-28 17:33:50.146 INFO: Epoch 252: loss=  0.0086, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.33
+2025-07-28 17:34:28.650 INFO: Epoch 253: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.34
+2025-07-28 17:35:07.200 INFO: Epoch 254: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.34
+2025-07-28 17:35:45.821 INFO: Epoch 255: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.31
+2025-07-28 17:36:24.519 INFO: Epoch 256: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.31
+2025-07-28 17:37:03.181 INFO: Epoch 257: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.31
+2025-07-28 17:37:41.774 INFO: Epoch 258: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.31
+2025-07-28 17:38:20.267 INFO: Epoch 259: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.30
+2025-07-28 17:38:58.784 INFO: Epoch 260: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.29
+2025-07-28 17:39:37.183 INFO: Epoch 261: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.29
+2025-07-28 17:40:15.418 INFO: Epoch 262: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.29
+2025-07-28 17:40:52.956 INFO: Epoch 263: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.28
+2025-07-28 17:41:30.404 INFO: Epoch 264: loss=  0.0085, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.25
+2025-07-28 17:42:08.533 INFO: Epoch 265: loss=  0.0085, MAE_energy=     2.0 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.26
+2025-07-28 17:42:46.837 INFO: Epoch 266: loss=  0.0085, MAE_energy=     2.0 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.24
+2025-07-28 17:43:25.240 INFO: Epoch 267: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.24
+2025-07-28 17:44:03.625 INFO: Epoch 268: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.24
+2025-07-28 17:44:42.012 INFO: Epoch 269: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.22
+2025-07-28 17:45:20.701 INFO: Epoch 270: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.23
+2025-07-28 17:45:59.539 INFO: Epoch 271: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.22
+2025-07-28 17:46:38.366 INFO: Epoch 272: loss=  0.0084, MAE_energy=     2.1 meV, MAE_Forces=     3.9 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.21
+2025-07-28 17:47:17.124 INFO: Epoch 273: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.21
+2025-07-28 17:47:55.778 INFO: Epoch 274: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.20
+2025-07-28 17:48:34.291 INFO: Epoch 275: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.19
+2025-07-28 17:49:12.449 INFO: Epoch 276: loss=  0.0084, MAE_energy=     2.1 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.18
+2025-07-28 17:49:50.060 INFO: Epoch 277: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.18
+2025-07-28 17:50:27.681 INFO: Epoch 278: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.18
+2025-07-28 17:51:06.011 INFO: Epoch 279: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.16
+2025-07-28 17:51:44.433 INFO: Epoch 280: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.15
+2025-07-28 17:52:22.871 INFO: Epoch 281: loss=  0.0084, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.16
+2025-07-28 17:53:01.491 INFO: Epoch 282: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.14
+2025-07-28 17:53:40.327 INFO: Epoch 283: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.14
+2025-07-28 17:54:19.168 INFO: Epoch 284: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.12
+2025-07-28 17:54:57.865 INFO: Epoch 285: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.11
+2025-07-28 17:55:36.464 INFO: Epoch 286: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.12
+2025-07-28 17:56:14.932 INFO: Epoch 287: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.11
+2025-07-28 17:56:53.505 INFO: Epoch 288: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.10
+2025-07-28 17:57:32.016 INFO: Epoch 289: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.09
+2025-07-28 17:58:10.416 INFO: Epoch 290: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.09
+2025-07-28 17:58:48.543 INFO: Epoch 291: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.08
+2025-07-28 17:59:26.246 INFO: Epoch 292: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.06
+2025-07-28 18:00:04.085 INFO: Epoch 293: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.06
+2025-07-28 18:00:42.436 INFO: Epoch 294: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.06
+2025-07-28 18:01:20.837 INFO: Epoch 295: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.05
+2025-07-28 18:01:59.192 INFO: Epoch 296: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.04
+2025-07-28 18:02:37.870 INFO: Epoch 297: loss=  0.0083, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.04
+2025-07-28 18:03:16.711 INFO: Epoch 298: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.03
+2025-07-28 18:03:55.589 INFO: Epoch 299: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.02
+2025-07-28 18:04:34.397 INFO: Epoch 300: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.02
+2025-07-28 18:05:12.882 INFO: Epoch 301: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   17.01
+2025-07-28 18:05:51.488 INFO: Epoch 302: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.99
+2025-07-28 18:06:30.047 INFO: Epoch 303: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.98
+2025-07-28 18:07:08.606 INFO: Epoch 304: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.98
+2025-07-28 18:07:47.116 INFO: Epoch 305: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.97
+2025-07-28 18:08:25.816 INFO: Epoch 306: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.96
+2025-07-28 18:09:04.414 INFO: Epoch 307: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.95
+2025-07-28 18:09:42.909 INFO: Epoch 308: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.95
+2025-07-28 18:10:21.388 INFO: Epoch 309: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.94
+2025-07-28 18:10:59.812 INFO: Epoch 310: loss=  0.0082, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.94
+2025-07-28 18:11:38.330 INFO: Epoch 311: loss=  0.0081, MAE_energy=     2.0 meV, MAE_Forces=     3.8 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.91
+2025-07-28 18:12:16.930 INFO: Epoch 312: loss=  0.0081, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.91
+2025-07-28 18:12:55.517 INFO: Epoch 313: loss=  0.0081, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.91
+2025-07-28 18:13:34.220 INFO: Epoch 314: loss=  0.0081, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.90
+2025-07-28 18:14:12.829 INFO: Epoch 315: loss=  0.0081, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.90
+2025-07-28 18:14:51.411 INFO: Epoch 316: loss=  0.0081, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.89
+2025-07-28 18:15:29.935 INFO: Epoch 317: loss=  0.0081, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.88
+2025-07-28 18:16:08.462 INFO: Epoch 318: loss=  0.0081, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.89
+2025-07-28 18:16:46.840 INFO: Epoch 319: loss=  0.0081, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.86
+2025-07-28 18:17:24.889 INFO: Epoch 320: loss=  0.0081, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.85
+2025-07-28 18:18:02.395 INFO: Epoch 321: loss=  0.0081, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.84
+2025-07-28 18:18:39.996 INFO: Epoch 322: loss=  0.0081, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.84
+2025-07-28 18:19:18.339 INFO: Epoch 323: loss=  0.0081, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.84
+2025-07-28 18:19:56.696 INFO: Epoch 324: loss=  0.0081, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.83
+2025-07-28 18:20:35.088 INFO: Epoch 325: loss=  0.0080, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.81
+2025-07-28 18:21:13.504 INFO: Epoch 326: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.80
+2025-07-28 18:21:51.910 INFO: Epoch 327: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.80
+2025-07-28 18:22:30.637 INFO: Epoch 328: loss=  0.0080, MAE_energy=     2.0 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.80
+2025-07-28 18:23:09.460 INFO: Epoch 329: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.79
+2025-07-28 18:23:48.285 INFO: Epoch 330: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.78
+2025-07-28 18:24:27.050 INFO: Epoch 331: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.79
+2025-07-28 18:25:05.716 INFO: Epoch 332: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.77
+2025-07-28 18:25:44.328 INFO: Epoch 333: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.76
+2025-07-28 18:26:22.849 INFO: Epoch 334: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.75
+2025-07-28 18:27:00.984 INFO: Epoch 335: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.73
+2025-07-28 18:27:38.715 INFO: Epoch 336: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.72
+2025-07-28 18:28:16.768 INFO: Epoch 337: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.73
+2025-07-28 18:28:55.142 INFO: Epoch 338: loss=  0.0080, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.72
+2025-07-28 18:29:33.569 INFO: Epoch 339: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.70
+2025-07-28 18:30:12.032 INFO: Epoch 340: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.71
+2025-07-28 18:30:50.761 INFO: Epoch 341: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.70
+2025-07-28 18:31:29.618 INFO: Epoch 342: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.70
+2025-07-28 18:32:08.433 INFO: Epoch 343: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.68
+2025-07-28 18:32:47.221 INFO: Epoch 344: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.67
+2025-07-28 18:33:25.899 INFO: Epoch 345: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.67
+2025-07-28 18:34:04.433 INFO: Epoch 346: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.65
+2025-07-28 18:34:42.886 INFO: Epoch 347: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.65
+2025-07-28 18:35:21.271 INFO: Epoch 348: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.64
+2025-07-28 18:35:59.780 INFO: Epoch 349: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.64
+2025-07-28 18:36:38.333 INFO: Epoch 350: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.7 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.63
+2025-07-28 18:37:16.975 INFO: Epoch 351: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.61
+2025-07-28 18:37:55.493 INFO: Epoch 352: loss=  0.0079, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.61
+2025-07-28 18:38:34.104 INFO: Epoch 353: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.61
+2025-07-28 18:39:12.651 INFO: Epoch 354: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.58
+2025-07-28 18:39:51.175 INFO: Epoch 355: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.58
+2025-07-28 18:40:29.688 INFO: Epoch 356: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.57
+2025-07-28 18:41:08.228 INFO: Epoch 357: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.55
+2025-07-28 18:41:46.698 INFO: Epoch 358: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.54
+2025-07-28 18:42:25.192 INFO: Epoch 359: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.54
+2025-07-28 18:43:03.650 INFO: Epoch 360: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.53
+2025-07-28 18:43:42.061 INFO: Epoch 361: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.53
+2025-07-28 18:44:20.526 INFO: Epoch 362: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.52
+2025-07-28 18:44:59.003 INFO: Epoch 363: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.50
+2025-07-28 18:45:37.422 INFO: Epoch 364: loss=  0.0078, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.50
+2025-07-28 18:46:15.726 INFO: Epoch 365: loss=  0.0078, MAE_energy=     1.9 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.49
+2025-07-28 18:46:53.367 INFO: Epoch 366: loss=  0.0078, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.49
+2025-07-28 18:47:30.974 INFO: Epoch 367: loss=  0.0078, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.49
+2025-07-28 18:48:09.031 INFO: Epoch 368: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.48
+2025-07-28 18:48:47.417 INFO: Epoch 369: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.48
+2025-07-28 18:49:25.750 INFO: Epoch 370: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.47
+2025-07-28 18:50:04.103 INFO: Epoch 371: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.45
+2025-07-28 18:50:42.450 INFO: Epoch 372: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.44
+2025-07-28 18:51:21.082 INFO: Epoch 373: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.44
+2025-07-28 18:51:59.908 INFO: Epoch 374: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.44
+2025-07-28 18:52:38.754 INFO: Epoch 375: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.44
+2025-07-28 18:53:17.583 INFO: Epoch 376: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.42
+2025-07-28 18:53:56.239 INFO: Epoch 377: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.41
+2025-07-28 18:54:34.802 INFO: Epoch 378: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.41
+2025-07-28 18:55:13.172 INFO: Epoch 379: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.41
+2025-07-28 18:55:50.903 INFO: Epoch 380: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.39
+2025-07-28 18:56:28.446 INFO: Epoch 381: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.39
+2025-07-28 18:57:06.569 INFO: Epoch 382: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.6 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.37
+2025-07-28 18:57:44.935 INFO: Epoch 383: loss=  0.0077, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.38
+2025-07-28 18:58:23.317 INFO: Epoch 384: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.36
+2025-07-28 18:59:01.884 INFO: Epoch 385: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.35
+2025-07-28 18:59:40.698 INFO: Epoch 386: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.36
+2025-07-28 19:00:19.501 INFO: Epoch 387: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.35
+2025-07-28 19:00:58.287 INFO: Epoch 388: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.35
+2025-07-28 19:01:36.957 INFO: Epoch 389: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.32
+2025-07-28 19:02:15.503 INFO: Epoch 390: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.34
+2025-07-28 19:02:54.005 INFO: Epoch 391: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.31
+2025-07-28 19:03:32.531 INFO: Epoch 392: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.31
+2025-07-28 19:04:10.965 INFO: Epoch 393: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.31
+2025-07-28 19:04:49.287 INFO: Epoch 394: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.29
+2025-07-28 19:05:27.119 INFO: Epoch 395: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.30
+2025-07-28 19:06:04.974 INFO: Epoch 396: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.29
+2025-07-28 19:06:43.341 INFO: Epoch 397: loss=  0.0076, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.29
+2025-07-28 19:07:21.735 INFO: Epoch 398: loss=  0.0076, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.28
+2025-07-28 19:08:00.174 INFO: Epoch 399: loss=  0.0076, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.27
+2025-07-28 19:08:38.900 INFO: Epoch 400: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.26
+2025-07-28 19:09:17.732 INFO: Epoch 401: loss=  0.0076, MAE_energy=     1.8 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.26
+2025-07-28 19:09:56.522 INFO: Epoch 402: loss=  0.0076, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.25
+2025-07-28 19:10:35.268 INFO: Epoch 403: loss=  0.0076, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.27
+2025-07-28 19:11:13.986 INFO: Epoch 404: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.24
+2025-07-28 19:11:52.694 INFO: Epoch 405: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.24
+2025-07-28 19:12:31.191 INFO: Epoch 406: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.23
+2025-07-28 19:13:09.746 INFO: Epoch 407: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.23
+2025-07-28 19:13:48.142 INFO: Epoch 408: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.23
+2025-07-28 19:14:26.552 INFO: Epoch 409: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.21
+2025-07-28 19:15:05.115 INFO: Epoch 410: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.21
+2025-07-28 19:15:43.666 INFO: Epoch 411: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.22
+2025-07-28 19:16:22.150 INFO: Epoch 412: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.20
+2025-07-28 19:17:00.671 INFO: Epoch 413: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.20
+2025-07-28 19:17:39.170 INFO: Epoch 414: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.20
+2025-07-28 19:18:17.652 INFO: Epoch 415: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.18
+2025-07-28 19:18:56.232 INFO: Epoch 416: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.19
+2025-07-28 19:19:34.691 INFO: Epoch 417: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.5 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.17
+2025-07-28 19:20:13.193 INFO: Epoch 418: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.16
+2025-07-28 19:20:51.740 INFO: Epoch 419: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.15
+2025-07-28 19:21:30.173 INFO: Epoch 420: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.15
+2025-07-28 19:22:08.628 INFO: Epoch 421: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.15
+2025-07-28 19:22:46.427 INFO: Epoch 422: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.14
+2025-07-28 19:23:23.921 INFO: Epoch 423: loss=  0.0075, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.14
+2025-07-28 19:24:01.649 INFO: Epoch 424: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.14
+2025-07-28 19:24:40.054 INFO: Epoch 425: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.14
+2025-07-28 19:25:18.468 INFO: Epoch 426: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.13
+2025-07-28 19:25:56.819 INFO: Epoch 427: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.12
+2025-07-28 19:26:35.231 INFO: Epoch 428: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.12
+2025-07-28 19:27:13.643 INFO: Epoch 429: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.11
+2025-07-28 19:27:52.452 INFO: Epoch 430: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.11
+2025-07-28 19:28:31.299 INFO: Epoch 431: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.12
+2025-07-28 19:29:10.056 INFO: Epoch 432: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.11
+2025-07-28 19:29:48.648 INFO: Epoch 433: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.12
+2025-07-28 19:30:27.149 INFO: Epoch 434: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.11
+2025-07-28 19:31:05.358 INFO: Epoch 435: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.08
+2025-07-28 19:31:42.990 INFO: Epoch 436: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.08
+2025-07-28 19:32:20.646 INFO: Epoch 437: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.07
+2025-07-28 19:32:59.025 INFO: Epoch 438: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.08
+2025-07-28 19:33:37.433 INFO: Epoch 439: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.06
+2025-07-28 19:34:15.930 INFO: Epoch 440: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.08
+2025-07-28 19:34:54.580 INFO: Epoch 441: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.06
+2025-07-28 19:35:33.318 INFO: Epoch 442: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.06
+2025-07-28 19:36:12.039 INFO: Epoch 443: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.06
+2025-07-28 19:36:50.725 INFO: Epoch 444: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.06
+2025-07-28 19:37:29.327 INFO: Epoch 445: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.04
+2025-07-28 19:38:07.966 INFO: Epoch 446: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.04
+2025-07-28 19:38:46.475 INFO: Epoch 447: loss=  0.0074, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.04
+2025-07-28 19:39:24.959 INFO: Epoch 448: loss=  0.0074, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.04
+2025-07-28 19:40:03.386 INFO: Epoch 449: loss=  0.0074, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.03
+2025-07-28 19:40:41.665 INFO: Epoch 450: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.03
+2025-07-28 19:41:19.408 INFO: Epoch 451: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.01
+2025-07-28 19:41:57.145 INFO: Epoch 452: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.01
+2025-07-28 19:42:35.436 INFO: Epoch 453: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.01
+2025-07-28 19:43:13.835 INFO: Epoch 454: loss=  0.0073, MAE_energy=     1.7 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.00
+2025-07-28 19:43:52.229 INFO: Epoch 455: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.00
+2025-07-28 19:44:30.931 INFO: Epoch 456: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.00
+2025-07-28 19:45:09.702 INFO: Epoch 457: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.99
+2025-07-28 19:45:48.483 INFO: Epoch 458: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   16.01
+2025-07-28 19:46:27.133 INFO: Epoch 459: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.99
+2025-07-28 19:47:05.775 INFO: Epoch 460: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.98
+2025-07-28 19:47:44.399 INFO: Epoch 461: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.97
+2025-07-28 19:48:23.053 INFO: Epoch 462: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.97
+2025-07-28 19:49:01.651 INFO: Epoch 463: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.96
+2025-07-28 19:49:40.308 INFO: Epoch 464: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.96
+2025-07-28 19:50:18.917 INFO: Epoch 465: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.4 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.96
+2025-07-28 19:50:57.553 INFO: Epoch 466: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.95
+2025-07-28 19:51:36.026 INFO: Epoch 467: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.94
+2025-07-28 19:52:14.519 INFO: Epoch 468: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.94
+2025-07-28 19:52:52.923 INFO: Epoch 469: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.93
+2025-07-28 19:53:31.403 INFO: Epoch 470: loss=  0.0073, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.94
+2025-07-28 19:54:09.761 INFO: Epoch 471: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.91
+2025-07-28 19:54:47.694 INFO: Epoch 472: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.93
+2025-07-28 19:55:25.241 INFO: Epoch 473: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.91
+2025-07-28 19:56:03.091 INFO: Epoch 474: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.91
+2025-07-28 19:56:41.482 INFO: Epoch 475: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.92
+2025-07-28 19:57:19.876 INFO: Epoch 476: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.91
+2025-07-28 19:57:58.323 INFO: Epoch 477: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.91
+2025-07-28 19:58:36.716 INFO: Epoch 478: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.90
+2025-07-28 19:59:15.123 INFO: Epoch 479: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.90
+2025-07-28 19:59:53.798 INFO: Epoch 480: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.88
+2025-07-28 20:00:32.669 INFO: Epoch 481: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.88
+2025-07-28 20:01:11.514 INFO: Epoch 482: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.88
+2025-07-28 20:01:50.345 INFO: Epoch 483: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.89
+2025-07-28 20:02:29.207 INFO: Epoch 484: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.87
+2025-07-28 20:03:07.924 INFO: Epoch 485: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.87
+2025-07-28 20:03:46.478 INFO: Epoch 486: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.88
+2025-07-28 20:04:24.753 INFO: Epoch 487: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.88
+2025-07-28 20:05:02.475 INFO: Epoch 488: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.87
+2025-07-28 20:05:40.391 INFO: Epoch 489: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.86
+2025-07-28 20:06:18.788 INFO: Epoch 490: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.86
+2025-07-28 20:06:57.160 INFO: Epoch 491: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.86
+2025-07-28 20:07:35.612 INFO: Epoch 492: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.84
+2025-07-28 20:08:14.401 INFO: Epoch 493: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.84
+2025-07-28 20:08:53.219 INFO: Epoch 494: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.84
+2025-07-28 20:09:31.960 INFO: Epoch 495: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.83
+2025-07-28 20:10:10.646 INFO: Epoch 496: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.83
+2025-07-28 20:10:49.348 INFO: Epoch 497: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.83
+2025-07-28 20:11:28.011 INFO: Epoch 498: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.82
+2025-07-28 20:12:06.562 INFO: Epoch 499: loss=  0.0072, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.83
+2025-07-28 20:12:45.015 INFO: Epoch 500: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.83
+2025-07-28 20:13:23.514 INFO: Epoch 501: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.81
+2025-07-28 20:14:02.034 INFO: Epoch 502: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.81
+2025-07-28 20:14:40.553 INFO: Epoch 503: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.80
+2025-07-28 20:15:19.170 INFO: Epoch 504: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.80
+2025-07-28 20:15:57.693 INFO: Epoch 505: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.80
+2025-07-28 20:16:36.235 INFO: Epoch 506: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.78
+2025-07-28 20:17:14.755 INFO: Epoch 507: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.79
+2025-07-28 20:17:53.349 INFO: Epoch 508: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.77
+2025-07-28 20:18:31.888 INFO: Epoch 509: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.77
+2025-07-28 20:19:10.416 INFO: Epoch 510: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.76
+2025-07-28 20:19:48.990 INFO: Epoch 511: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.76
+2025-07-28 20:20:27.505 INFO: Epoch 512: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.75
+2025-07-28 20:21:05.983 INFO: Epoch 513: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.74
+2025-07-28 20:21:44.423 INFO: Epoch 514: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.75
+2025-07-28 20:22:22.808 INFO: Epoch 515: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.74
+2025-07-28 20:23:01.037 INFO: Epoch 516: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.73
+2025-07-28 20:23:38.541 INFO: Epoch 517: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.73
+2025-07-28 20:24:16.080 INFO: Epoch 518: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.73
+2025-07-28 20:24:54.304 INFO: Epoch 519: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.73
+2025-07-28 20:25:32.614 INFO: Epoch 520: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.73
+2025-07-28 20:26:10.999 INFO: Epoch 521: loss=  0.0071, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.73
+2025-07-28 20:26:49.372 INFO: Epoch 522: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.72
+2025-07-28 20:27:27.808 INFO: Epoch 523: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.72
+2025-07-28 20:28:06.526 INFO: Epoch 524: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.71
+2025-07-28 20:28:45.394 INFO: Epoch 525: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.70
+2025-07-28 20:29:24.266 INFO: Epoch 526: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.69
+2025-07-28 20:30:03.008 INFO: Epoch 527: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.68
+2025-07-28 20:30:41.482 INFO: Epoch 528: loss=  0.0070, MAE_energy=     1.5 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.67
+2025-07-28 20:31:19.647 INFO: Epoch 529: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.67
+2025-07-28 20:31:57.398 INFO: Epoch 530: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.68
+2025-07-28 20:32:35.402 INFO: Epoch 531: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.68
+2025-07-28 20:33:13.848 INFO: Epoch 532: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.65
+2025-07-28 20:33:52.212 INFO: Epoch 533: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.66
+2025-07-28 20:34:30.678 INFO: Epoch 534: loss=  0.0070, MAE_energy=     1.5 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.65
+2025-07-28 20:35:09.429 INFO: Epoch 535: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.65
+2025-07-28 20:35:48.302 INFO: Epoch 536: loss=  0.0070, MAE_energy=     1.5 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.64
+2025-07-28 20:36:27.175 INFO: Epoch 537: loss=  0.0070, MAE_energy=     1.5 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.63
+2025-07-28 20:37:05.939 INFO: Epoch 538: loss=  0.0070, MAE_energy=     1.5 meV, MAE_Forces=     3.3 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.61
+2025-07-28 20:37:44.597 INFO: Epoch 539: loss=  0.0070, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.61
+2025-07-28 20:38:23.180 INFO: Epoch 540: loss=  0.0069, MAE_energy=     1.6 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.60
+2025-07-28 20:39:01.718 INFO: Epoch 541: loss=  0.0069, MAE_energy=     1.6 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.60
+2025-07-28 20:39:40.110 INFO: Epoch 542: loss=  0.0070, MAE_energy=     1.6 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.62
+2025-07-28 20:40:18.674 INFO: Epoch 543: loss=  0.0070, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.62
+2025-07-28 20:40:57.167 INFO: Epoch 544: loss=  0.0069, MAE_energy=     1.6 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.60
+2025-07-28 20:41:35.618 INFO: Epoch 545: loss=  0.0069, MAE_energy=     1.6 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.59
+2025-07-28 20:42:13.838 INFO: Epoch 546: loss=  0.0069, MAE_energy=     1.6 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.59
+2025-07-28 20:42:51.351 INFO: Epoch 547: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.58
+2025-07-28 20:43:28.919 INFO: Epoch 548: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.56
+2025-07-28 20:44:07.278 INFO: Epoch 549: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.56
+2025-07-28 20:44:45.625 INFO: Epoch 550: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.56
+2025-07-28 20:45:24.063 INFO: Epoch 551: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.55
+2025-07-28 20:46:02.741 INFO: Epoch 552: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.55
+2025-07-28 20:46:41.595 INFO: Epoch 553: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.55
+2025-07-28 20:47:20.310 INFO: Epoch 554: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.54
+2025-07-28 20:47:59.023 INFO: Epoch 555: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.52
+2025-07-28 20:48:37.735 INFO: Epoch 556: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.52
+2025-07-28 20:49:16.439 INFO: Epoch 557: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.52
+2025-07-28 20:49:55.089 INFO: Epoch 558: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.52
+2025-07-28 20:50:33.478 INFO: Epoch 559: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.52
+2025-07-28 20:51:11.881 INFO: Epoch 560: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.50
+2025-07-28 20:51:50.391 INFO: Epoch 561: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.51
+2025-07-28 20:52:28.728 INFO: Epoch 562: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.51
+2025-07-28 20:53:07.152 INFO: Epoch 563: loss=  0.0069, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.51
+2025-07-28 20:53:45.646 INFO: Epoch 564: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.49
+2025-07-28 20:54:24.079 INFO: Epoch 565: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.48
+2025-07-28 20:55:02.356 INFO: Epoch 566: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.48
+2025-07-28 20:55:39.938 INFO: Epoch 567: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.48
+2025-07-28 20:56:17.399 INFO: Epoch 568: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.47
+2025-07-28 20:56:55.483 INFO: Epoch 569: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.46
+2025-07-28 20:57:33.806 INFO: Epoch 570: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.46
+2025-07-28 20:58:12.178 INFO: Epoch 571: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.46
+2025-07-28 20:58:50.593 INFO: Epoch 572: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.45
+2025-07-28 20:59:29.028 INFO: Epoch 573: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.46
+2025-07-28 21:00:07.623 INFO: Epoch 574: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.44
+2025-07-28 21:00:46.462 INFO: Epoch 575: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.44
+2025-07-28 21:01:25.230 INFO: Epoch 576: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.44
+2025-07-28 21:02:03.921 INFO: Epoch 577: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.43
+2025-07-28 21:02:42.514 INFO: Epoch 578: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.42
+2025-07-28 21:03:21.024 INFO: Epoch 579: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.42
+2025-07-28 21:03:59.462 INFO: Epoch 580: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.41
+2025-07-28 21:04:37.170 INFO: Epoch 581: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.41
+2025-07-28 21:05:14.800 INFO: Epoch 582: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.40
+2025-07-28 21:05:52.951 INFO: Epoch 583: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.41
+2025-07-28 21:06:31.319 INFO: Epoch 584: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.40
+2025-07-28 21:07:09.739 INFO: Epoch 585: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.40
+2025-07-28 21:07:48.209 INFO: Epoch 586: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.40
+2025-07-28 21:08:26.970 INFO: Epoch 587: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.39
+2025-07-28 21:09:05.712 INFO: Epoch 588: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.37
+2025-07-28 21:09:44.351 INFO: Epoch 589: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.38
+2025-07-28 21:10:23.010 INFO: Epoch 590: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.38
+2025-07-28 21:11:01.553 INFO: Epoch 591: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.37
+2025-07-28 21:11:40.085 INFO: Epoch 592: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.36
+2025-07-28 21:12:18.607 INFO: Epoch 593: loss=  0.0068, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.37
+2025-07-28 21:12:57.113 INFO: Epoch 594: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.35
+2025-07-28 21:13:35.632 INFO: Epoch 595: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.34
+2025-07-28 21:14:13.795 INFO: Epoch 596: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.36
+2025-07-28 21:14:51.427 INFO: Epoch 597: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.33
+2025-07-28 21:15:29.354 INFO: Epoch 598: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.35
+2025-07-28 21:16:07.750 INFO: Epoch 599: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.34
+2025-07-28 21:16:46.149 INFO: Epoch 600: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.33
+2025-07-28 21:17:24.596 INFO: Epoch 601: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.33
+2025-07-28 21:18:03.305 INFO: Epoch 602: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.31
+2025-07-28 21:18:42.124 INFO: Epoch 603: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.32
+2025-07-28 21:19:20.882 INFO: Epoch 604: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.32
+2025-07-28 21:19:59.535 INFO: Epoch 605: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.32
+2025-07-28 21:20:38.138 INFO: Epoch 606: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.31
+2025-07-28 21:21:16.742 INFO: Epoch 607: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.30
+2025-07-28 21:21:55.307 INFO: Epoch 608: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.32
+2025-07-28 21:22:33.845 INFO: Epoch 609: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.31
+2025-07-28 21:23:12.445 INFO: Epoch 610: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.30
+2025-07-28 21:23:50.931 INFO: Epoch 611: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.30
+2025-07-28 21:24:29.410 INFO: Epoch 612: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.28
+2025-07-28 21:25:07.883 INFO: Epoch 613: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.28
+2025-07-28 21:25:46.357 INFO: Epoch 614: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.27
+2025-07-28 21:26:24.848 INFO: Epoch 615: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.26
+2025-07-28 21:27:03.310 INFO: Epoch 616: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.26
+2025-07-28 21:27:41.136 INFO: Epoch 617: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.25
+2025-07-28 21:28:18.715 INFO: Epoch 618: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.26
+2025-07-28 21:28:56.579 INFO: Epoch 619: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.26
+2025-07-28 21:29:34.949 INFO: Epoch 620: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.25
+2025-07-28 21:30:13.309 INFO: Epoch 621: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.24
+2025-07-28 21:30:51.712 INFO: Epoch 622: loss=  0.0067, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.24
+2025-07-28 21:31:30.069 INFO: Epoch 623: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.24
+2025-07-28 21:32:08.572 INFO: Epoch 624: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.23
+2025-07-28 21:32:47.383 INFO: Epoch 625: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.22
+2025-07-28 21:33:26.229 INFO: Epoch 626: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.23
+2025-07-28 21:34:04.961 INFO: Epoch 627: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.22
+2025-07-28 21:34:43.543 INFO: Epoch 628: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.22
+2025-07-28 21:35:22.064 INFO: Epoch 629: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.20
+2025-07-28 21:36:00.552 INFO: Epoch 630: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.20
+2025-07-28 21:36:38.692 INFO: Epoch 631: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.20
+2025-07-28 21:37:16.270 INFO: Epoch 632: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.21
+2025-07-28 21:37:53.947 INFO: Epoch 633: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.19
+2025-07-28 21:38:32.317 INFO: Epoch 634: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.19
+2025-07-28 21:39:10.661 INFO: Epoch 635: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.18
+2025-07-28 21:39:49.073 INFO: Epoch 636: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.18
+2025-07-28 21:40:27.493 INFO: Epoch 637: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.17
+2025-07-28 21:41:06.265 INFO: Epoch 638: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.18
+2025-07-28 21:41:45.092 INFO: Epoch 639: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.15
+2025-07-28 21:42:23.859 INFO: Epoch 640: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.17
+2025-07-28 21:43:02.567 INFO: Epoch 641: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.18
+2025-07-28 21:43:41.109 INFO: Epoch 642: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.16
+2025-07-28 21:44:19.639 INFO: Epoch 643: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.2 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.18
+2025-07-28 21:44:58.096 INFO: Epoch 644: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.17
+2025-07-28 21:45:36.512 INFO: Epoch 645: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.15
+2025-07-28 21:46:14.972 INFO: Epoch 646: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.15
+2025-07-28 21:46:53.450 INFO: Epoch 647: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.15
+2025-07-28 21:47:31.401 INFO: Epoch 648: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.14
+2025-07-28 21:48:09.052 INFO: Epoch 649: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.15
+2025-07-28 21:48:46.958 INFO: Epoch 650: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.14
+2025-07-28 21:49:25.318 INFO: Epoch 651: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.15
+2025-07-28 21:50:03.692 INFO: Epoch 652: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.13
+2025-07-28 21:50:42.155 INFO: Epoch 653: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.14
+2025-07-28 21:51:20.905 INFO: Epoch 654: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.13
+2025-07-28 21:51:59.717 INFO: Epoch 655: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.14
+2025-07-28 21:52:38.504 INFO: Epoch 656: loss=  0.0066, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.13
+2025-07-28 21:53:17.169 INFO: Epoch 657: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.12
+2025-07-28 21:53:55.811 INFO: Epoch 658: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.10
+2025-07-28 21:54:34.352 INFO: Epoch 659: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.10
+2025-07-28 21:55:12.907 INFO: Epoch 660: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.10
+2025-07-28 21:55:51.308 INFO: Epoch 661: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.11
+2025-07-28 21:56:29.849 INFO: Epoch 662: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.10
+2025-07-28 21:57:08.431 INFO: Epoch 663: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.11
+2025-07-28 21:57:46.943 INFO: Epoch 664: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.10
+2025-07-28 21:58:25.424 INFO: Epoch 665: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.09
+2025-07-28 21:59:03.822 INFO: Epoch 666: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.08
+2025-07-28 21:59:42.251 INFO: Epoch 667: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.08
+2025-07-28 22:00:20.676 INFO: Epoch 668: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.08
+2025-07-28 22:00:59.064 INFO: Epoch 669: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.09
+2025-07-28 22:01:37.264 INFO: Epoch 670: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.06
+2025-07-28 22:02:14.857 INFO: Epoch 671: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.07
+2025-07-28 22:02:52.448 INFO: Epoch 672: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.07
+2025-07-28 22:03:30.586 INFO: Epoch 673: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.08
+2025-07-28 22:04:08.857 INFO: Epoch 674: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.07
+2025-07-28 22:04:47.278 INFO: Epoch 675: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.05
+2025-07-28 22:05:25.654 INFO: Epoch 676: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.05
+2025-07-28 22:06:04.068 INFO: Epoch 677: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.05
+2025-07-28 22:06:42.640 INFO: Epoch 678: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.04
+2025-07-28 22:07:21.379 INFO: Epoch 679: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.04
+2025-07-28 22:08:00.077 INFO: Epoch 680: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.05
+2025-07-28 22:08:38.757 INFO: Epoch 681: loss=  0.0065, MAE_energy=     1.5 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.05
+2025-07-28 22:09:17.461 INFO: Epoch 682: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.03
+2025-07-28 22:09:56.025 INFO: Epoch 683: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.04
+2025-07-28 22:10:34.453 INFO: Epoch 684: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.03
+2025-07-28 22:11:12.227 INFO: Epoch 685: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.01
+2025-07-28 22:11:49.839 INFO: Epoch 686: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.02
+2025-07-28 22:12:27.772 INFO: Epoch 687: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.00
+2025-07-28 22:13:06.142 INFO: Epoch 688: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.00
+2025-07-28 22:13:44.528 INFO: Epoch 689: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.00
+2025-07-28 22:14:23.015 INFO: Epoch 690: loss=  0.0065, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.00
+2025-07-28 22:15:01.683 INFO: Epoch 691: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.00
+2025-07-28 22:15:40.424 INFO: Epoch 692: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   15.00
+2025-07-28 22:16:19.095 INFO: Epoch 693: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.99
+2025-07-28 22:16:57.769 INFO: Epoch 694: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.97
+2025-07-28 22:17:36.357 INFO: Epoch 695: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.99
+2025-07-28 22:18:14.891 INFO: Epoch 696: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.97
+2025-07-28 22:18:53.427 INFO: Epoch 697: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.97
+2025-07-28 22:19:31.960 INFO: Epoch 698: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.96
+2025-07-28 22:20:10.310 INFO: Epoch 699: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.97
+2025-07-28 22:20:48.037 INFO: Epoch 700: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.98
+2025-07-28 22:21:25.689 INFO: Epoch 701: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.96
+2025-07-28 22:22:03.930 INFO: Epoch 702: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.96
+2025-07-28 22:22:42.258 INFO: Epoch 703: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.96
+2025-07-28 22:23:20.591 INFO: Epoch 704: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.95
+2025-07-28 22:23:59.132 INFO: Epoch 705: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.94
+2025-07-28 22:24:37.735 INFO: Epoch 706: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.95
+2025-07-28 22:25:16.408 INFO: Epoch 707: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.95
+2025-07-28 22:25:55.070 INFO: Epoch 708: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.93
+2025-07-28 22:26:33.672 INFO: Epoch 709: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.93
+2025-07-28 22:27:12.218 INFO: Epoch 710: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.93
+2025-07-28 22:27:50.801 INFO: Epoch 711: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.94
+2025-07-28 22:28:29.382 INFO: Epoch 712: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.93
+2025-07-28 22:29:08.016 INFO: Epoch 713: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.93
+2025-07-28 22:29:46.641 INFO: Epoch 714: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.93
+2025-07-28 22:30:25.149 INFO: Epoch 715: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.92
+2025-07-28 22:31:03.568 INFO: Epoch 716: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.91
+2025-07-28 22:31:42.001 INFO: Epoch 717: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.90
+2025-07-28 22:32:20.404 INFO: Epoch 718: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.91
+2025-07-28 22:32:58.788 INFO: Epoch 719: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.91
+2025-07-28 22:33:37.169 INFO: Epoch 720: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.90
+2025-07-28 22:34:15.594 INFO: Epoch 721: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.90
+2025-07-28 22:34:53.993 INFO: Epoch 722: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.89
+2025-07-28 22:35:32.233 INFO: Epoch 723: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.88
+2025-07-28 22:36:09.767 INFO: Epoch 724: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.89
+2025-07-28 22:36:47.273 INFO: Epoch 725: loss=  0.0064, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.89
+2025-07-28 22:37:25.444 INFO: Epoch 726: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.88
+2025-07-28 22:38:03.770 INFO: Epoch 727: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.87
+2025-07-28 22:38:42.179 INFO: Epoch 728: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.87
+2025-07-28 22:39:20.540 INFO: Epoch 729: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.86
+2025-07-28 22:39:58.986 INFO: Epoch 730: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.86
+2025-07-28 22:40:37.569 INFO: Epoch 731: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.1 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.86
+2025-07-28 22:41:16.372 INFO: Epoch 732: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.86
+2025-07-28 22:41:55.129 INFO: Epoch 733: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.84
+2025-07-28 22:42:33.882 INFO: Epoch 734: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.85
+2025-07-28 22:43:12.590 INFO: Epoch 735: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.84
+2025-07-28 22:43:51.275 INFO: Epoch 736: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.83
+2025-07-28 22:44:29.727 INFO: Epoch 737: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.85
+2025-07-28 22:45:07.779 INFO: Epoch 738: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.83
+2025-07-28 22:45:45.321 INFO: Epoch 739: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.82
+2025-07-28 22:46:23.047 INFO: Epoch 740: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.81
+2025-07-28 22:47:01.395 INFO: Epoch 741: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.82
+2025-07-28 22:47:39.671 INFO: Epoch 742: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.81
+2025-07-28 22:48:18.076 INFO: Epoch 743: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.81
+2025-07-28 22:48:56.691 INFO: Epoch 744: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.80
+2025-07-28 22:49:35.542 INFO: Epoch 745: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.81
+2025-07-28 22:50:14.306 INFO: Epoch 746: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.81
+2025-07-28 22:50:52.862 INFO: Epoch 747: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.79
+2025-07-28 22:51:31.436 INFO: Epoch 748: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.79
+2025-07-28 22:52:09.993 INFO: Epoch 749: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.78
+2025-07-28 22:52:48.572 INFO: Epoch 750: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.78
+2025-07-28 22:53:27.041 INFO: Epoch 751: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.78
+2025-07-28 22:54:05.432 INFO: Epoch 752: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.78
+2025-07-28 22:54:43.801 INFO: Epoch 753: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.78
+2025-07-28 22:55:21.924 INFO: Epoch 754: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.77
+2025-07-28 22:55:59.536 INFO: Epoch 755: loss=  0.0063, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.76
+2025-07-28 22:56:37.222 INFO: Epoch 756: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.76
+2025-07-28 22:57:15.641 INFO: Epoch 757: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.75
+2025-07-28 22:57:54.021 INFO: Epoch 758: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.75
+2025-07-28 22:58:32.439 INFO: Epoch 759: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.75
+2025-07-28 22:59:11.083 INFO: Epoch 760: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.75
+2025-07-28 22:59:49.899 INFO: Epoch 761: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.76
+2025-07-28 23:00:28.729 INFO: Epoch 762: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.75
+2025-07-28 23:01:07.443 INFO: Epoch 763: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.74
+2025-07-28 23:01:45.977 INFO: Epoch 764: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.74
+2025-07-28 23:02:24.488 INFO: Epoch 765: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.75
+2025-07-28 23:03:02.966 INFO: Epoch 766: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.73
+2025-07-28 23:03:41.488 INFO: Epoch 767: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.72
+2025-07-28 23:04:19.967 INFO: Epoch 768: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.73
+2025-07-28 23:04:58.464 INFO: Epoch 769: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.73
+2025-07-28 23:05:36.873 INFO: Epoch 770: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.72
+2025-07-28 23:06:15.396 INFO: Epoch 771: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.73
+2025-07-28 23:06:53.881 INFO: Epoch 772: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.73
+2025-07-28 23:07:32.335 INFO: Epoch 773: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.72
+2025-07-28 23:08:10.796 INFO: Epoch 774: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.73
+2025-07-28 23:08:49.269 INFO: Epoch 775: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.72
+2025-07-28 23:09:27.631 INFO: Epoch 776: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.71
+2025-07-28 23:10:06.141 INFO: Epoch 777: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.71
+2025-07-28 23:10:44.498 INFO: Epoch 778: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.71
+2025-07-28 23:11:22.940 INFO: Epoch 779: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.70
+2025-07-28 23:12:01.402 INFO: Epoch 780: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.70
+2025-07-28 23:12:39.907 INFO: Epoch 781: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.70
+2025-07-28 23:13:18.292 INFO: Epoch 782: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.70
+2025-07-28 23:13:56.661 INFO: Epoch 783: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.70
+2025-07-28 23:14:34.546 INFO: Epoch 784: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.70
+2025-07-28 23:15:12.099 INFO: Epoch 785: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.69
+2025-07-28 23:15:49.976 INFO: Epoch 786: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.69
+2025-07-28 23:16:28.341 INFO: Epoch 787: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.69
+2025-07-28 23:17:06.753 INFO: Epoch 788: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.68
+2025-07-28 23:17:45.175 INFO: Epoch 789: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.69
+2025-07-28 23:18:23.544 INFO: Epoch 790: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.70
+2025-07-28 23:19:02.006 INFO: Epoch 791: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.70
+2025-07-28 23:19:40.743 INFO: Epoch 792: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.67
+2025-07-28 23:20:19.544 INFO: Epoch 793: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.69
+2025-07-28 23:20:58.195 INFO: Epoch 794: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.68
+2025-07-28 23:21:36.681 INFO: Epoch 795: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.68
+2025-07-28 23:22:15.166 INFO: Epoch 796: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.68
+2025-07-28 23:22:53.644 INFO: Epoch 797: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.69
+2025-07-28 23:23:32.088 INFO: Epoch 798: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.67
+2025-07-28 23:24:10.496 INFO: Epoch 799: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.68
+2025-07-28 23:24:48.946 INFO: Epoch 800: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.67
+2025-07-28 23:25:27.333 INFO: Epoch 801: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.65
+2025-07-28 23:26:05.687 INFO: Epoch 802: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.67
+2025-07-28 23:26:43.556 INFO: Epoch 803: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.66
+2025-07-28 23:27:21.159 INFO: Epoch 804: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.66
+2025-07-28 23:27:59.156 INFO: Epoch 805: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.66
+2025-07-28 23:28:37.494 INFO: Epoch 806: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.66
+2025-07-28 23:29:15.823 INFO: Epoch 807: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.65
+2025-07-28 23:29:54.223 INFO: Epoch 808: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.65
+2025-07-28 23:30:32.818 INFO: Epoch 809: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.66
+2025-07-28 23:31:11.579 INFO: Epoch 810: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.65
+2025-07-28 23:31:50.271 INFO: Epoch 811: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.66
+2025-07-28 23:32:28.830 INFO: Epoch 812: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.65
+2025-07-28 23:33:07.343 INFO: Epoch 813: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.65
+2025-07-28 23:33:45.763 INFO: Epoch 814: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.65
+2025-07-28 23:34:24.255 INFO: Epoch 815: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.65
+2025-07-28 23:35:02.784 INFO: Epoch 816: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.64
+2025-07-28 23:35:41.130 INFO: Epoch 817: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.64
+2025-07-28 23:36:19.578 INFO: Epoch 818: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.64
+2025-07-28 23:36:58.022 INFO: Epoch 819: loss=  0.0062, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.63
+2025-07-28 23:37:36.425 INFO: Epoch 820: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.63
+2025-07-28 23:38:14.888 INFO: Epoch 821: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.63
+2025-07-28 23:38:53.388 INFO: Epoch 822: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.63
+2025-07-28 23:39:31.872 INFO: Epoch 823: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.63
+2025-07-28 23:40:10.236 INFO: Epoch 824: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.63
+2025-07-28 23:40:48.699 INFO: Epoch 825: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.62
+2025-07-28 23:41:27.176 INFO: Epoch 826: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.62
+2025-07-28 23:42:05.684 INFO: Epoch 827: loss=  0.0061, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.62
+2025-07-28 23:42:44.093 INFO: Epoch 828: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.63
+2025-07-28 23:43:22.469 INFO: Epoch 829: loss=  0.0061, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.62
+2025-07-28 23:44:00.881 INFO: Epoch 830: loss=  0.0061, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.62
+2025-07-28 23:44:39.339 INFO: Epoch 831: loss=  0.0061, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.62
+2025-07-28 23:45:17.779 INFO: Epoch 832: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.61
+2025-07-28 23:45:55.726 INFO: Epoch 833: loss=  0.0061, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.62
+2025-07-28 23:46:33.148 INFO: Epoch 834: loss=  0.0061, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.61
+2025-07-28 23:47:10.776 INFO: Epoch 835: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.61
+2025-07-28 23:47:49.077 INFO: Epoch 836: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.61
+2025-07-28 23:48:27.340 INFO: Epoch 837: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.61
+2025-07-28 23:49:05.738 INFO: Epoch 838: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.61
+2025-07-28 23:49:44.085 INFO: Epoch 839: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.59
+2025-07-28 23:50:22.541 INFO: Epoch 840: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.60
+2025-07-28 23:51:01.308 INFO: Epoch 841: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.61
+2025-07-28 23:51:40.145 INFO: Epoch 842: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.59
+2025-07-28 23:52:18.930 INFO: Epoch 843: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.59
+2025-07-28 23:52:57.631 INFO: Epoch 844: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.58
+2025-07-28 23:53:36.292 INFO: Epoch 845: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.58
+2025-07-28 23:54:14.753 INFO: Epoch 846: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.60
+2025-07-28 23:54:52.899 INFO: Epoch 847: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.59
+2025-07-28 23:55:30.434 INFO: Epoch 848: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.59
+2025-07-28 23:56:07.964 INFO: Epoch 849: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.57
+2025-07-28 23:56:46.274 INFO: Epoch 850: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.58
+2025-07-28 23:57:24.583 INFO: Epoch 851: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.57
+2025-07-28 23:58:02.978 INFO: Epoch 852: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.57
+2025-07-28 23:58:41.622 INFO: Epoch 853: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.56
+2025-07-28 23:59:20.399 INFO: Epoch 854: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.56
+2025-07-28 23:59:59.118 INFO: Epoch 855: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:00:37.734 INFO: Epoch 856: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:01:16.315 INFO: Epoch 857: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:01:54.771 INFO: Epoch 858: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:02:33.104 INFO: Epoch 859: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.56
+2025-07-29 00:03:11.463 INFO: Epoch 860: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.56
+2025-07-29 00:03:49.855 INFO: Epoch 861: loss=  0.0061, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:04:28.198 INFO: Epoch 862: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.56
+2025-07-29 00:05:06.675 INFO: Epoch 863: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:05:45.159 INFO: Epoch 864: loss=  0.0061, MAE_energy=     1.4 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:06:23.630 INFO: Epoch 865: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:07:02.067 INFO: Epoch 866: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:07:40.463 INFO: Epoch 867: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:08:18.866 INFO: Epoch 868: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.54
+2025-07-29 00:08:57.273 INFO: Epoch 869: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.54
+2025-07-29 00:09:35.664 INFO: Epoch 870: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.54
+2025-07-29 00:10:14.056 INFO: Epoch 871: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:10:51.906 INFO: Epoch 872: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:11:29.254 INFO: Epoch 873: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:12:06.779 INFO: Epoch 874: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.56
+2025-07-29 00:12:45.103 INFO: Epoch 875: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:13:23.410 INFO: Epoch 876: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:14:01.788 INFO: Epoch 877: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.54
+2025-07-29 00:14:40.091 INFO: Epoch 878: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:15:18.519 INFO: Epoch 879: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:15:57.209 INFO: Epoch 880: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:16:36.030 INFO: Epoch 881: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:17:14.808 INFO: Epoch 882: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:17:53.520 INFO: Epoch 883: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:18:32.083 INFO: Epoch 884: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:19:10.661 INFO: Epoch 885: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:19:49.091 INFO: Epoch 886: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:20:26.838 INFO: Epoch 887: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:21:04.381 INFO: Epoch 888: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:21:42.343 INFO: Epoch 889: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:22:20.628 INFO: Epoch 890: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:22:58.993 INFO: Epoch 891: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:23:37.423 INFO: Epoch 892: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:24:16.191 INFO: Epoch 893: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.54
+2025-07-29 00:24:54.935 INFO: Epoch 894: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:25:33.697 INFO: Epoch 895: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:26:12.350 INFO: Epoch 896: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:26:50.880 INFO: Epoch 897: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:27:29.248 INFO: Epoch 898: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:28:07.681 INFO: Epoch 899: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:28:46.035 INFO: Epoch 900: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:29:24.484 INFO: Epoch 901: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:30:02.908 INFO: Epoch 902: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:30:41.341 INFO: Epoch 903: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:31:19.777 INFO: Epoch 904: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:31:58.147 INFO: Epoch 905: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:32:36.529 INFO: Epoch 906: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:33:15.004 INFO: Epoch 907: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:33:53.436 INFO: Epoch 908: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:34:31.831 INFO: Epoch 909: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:35:10.239 INFO: Epoch 910: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:35:48.693 INFO: Epoch 911: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:36:27.035 INFO: Epoch 912: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:37:05.419 INFO: Epoch 913: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:37:43.790 INFO: Epoch 914: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:38:22.142 INFO: Epoch 915: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:39:00.558 INFO: Epoch 916: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:39:38.929 INFO: Epoch 917: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:40:16.971 INFO: Epoch 918: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:40:54.420 INFO: Epoch 919: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:41:32.004 INFO: Epoch 920: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:42:10.292 INFO: Epoch 921: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:42:48.644 INFO: Epoch 922: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:43:26.984 INFO: Epoch 923: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:44:05.326 INFO: Epoch 924: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:44:43.676 INFO: Epoch 925: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:45:22.207 INFO: Epoch 926: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:46:00.981 INFO: Epoch 927: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:46:39.759 INFO: Epoch 928: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:47:18.443 INFO: Epoch 929: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:47:56.922 INFO: Epoch 930: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:48:34.804 INFO: Epoch 931: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:49:12.455 INFO: Epoch 932: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:49:50.424 INFO: Epoch 933: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:50:28.735 INFO: Epoch 934: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:51:07.071 INFO: Epoch 935: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:51:45.521 INFO: Epoch 936: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:52:24.196 INFO: Epoch 937: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:53:02.907 INFO: Epoch 938: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:53:41.536 INFO: Epoch 939: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:54:20.047 INFO: Epoch 940: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:54:58.501 INFO: Epoch 941: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:55:36.944 INFO: Epoch 942: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:56:15.440 INFO: Epoch 943: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:56:53.866 INFO: Epoch 944: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:57:32.250 INFO: Epoch 945: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:58:10.689 INFO: Epoch 946: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:58:49.052 INFO: Epoch 947: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 00:59:27.410 INFO: Epoch 948: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:00:05.814 INFO: Epoch 949: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:00:44.288 INFO: Epoch 950: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:01:22.650 INFO: Epoch 951: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:02:01.011 INFO: Epoch 952: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:02:39.040 INFO: Epoch 953: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:03:16.511 INFO: Epoch 954: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:03:54.057 INFO: Epoch 955: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:04:32.281 INFO: Epoch 956: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:05:10.643 INFO: Epoch 957: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:05:49.035 INFO: Epoch 958: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:06:27.361 INFO: Epoch 959: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:07:05.699 INFO: Epoch 960: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:07:44.216 INFO: Epoch 961: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:08:22.933 INFO: Epoch 962: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:09:01.677 INFO: Epoch 963: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:09:40.458 INFO: Epoch 964: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:10:19.105 INFO: Epoch 965: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:10:57.556 INFO: Epoch 966: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:11:36.017 INFO: Epoch 967: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:12:14.016 INFO: Epoch 968: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:12:51.596 INFO: Epoch 969: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:13:29.331 INFO: Epoch 970: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:14:07.682 INFO: Epoch 971: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:14:46.037 INFO: Epoch 972: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:15:24.422 INFO: Epoch 973: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:16:03.084 INFO: Epoch 974: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:16:41.851 INFO: Epoch 975: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:17:20.460 INFO: Epoch 976: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:17:59.010 INFO: Epoch 977: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:18:37.570 INFO: Epoch 978: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:19:16.033 INFO: Epoch 979: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:19:54.481 INFO: Epoch 980: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:20:32.953 INFO: Epoch 981: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:21:11.319 INFO: Epoch 982: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:21:49.750 INFO: Epoch 983: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:22:28.160 INFO: Epoch 984: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:23:06.578 INFO: Epoch 985: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:23:45.061 INFO: Epoch 986: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:24:23.566 INFO: Epoch 987: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:25:02.050 INFO: Epoch 988: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:25:40.484 INFO: Epoch 989: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:26:18.926 INFO: Epoch 990: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:26:57.281 INFO: Epoch 991: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:27:35.724 INFO: Epoch 992: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:28:14.075 INFO: Epoch 993: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:28:52.489 INFO: Epoch 994: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:29:30.879 INFO: Epoch 995: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:30:09.261 INFO: Epoch 996: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:30:47.627 INFO: Epoch 997: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:31:26.045 INFO: Epoch 998: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:32:04.391 INFO: Epoch 999: loss=  0.0061, MAE_energy=     1.3 meV, MAE_Forces=     3.0 meV / A, MAE_vectors=    0.00, MAE_scalars=   14.55
+2025-07-29 01:32:04.391 INFO: Training complete
+2025-07-29 01:32:04.391 INFO: 
+2025-07-29 01:32:04.391 INFO: ===========RESULTS===========
+2025-07-29 01:32:04.391 INFO: Computing metrics for training, validation, and test sets
+2025-07-29 01:32:04.392 INFO: Loading checkpoint: ./checkpoints/dmabn_L1_run-123_epoch-870.pt
+2025-07-29 01:32:04.417 INFO: Loaded Stage one model from epoch 870 for evaluation
+2025-07-29 01:32:04.418 INFO: Evaluating train ...
+2025-07-29 01:32:17.542 INFO: Evaluating valid ...
+2025-07-29 01:32:19.033 INFO: Error-table on TRAIN and VALID:
++-------------+--------------------+-----------------+-------------+
+| config_type | MAE E / meV / atom | MAE F / meV / A | rel F MAE % |
++-------------+--------------------+-----------------+-------------+
+|    train    |           0.1      |          3.0    |       10.4  |
+|    valid    |           0.1      |          3.0    |       10.5  |
++-------------+--------------------+-----------------+-------------+
+2025-07-29 01:32:19.033 INFO: Error-table on TEST:
++-------------+--------------------+-----------------+-------------+
+| config_type | MAE E / meV / atom | MAE F / meV / A | rel F MAE % |
++-------------+--------------------+-----------------+-------------+
++-------------+--------------------+-----------------+-------------+
+2025-07-29 01:32:19.033 INFO: Saving model to checkpoints/dmabn_L1_run-123.model
+2025-07-29 01:32:19.105 INFO: Compiling model, saving metadata to dmabn_L1_compiled.model
+2025-07-29 01:32:19.321 INFO: Done

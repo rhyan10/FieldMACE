@@ -125,7 +125,7 @@ class MACECalculator(Calculator):
             self.use_compile = True
         else:
             self.models = [
-                torch.load(f=model_path, map_location=device)
+                torch.load(f=model_path, map_location=device, weights_only=False)
                 for model_path in model_paths
             ]
             self.use_compile = True
@@ -348,8 +348,6 @@ class MACECalculator(Calculator):
             ret_tensors["energies"] = out["energy"].detach()
             ret_tensors["forces"] = out["forces"].detach()
             ret_tensors["multipolar_fit"] = out["scalars"].detach()
-            print("Scalar")
-            print(out["scalars"].detach())
 
         self.results = {}
         self.results["REF_energy"] = ret_tensors["energies"].cpu().numpy()

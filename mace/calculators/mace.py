@@ -125,7 +125,7 @@ class MACECalculator(Calculator):
             self.use_compile = True
         else:
             self.models = [
-                torch.load(f=model_path, map_location=device)
+                torch.load(f=model_path, map_location=device, weights_only=False)
                 for model_path in model_paths
             ]
             self.use_compile = True

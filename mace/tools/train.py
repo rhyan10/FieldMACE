@@ -383,9 +383,13 @@ class MACELoss(Metric):
         
         if output.get("scalars") is not None and batch.scalars is not None:
             self.scalars_computed += 1.0
-            self.delta_scalars.append(batch.scalars - output["scalars"])
+            neg = torch.abs(batch.scalars - output["scalars"]).unsqueeze(-1)
+            pos = torch.abs(batch.scalars + output["scalars"]).unsqueeze(-1)
+            sca = torch.cat((pos,neg),dim=-1)
+            val = torch.min(sca, dim=-1)[0]
+            self.delta_scalars.append(val)
             self.delta_scalars_per_atom.append(
-                (batch.scalars - output["scalars"])
+                (val)
                 / (batch.ptr[1:] - batch.ptr[:-1]).view(-1, 1, 1)
             )
 
@@ -396,7 +400,7 @@ class MACELoss(Metric):
             pos = torch.abs(batch.vectors + output["vectors"]).unsqueeze(-1)
             vec = torch.cat((pos,neg),dim=-1)
             val = torch.min(vec, dim=-1)[0]
-            self.delta_vectors.append(batch.vectors - val)
+            self.delta_vectors.append(val)
 
     def convert(self, delta: Union[torch.Tensor, List[torch.Tensor]]) -> np.ndarray:
         if isinstance(delta, list):

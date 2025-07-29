@@ -16,7 +16,15 @@ def mean_squared_error_energy(ref: Batch, pred: TensorDict) -> torch.Tensor:
 
 def mean_squared_error_scalars(ref: Batch, pred: TensorDict) -> torch.Tensor:
     # energy: [n_graphs, ]
-    return torch.mean(torch.square(ref["scalars"] - pred["scalars"]))  # []
+    neg = torch.square(ref["scalars"] - pred["scalars"]).unsqueeze(-1)
+    pos = torch.square(ref["scalars"] + pred["scalars"]).unsqueeze(-1)
+    vec = torch.cat((pos,neg),dim=-1)
+
+    return torch.mean(
+        torch.min(vec, dim=-1)[0]
+    )  # []
+    
+    #return torch.mean(torch.square(ref["scalars"] - pred["scalars"]))  # []
 
 def weighted_mean_squared_error_energy(ref: Batch, pred: TensorDict) -> torch.Tensor:
     # energy: [n_graphs, ]
