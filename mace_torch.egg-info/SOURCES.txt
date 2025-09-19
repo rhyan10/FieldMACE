@@ -1,5 +1,6 @@
 LICENSE.md
 MANIFEST.in
+README.md
 pyproject.toml
 setup.cfg
 mace/__init__.py

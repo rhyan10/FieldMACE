@@ -348,11 +348,13 @@ class MACECalculator(Calculator):
             ret_tensors["energies"] = out["energy"].detach()
             ret_tensors["forces"] = out["forces"].detach()
             ret_tensors["multipolar_fit"] = out["scalars"].detach()
+            ret_tensors["mm_forces"] = out["mm_forces"].detach()
 
         self.results = {}
         self.results["REF_energy"] = ret_tensors["energies"].cpu().numpy()
         self.results["REF_forces"] = ret_tensors["forces"].cpu().numpy()
         self.results["REF_multipolar_fit"] = ret_tensors["multipolar_fit"].cpu().numpy()
+        self.results["REF_mm_forces"] = ret_tensors["mm_forces"].cpu().numpy()
                 
         return self.results
 

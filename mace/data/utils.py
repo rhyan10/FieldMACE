@@ -26,6 +26,7 @@ Cell = np.ndarray  # [3,3]
 Mm_charges = np.ndarray
 Mm_positions = np.ndarray
 Center_of_charge = np.ndarray
+Mm_forces = np.ndarray
 Pbc = tuple  # (3,)
 
 DEFAULT_CONFIG_TYPE = "Default"
@@ -42,16 +43,19 @@ class Configuration:
     scalars: Optional[Virials] = None  # eV
     vectors: Optional[Vector] = None  # Debye
     charges: Optional[Charges] = None  # atomic unit
+    pc_array: Optional[Charges] = None  
     cell: Optional[Cell] = None
     pbc: Optional[Pbc] = None
     nacs: Optional[Nacs] = None
     mm_charges: Optional[Mm_charges] = None
     mm_positions: Optional[Mm_positions] = None
+    mm_forces: Optional[Mm_forces] = None
     weight: float = 1.0  # weight of config in loss
     energy_weight: float = 1.0  # weight of config energy in loss
     forces_weight: float = 1.0  # weight of config forces in loss
     scalars_weight: float = 1.0  # weight of config stress in loss
     vectors_weight: float = 1.0
+    pc_weight: float = 1.0
     config_type: Optional[str] = DEFAULT_CONFIG_TYPE  # config_type of config
 
 
@@ -96,6 +100,7 @@ def config_from_atoms_list(
     vectors_key="REF_vectors",
     scalars_key="REF_scalars",
     charges_key="REF_charges",
+    pc_key = "REF_mm_forces",
     config_type_weights: Dict[str, float] = None,
 ) -> Configurations:
     """Convert list of ase.Atoms into Configurations"""
@@ -111,6 +116,7 @@ def config_from_atoms_list(
                 forces_key=forces_key,
                 vectors_key=vectors_key,
                 scalars_key=scalars_key,
+                pc_key=pc_key,
                 config_type_weights=config_type_weights,
             )
         )
@@ -124,6 +130,7 @@ def config_from_atoms(
     scalars_key="REF_scalars",
     mm_charges="mm_charges",
     mm_positions="mm_positions",
+    pc_key = "REF_mm_forces",
     config_type_weights: Dict[str, float] = None,
 ) -> Configuration:
     """Convert ase.Atoms to Configuration"""
@@ -136,6 +143,7 @@ def config_from_atoms(
     scalars = atoms.info.get(scalars_key, None)
     mm_charges = np.expand_dims(atoms.info.get(mm_charges, None) , axis=0)
     mm_positions = np.expand_dims((atoms.info.get(mm_positions, None)), axis=0)
+    mm_forces = np.expand_dims((atoms.info.get("REF_mm_forces", None)), axis=0)
     atomic_numbers = np.array(
         [ase.data.atomic_numbers[symbol] for symbol in atoms.symbols]
     )
@@ -149,6 +157,7 @@ def config_from_atoms(
     forces_weight = atoms.info.get("config_forces_weight", 1.0)
     vectors_weight = atoms.info.get("config_vectors_weight", 1.0)
     scalars_weight = atoms.info.get("config_scalars_weight", 1.0)
+    pc_weight = atoms.info.get("config_pc_weight", 1.0)
 
     # fill in missing quantities but set their weight to 0.0
     if energy is None:
@@ -163,6 +172,9 @@ def config_from_atoms(
     if scalars is None:
         scalars = None
         scalars_weight = 0.0
+    if mm_forces[0] is None:
+        mm_forces = np.zeros(np.shape(mm_positions))
+        pc_weight = 0.0
 
     return Configuration(
         atomic_numbers=atomic_numbers,
@@ -174,10 +186,12 @@ def config_from_atoms(
         weight=weight,
         mm_charges=mm_charges,
         mm_positions=mm_positions,
+        mm_forces=mm_forces,
         energy_weight=energy_weight,
         forces_weight=forces_weight,
         vectors_weight=vectors_weight,
         scalars_weight=scalars_weight,
+        pc_weight=pc_weight,
         config_type=config_type,
         pbc=pbc,
         cell=cell,
@@ -207,6 +221,7 @@ def load_from_xyz(
     forces_key="REF_forces",
     vectors_key="REF_vectors",
     scalars_key="REF_scalars",
+    pc_key = "REF_mm_forces",
     extract_atomic_energies: bool = False,
     keep_isolated_atoms: bool = False,
 ) -> Tuple[Dict[int, float], Configurations]:
@@ -270,7 +285,8 @@ def load_from_xyz(
         energy_key=energy_key,
         forces_key=forces_key,
         vectors_key=vectors_key,
-        scalars_key=scalars_key
+        scalars_key=scalars_key,
+        pc_key = pc_key,
     )
     return atomic_energies_dict, configs
 

@@ -637,10 +637,15 @@ class FranckCondonMACE(torch.nn.Module):
         training: bool = False,
         compute_force: bool = True,
         compute_hessian: bool = False,
+        compute_pc_grads: bool = True,
     ) -> Dict[str, Optional[torch.Tensor]]:
         # Setup
         data["node_attrs"].requires_grad_(True)
         data["positions"].requires_grad_(True)
+
+        if compute_pc_grads:
+            data["mm_positions"].requires_grad_(True)
+
         num_graphs = data["ptr"].numel() - 1
         displacement = torch.zeros(
             (num_graphs, 3, 3),
@@ -672,8 +677,8 @@ class FranckCondonMACE(torch.nn.Module):
         rel_pos = mm_pos_expanded - pos.unsqueeze(1)
 
         mm_spherical_harmonics = self.multipole_spherical_harmonics(rel_pos)
+        mm_spherical_harmonics.requires_grad_(True)
         expanded_mm_charges   = mm_charges_expanded
-
         multipole_moments = _calc_multipole_moments(expanded_mm_charges, rel_pos, mm_spherical_harmonics, self.multipole_max_ell)
         multipoles = torch.sum(multipole_moments, dim=1)
         multipole_attrs = self.multipole_spherical_harmonics(data["positions"])
@@ -751,6 +756,21 @@ class FranckCondonMACE(torch.nn.Module):
         node_energy = torch.sum(node_energy_contributions, dim=1)  # [n_nodes, ]
 
         # Outputs
+
+        if compute_pc_grads:
+            pc_forces, hessian = get_outputs(
+                energy=total_energy,
+                positions=data["mm_positions"],
+                displacement=displacement,
+                cell=data["cell"],
+                training=training,
+                compute_force=compute_force,
+                compute_hessian=compute_hessian,
+                compute_pc_grads=compute_pc_grads,
+            )
+        else:
+            pc_forces = None
+
         forces, hessian = get_outputs(
             energy=total_energy,
             positions=data["positions"],
@@ -768,6 +788,7 @@ class FranckCondonMACE(torch.nn.Module):
             "vectors": total_vectors,
             "scalars": total_node_scalars,
             "forces": forces,
+            "mm_forces": pc_forces,
             "hessian": hessian,
             "node_feats": node_feats_out,
         }

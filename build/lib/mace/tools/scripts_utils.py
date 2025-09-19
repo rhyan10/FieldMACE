@@ -41,6 +41,7 @@ def get_dataset_from_xyz(
     forces_key: str = "REF_forces",
     vectors_key: str = "REF_vectors",
     scalars_key: str = "REF_scalars",
+    pc_key: str = "mm_forces",
 ) -> Tuple[SubsetCollection, Optional[Dict[int, float]]]:
     """Load training and test dataset from xyz file"""
     atomic_energies_dict, all_train_configs = data.load_from_xyz(
@@ -50,6 +51,7 @@ def get_dataset_from_xyz(
         forces_key=forces_key,
         vectors_key=vectors_key,
         scalars_key=scalars_key,
+        pc_key=pc_key,
         extract_atomic_energies=True,
         keep_isolated_atoms=keep_isolated_atoms,
     )
@@ -61,6 +63,7 @@ def get_dataset_from_xyz(
             forces_key=forces_key,
             vectors_key=vectors_key,
             scalars_key=scalars_key,
+            pc_key=pc_key,
             extract_atomic_energies=False,
         )
         train_configs = all_train_configs
@@ -78,6 +81,7 @@ def get_dataset_from_xyz(
             forces_key=forces_key,
             vectors_key=vectors_key,
             scalars_key=scalars_key,
+            pc_key=pc_key,
             extract_atomic_energies=False,
         )
         # create list of tuples (config_type, list(Atoms))
@@ -85,10 +89,6 @@ def get_dataset_from_xyz(
         logging.info(
             f"Test set ({len(all_test_configs)} configs) loaded from '{test_path}':"
         )
-        #for name, tmp_configs in test_configs:
-        #    logging.info(
-        #        f"{name}: {len(tmp_configs)} configs, {np.sum([1 if config.energy else 0 for config in tmp_configs])} energy, {np.sum([config.forces.size for config in tmp_configs])} forces"
-        #    )
 
     return (
         SubsetCollection(train=train_configs, valid=valid_configs, tests=test_configs),

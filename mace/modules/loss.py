@@ -14,6 +14,10 @@ def mean_squared_error_energy(ref: Batch, pred: TensorDict) -> torch.Tensor:
     # energy: [n_graphs, ]
     return torch.mean(torch.square(ref["energy"] - pred["energy"]))  # []
 
+def mean_squared_error_pc_forces(ref: Batch, pred: TensorDict) -> torch.Tensor:
+    # energy: [n_graphs, ]
+    return torch.mean(torch.square(ref["mm_forces"] - pred["mm_forces"]))  # []
+
 def mean_squared_error_scalars(ref: Batch, pred: TensorDict) -> torch.Tensor:
     # energy: [n_graphs, ]
     neg = torch.square(ref["scalars"] - pred["scalars"]).unsqueeze(-1)
@@ -450,6 +454,9 @@ class WeightedEnergyForcesNacsDipoleLoss(torch.nn.Module):
 
         if ref["scalars"] != None and pred["scalars"] != None:
             loss += self.scalars_weight * mean_squared_error_scalars(ref, pred)
+
+        if torch.count_nonzero(ref["mm_forces"]) != 0 and pred["mm_forces"] != None:
+            loss += self.forces_weight * mean_squared_error_pc_forces(ref, pred)
 
         if ref["vectors"] != None and pred["vectors"] != None:
             loss += self.vectors_weight * 1000 * phase_rmse_loss(ref, pred)

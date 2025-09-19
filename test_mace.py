@@ -5,10 +5,10 @@ import numpy as np
 
 
 # Load molecules
-mols = ase.io.read("dmabn_test.xyz", ":")
+mols = ase.io.read("dmabn_test_pc.xyz", ":")
 
 # Initialize calculator once (assumes model can be reused)
-calc = MACECalculator(model_paths="dmabn_L1.model", n_energies=4, device="cuda")
+calc = MACECalculator(model_paths="dmabn_L1_no_pc.model", n_energies=4, device="cuda")
 
 # Containers for accumulating errors
 energy_errors = []
@@ -30,6 +30,12 @@ for mol in tqdm(mols):
     pred_forces = results["REF_forces"]
     ref_forces = mol.info["REF_forces"]
     forces_errors.append(np.abs(pred_forces - ref_forces).mean())
+
+    mm_forces = results["REF_mm_forces"]
+    pred_mm_forces = results["REF_mm_forces"] 
+
+    print(results)
+#    print(pred_mm_forces)
 
     # Multipolar fit
     pred_mfit = results.get("REF_multipolar_fit", 0.0)  

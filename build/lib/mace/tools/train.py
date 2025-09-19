@@ -64,8 +64,13 @@ def valid_err_log(valid_loss, eval_metrics, logger, log_errors, epoch=None):
         error_s = eval_metrics["mae_scalars"] * 1e3
     else:
         error_s = 0.0
+    if "mae_mm_f" in eval_metrics:
+        error_mm = eval_metrics["mae_mm_f"] * 1e3
+    else:
+        error_mm = 0.0
+    
     logging.info(
-        f"{inintial_phrase}: loss={valid_loss:8.4f}, MAE_energy={error_e:8.1f} meV, MAE_Forces={error_f:8.1f} meV / A, MAE_vectors={error_v:8.2f}, MAE_scalars={error_s:8.2f}",
+        f"{inintial_phrase}: loss={valid_loss:8.4f}, MAE_energy={error_e:8.1f} meV, MAE_Forces={error_f:8.1f} meV / A, MAE_vectors={error_v:8.2f}, MAE_scalars={error_s:8.2f}, MAE_mm_forces={error_mm:8.2f}",
     )
 
 
@@ -364,6 +369,10 @@ class MACELoss(Metric):
         self.add_state("scalars", default=[], dist_reduce_fx="cat")
         self.add_state("delta_scalars", default=[], dist_reduce_fx="cat")
         self.add_state("delta_scalars_per_atom", default=[], dist_reduce_fx="cat")
+        self.add_state("mm_forces_computed", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("mm_forces", default=[], dist_reduce_fx="cat")
+        self.add_state("delta_mm_forces", default=[], dist_reduce_fx="cat")
+        self.add_state("delta_mm_forces_per_atom", default=[], dist_reduce_fx="cat")
 
     def update(self, batch, output):  # pylint: disable=arguments-differ
         loss = self.loss_fn(pred=output, ref=batch)
@@ -381,6 +390,11 @@ class MACELoss(Metric):
             self.fs.append(batch.forces)
             self.delta_fs.append(batch.forces - output["forces"])
         
+        if output.get("mm_forces") is not None and torch.count_nonzero(batch.mm_forces) != 0:
+            self.mm_forces_computed += 1.0
+            self.mm_forces.append(batch.mm_forces)
+            self.delta_mm_forces.append(batch.mm_forces - output["mm_forces"])
+
         if output.get("scalars") is not None and batch.scalars is not None:
             self.scalars_computed += 1.0
             neg = torch.abs(batch.scalars - output["scalars"]).unsqueeze(-1)
@@ -426,6 +440,14 @@ class MACELoss(Metric):
             aux["rmse_f"] = compute_rmse(delta_fs)
             aux["rel_rmse_f"] = compute_rel_rmse(delta_fs, fs)
             aux["q95_f"] = compute_q95(delta_fs)
+        if self.mm_forces_computed:
+            mm_forces = self.convert(self.mm_forces)
+            delta_mm_forces = self.convert(self.delta_mm_forces)
+            aux["mae_mm_f"] = compute_mae(delta_mm_forces)
+            aux["rel_mae_mm_f"] = compute_rel_mae(delta_mm_forces, mm_forces)
+            aux["rmse_mm_f"] = compute_rmse(delta_mm_forces)
+            aux["rel_rmse_mm_f"] = compute_rel_rmse(delta_mm_forces, mm_forces)
+            aux["q95_mm_f"] = compute_q95(delta_mm_forces)
         if self.vectors_computed:
             vectors = self.convert(self.vectors)
             delta_vectors = self.convert(self.delta_vectors)

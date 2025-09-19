@@ -22,12 +22,12 @@ from .blocks import AtomicEnergiesBlock
 
 
 def compute_forces(
-    energy: torch.Tensor, positions: torch.Tensor, training: bool = True
+    energy: torch.Tensor, positions: torch.Tensor, compute_pc_grads: bool, training: bool = True,
 ) -> torch.Tensor:
     grad_outputs: List[Optional[torch.Tensor]] = [torch.ones_like(energy[:,0])]
     excited_gradients = []
     for j, state in enumerate(range(energy.shape[-1])):
-        if j < energy.shape[-1] - 1 or training:
+        if j < energy.shape[-1] - 1 or training or compute_pc_grads:
             retain = True
         else:
             retain = False
@@ -42,7 +42,7 @@ def compute_forces(
         0
         ]  # [n_nodes, 3]
         excited_gradients.append(gradient)
-    
+
     excited_gradients = torch.stack(excited_gradients, dim=0)
     
     if excited_gradients is None:
@@ -348,6 +348,7 @@ def get_outputs(
     training: bool = False,
     compute_force: bool = True,
     compute_hessian: bool = False,
+    compute_pc_grads: bool = True,
 ) -> Tuple[
     Optional[torch.Tensor],
     Optional[torch.Tensor],
@@ -359,6 +360,7 @@ def get_outputs(
             compute_forces(
                 energy=energy,
                 positions=positions,
+                compute_pc_grads=compute_pc_grads,
                 training=(training or compute_hessian),
             ),
             None,
