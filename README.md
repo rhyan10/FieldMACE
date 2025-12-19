@@ -76,6 +76,11 @@ python3 scripts/run_train.py   --name="protein_1_peratom_0.01" --multipole_max_e
 ```bash
 python3 scripts/run_train.py   --name="protein_1_peratom_0.01" --multipole_max_ell=1   --train_file="ligand_protein.xyz"   --seed=100   --E0s="average" --foundation_model="medium_off"  --model="PerAtomFieldEMACE"   --r_max=5.0   --batch_size=40   --lr=0.01   --n_energies=1   --correlation=3   --max_num_epochs=1000   --ema   --ema_decay=0.99   --default_dtype="float32"   --device=cuda   --hidden_irreps="32x0e +32x1o"   --MLP_irreps="32x0e"   --num_radial_basis=8   --num_interactions=2   --forces_weight=100.0   --energy_weight=300.0   --error_table="EnergyNacsDipoleMAE"   --scheduler="ReduceLROnPlateau"   --lr_factor=0.5   --scheduler_patience=10
 ```
+#### Training MM coloumb forces due to QM region
+The dataset can be found on the figshare.
+```bash
+python3 ../FieldMACE/scripts/run_train.py --name="nickel_transfer" --multipole_max_ell=1 --train_file="nickel_fixed.xyz" --valid_fraction=0.1 --seed=100 --E0s="average" --model="PerAtomFieldEMACE" --r_max=5.0 --batch_size=50 --lr=0.01 --n_energies=1 --correlation=3 --max_num_epochs=20 --ema --ema_decay=0.99 --default_dtype="float32" --device=cuda --hidden_irreps="128x0e +128x1o" --MLP_irreps="128x0e" --num_radial_basis=10 --num_interactions=2 --forces_weight=100.0 --energy_weight=100.0 --error_table="EnergyNacsDipoleMAE" --scheduler="ReduceLROnPlateau" --lr_factor=0.5 --scheduler_patience=10 --foundation_model="medium"
+```
 
 ---
 
