@@ -896,10 +896,15 @@ class FieldEMACE(torch.nn.Module):
         compute_hessian: bool = False,
         compute_virials: bool = False,
         compute_stress: bool = False,
+        compute_pc_grads: bool = True,
     ) -> Dict[str, Optional[torch.Tensor]]:
         # Setup
         data["node_attrs"].requires_grad_(True)
         data["positions"].requires_grad_(True)
+
+        if compute_pc_grads:
+            data["mm_positions"].requires_grad_(True)
+
         num_graphs = data["ptr"].numel() - 1
         displacement = torch.zeros(
             (num_graphs, 3, 3),
@@ -1002,6 +1007,21 @@ class FieldEMACE(torch.nn.Module):
         total_dipoles = None
         total_nacs = None
 
+        if compute_pc_grads:
+            pc_forces, _, _, _ = get_outputs(
+                energy=total_energy,
+                positions=data["mm_positions"],
+                displacement=displacement,
+                cell=data["cell"],
+                training=training,
+                compute_force=compute_force,
+                compute_hessian=compute_hessian,
+                compute_pc_grads=compute_pc_grads,
+            )
+            pc_forces = pc_forces.permute(0, 2, 1, 3)
+        else:
+            pc_forces = None
+
         # Outputs
         forces, virials, stress, hessian = get_outputs(
             energy=total_energy,
@@ -1022,6 +1042,7 @@ class FieldEMACE(torch.nn.Module):
             "nacs": total_nacs,
             "dipoles": total_dipoles,
             "forces": forces,
+            "mm_forces": pc_forces,
             "virials": virials,
             "stress": stress,
             "displacement": displacement,
@@ -1529,10 +1550,14 @@ class PerAtomFieldEMACE(torch.nn.Module):
         compute_hessian: bool = False,
         compute_virials: bool = False,
         compute_stress: bool = False,
+        compute_pc_grads: bool = True,
     ) -> Dict[str, Optional[torch.Tensor]]:
         # Setup
         data["node_attrs"].requires_grad_(True)
         data["positions"].requires_grad_(True)
+
+        if compute_pc_grads:                                                                                                                     data["mm_positions"].requires_grad_(True)
+
         num_graphs = data["ptr"].numel() - 1
         displacement = torch.zeros(
             (num_graphs, 3, 3),
@@ -1640,6 +1665,21 @@ class PerAtomFieldEMACE(torch.nn.Module):
         total_dipoles = None
         total_nacs = None
 
+        if compute_pc_grads:
+            pc_forces, _, _, _ = get_outputs(
+                energy=total_energy,
+                positions=data["mm_positions"],
+                displacement=displacement,
+                cell=data["cell"],
+                training=training,
+                compute_force=compute_force,
+                compute_hessian=compute_hessian,
+                compute_pc_grads=compute_pc_grads,
+            )
+            pc_forces = pc_forces.permute(0, 2, 1, 3)
+        else:
+            pc_forces = None
+
         # Outputs
         forces, virials, stress, hessian = get_outputs(
             energy=total_energy,
@@ -1660,6 +1700,7 @@ class PerAtomFieldEMACE(torch.nn.Module):
             "nacs": total_nacs,
             "dipoles": total_dipoles,
             "forces": forces,
+            "mm_forces": pc_forces,
             "virials": virials,
             "stress": stress,
             "displacement": displacement,

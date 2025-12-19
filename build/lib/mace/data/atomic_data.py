@@ -52,6 +52,7 @@ class AtomicData(torch_geometric.data.Data):
         positions: torch.Tensor,  # [n_nodes, 3]
         mm_charges: torch.Tensor,
         mm_positions: torch.Tensor,
+        mm_forces: torch.Tensor,
         shifts: torch.Tensor,  # [n_edges, 3],
         unit_shifts: torch.Tensor,  # [n_edges, 3]
         cell: Optional[torch.Tensor],  # [3,3]
@@ -97,7 +98,8 @@ class AtomicData(torch_geometric.data.Data):
             "edge_index": edge_index,
             "positions": positions,
             "mm_charges": mm_charges,
-            "mm_positions": mm_positions,           
+            "mm_positions": mm_positions,  
+            "mm_forces": mm_forces,         
             "shifts": shifts,
             "unit_shifts": unit_shifts,
             "cell": cell,
@@ -235,7 +237,11 @@ class AtomicData(torch_geometric.data.Data):
             if config.mm_positions[0] is not None
             else None
         )
-        
+        mm_forces = (
+            torch.tensor(config.mm_forces, dtype=torch.get_default_dtype())
+            if config.mm_forces[0] is not None
+            else None
+        )
 
         return cls(
             edge_index=torch.tensor(edge_index, dtype=torch.long),
@@ -260,6 +266,7 @@ class AtomicData(torch_geometric.data.Data):
             charges=charges,
             mm_charges=mm_charges,
             mm_positions=mm_positions,
+            mm_forces=mm_forces,
         )
 
 

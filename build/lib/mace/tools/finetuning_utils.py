@@ -12,6 +12,7 @@ def load_foundations(
     """
     Load the foundations of a model into a model for fine-tuning.
     """
+    print(model)
     assert model_foundations.r_max == model.r_max
     z_table = AtomicNumberTable([int(z) for z in model_foundations.atomic_numbers])
     new_z_table = table
@@ -86,20 +87,21 @@ def load_foundations(
                 / (num_species_foundations / num_species) ** 0.5
             )
         else:
-            model.interactions[i].skip_tp.weight = torch.nn.Parameter(
-                model_foundations.interactions[i]
-                .skip_tp.weight.reshape(
-                    num_channels_foundation,
-                    (max_ell + 1),
-                    num_species_foundations,
-                    num_channels_foundation,
-                )[:, :, indices_weights, :]
-                .flatten()
-                .clone()
-                / (num_species_foundations / num_species) ** 0.5
-            )
-    # Transferring products
-
+            try:
+                model.interactions[i].skip_tp.weight = torch.nn.Parameter(
+                    model_foundations.interactions[i]
+                    .skip_tp.weight.reshape(
+                        num_channels_foundation,
+                        (max_ell + 1),
+                        num_species_foundations,
+                        num_channels_foundation,
+                    )[:, :, indices_weights, :]
+                    .flatten()
+                    .clone()
+                    / (num_species_foundations / num_species) ** 0.5
+                )
+            except:
+                pass
 
     for i in range(2):  # Assuming 2 products modules
         max_range = max_L if i == 0 else 1
@@ -126,5 +128,6 @@ def load_foundations(
         model.products[i].linear.weight = torch.nn.Parameter(
             model_foundations.products[i].linear.weight.clone()
         )
-    print("Foundational model transfered")    
+    print("Foundational model transfered")
+    print(model)
     return model

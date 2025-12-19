@@ -46,7 +46,7 @@ class MACECalculator(Calculator):
 
     Dipoles are returned in units of Debye
     """
-    implemented_properties = ['energy', 'forces']
+
     def __init__(
         self,
         model_paths: Union[list, str],
@@ -65,7 +65,7 @@ class MACECalculator(Calculator):
 
         self.model_type = model_type
         self.use_hessian_approx = True
-        if model_type in ["FieldEMACE", "PerAtomFieldEMACE"]:
+        if model_type == "MACE":
             self.implemented_properties = [
                 "energy",
                 "free_energy",
@@ -73,6 +73,21 @@ class MACECalculator(Calculator):
                 "forces",
                 "stress",
             ]
+        elif model_type == "DipoleMACE":
+            self.implemented_properties = ["dipole"]
+        elif model_type == "EnergyDipoleMACE":
+            self.implemented_properties = [
+                "energy",
+                "free_energy",
+                "node_energy",
+                "forces",
+                "stress",
+                "dipole",
+            ]
+        else:
+            raise ValueError(
+                f"Give a valid model_type: [MACE, DipoleMACE, EnergyDipoleMACE], {model_type} not supported"
+            )
 
         if "model_path" in kwargs:
             print("model_path argument deprecated, use model_paths")
@@ -110,12 +125,13 @@ class MACECalculator(Calculator):
             self.use_compile = True
         else:
             self.models = [
-                torch.load(f=model_path, map_location=device)
+                torch.load(f=model_path, map_location=device, weights_only=False)
                 for model_path in model_paths
             ]
             self.use_compile = True
         for model in self.models:
             model.to(device)  # shouldn't be necessary but seems to help with GPU
+        print(model)
         r_maxs = [model.r_max.cpu() for model in self.models]
         r_maxs = np.array(r_maxs)
         assert np.all(
@@ -147,110 +163,6 @@ class MACECalculator(Calculator):
         for model in self.models:
             for param in model.parameters():
                 param.requires_grad = False
-
-    def compute_nacs_from_hessian(
-        self, schnet_outputs, hamiltonian, index, n_singlets, n_atoms, threshold_dE_S
-    ):
-        """
-        Compute NAC approximations from the Hessian and energy gaps for singlet states only.
-        
-        Parameters
-        ----------
-        schnet_outputs : dict
-            Contains 'energy', 'hessian', and either 'forces' or 'gradients' for all states.
-        hamiltonian : np.ndarray
-            Hamiltonian matrix containing at least the diagonal energies of states.
-        index : np.ndarray
-            Sorted indices of states by energy.
-        n_singlets : int
-            Number of singlet states.
-        n_atoms : int
-            Number of atoms.
-        threshold_dE_S : float
-            Energy difference threshold for singlets.
-        nacs_approx_method : int
-            Method flag for NAC approximation (e.g., 1 or 2).
-
-        Returns
-        -------
-        nacs_approx : np.ndarray
-            NAC approximations as a (n_singlets, n_singlets, n_atoms, 3) numpy array.
-        """
-
-        if "forces" in schnet_outputs:
-            prop_ = "forces"
-            convert_ = -1
-        elif "gradients" in schnet_outputs:
-            prop_ = "gradients"
-            convert_ = 1
-        else:
-            raise ValueError("Neither 'forces' nor 'gradients' found in schnet_outputs.")
-
-        dH_2 = []
-        all_magnitude = []
-        hopping_direction = np.zeros((n_singlets, n_singlets, n_atoms, 3))
-        nacs_approx = np.zeros((n_singlets, n_singlets, n_atoms, 3))
-
-        indexh = -1
-        EPS = 1e-10
-
-        # Loop over singlet pairs
-        for istate in range(n_singlets):
-            for jstate in range(istate + 1, n_singlets):
-                # Check energy difference threshold
-                Ei = np.real(hamiltonian[index[istate], index[istate]])
-                Ej = np.real(hamiltonian[index[jstate], index[jstate]])
-                if abs(Ei - Ej) <= threshold_dE_S:
-                    indexh += 1
-                    Hi = schnet_outputs['hessian'][0][index[istate]]
-                    Hj = schnet_outputs['hessian'][0][index[jstate]]
-
-                    Ei_schnet = schnet_outputs['energy'][0][index[istate]]
-                    Ej_schnet = schnet_outputs['energy'][0][index[jstate]]
-                    dE = Ei_schnet - Ej_schnet
-                    if dE == 0:
-                        dE = EPS
-
-                    Gi = convert_ * schnet_outputs[prop_][0][index[istate]]
-                    Gj = convert_ * schnet_outputs[prop_][0][index[jstate]]
-
-                    GiGi = np.dot(Gi.reshape(-1, 1), Gi.reshape(-1, 1).T)
-                    GjGj = np.dot(Gj.reshape(-1, 1), Gj.reshape(-1, 1).T)
-                    GiGj = np.dot(Gi.reshape(-1, 1), Gj.reshape(-1, 1).T)
-
-                    G_diff = 0.5 * (Gi - Gj)
-                    G_diff2 = np.dot(G_diff.reshape(-1, 1), G_diff.reshape(-1, 1).T)
-
-                    # dH_2_ij calculation
-                    dH_2_ij = 0.5 * (dE * (Hi - Hj) + GiGi + GjGj - 2 * GiGj)
-                    dH_2.append(dH_2_ij)
-                    magnitude = dH_2_ij / 2 - G_diff2
-                    all_magnitude.append(magnitude)
-
-                    # Perform SVD and get direction
-                    u, s, vh = np.linalg.svd(magnitude)
-                    ev = vh[0]
-
-                    # Determine sign to ensure consistent phase
-                    phase_check = max(ev[0:2].min(), ev[0:2].max(), key=abs)
-                    if phase_check < 0.0:
-                        ev = -ev
-                    ew = s[0]
-
-                    # Assign hopping directions
-                    iterator = 0
-                    for iatom in range(n_atoms):
-                        for xyz in range(3):
-                            hopping_direction[istate, jstate, iatom, xyz] = ev[iterator]
-                            hopping_direction[jstate, istate, iatom, xyz] = -ev[iterator]
-                            iterator += 1
-
-                    hopping_magnitude = np.sqrt(ew) / dE
-
-                    nacs_approx[istate, jstate] = hopping_direction[istate, jstate] * hopping_magnitude
-                    nacs_approx[jstate, istate] = - nacs_approx[istate, jstate]
-
-        return nacs_approx
 
     def _create_result_tensors(
         self, model_type: str, num_models: int, num_atoms: int
@@ -316,13 +228,8 @@ class MACECalculator(Calculator):
         Calculator.calculate(self, atoms)
         batch_base = self._atoms_to_batch(atoms)
 
-        if self.model_type in ["FieldEMACE", "PerAtomFieldEMACE"]:
-            batch = self._clone_batch(batch_base)
-            node_e0 = self.models[0].atomic_energies_fn(batch["node_attrs"])
-            compute_stress = not self.use_compile
-        else:
-            compute_stress = False
-
+        batch = self._clone_batch(batch_base)
+        node_e0 = self.models[0].atomic_energies_fn(batch["node_attrs"])
         ret_tensors = self._create_result_tensors(
             self.model_type, self.num_models, len(atoms)
         )
@@ -330,137 +237,19 @@ class MACECalculator(Calculator):
             batch = self._clone_batch(batch_base)
             out = model(
                 batch.to_dict(),
-                compute_stress=compute_stress,
                 compute_hessian=False,
                 training=self.use_compile,
             )
-#            H = out["hessian"].to("cpu")
-#            m = torch.tensor(atoms.get_masses()) * units._amu
-#            M = m.repeat_interleave(3).sqrt()
-#            H_si = H.reshape(132, 132) * 16.02176634
-#            H_mass = H_si / (M[:,None] * M[None,:])
-#            vals, vecs = torch.linalg.eigh(H_mass)
-#            num_modes = vecs.shape[1] - 6  # Excluding 6 rotational and translational modes
-#            normal_modes = vecs[:, 6:]  # Remove the first 6 columns
-#            normal_modes = normal_modes.T.reshape(num_modes, 44, 3)  # Shape: (-1, num_atoms, 3)
-#            vals = vals[6:]
-#            c_cm_s = units._c * 100.0  # convert m/s to cm/s
-#            freqs_cm = torch.sqrt(vals) / (2 * 3.141592653589793 * c_cm_s)
-            # 2) Temperature
-#            T = 298.15  # K  ← change this to whatever T you need
 
-            # 3) Constants
- #           h   = 6.62607015e-34   # J·s
- #           c   = 2.99792458e10    # cm/s
- #           kB  = 1.380649e-23     # J/K
- #           NA  = 6.02214076e23    # 1/mol
- #           R   = NA * kB          # J/(mol·K)
-
-            # 4) Filter out the NaNs
- #           ν = freqs_cm[~torch.isnan(freqs_cm)]
-
-            # 5) Dimensionless x_i = h c ν_i / (kB T)
- #           x = (h * c * ν) / (kB * T)
-
-            # 6) Per-mode entropy: s_i = R * [ x/(exp(x)−1) − ln(1−exp(−x)) ]
- #           s = R * ( x/(torch.exp(x) - 1) - torch.log1p(-torch.exp(-x)) )
-
-            # 7) Sum to get S_vib (J/mol·K)
- #           S_vib = s.sum()
- #           print(f"Vibrational entropy = {(S_vib * T)/4184:.2f} kcal/mol")
- #           coords = torch.tensor(atoms.positions) * 1e-10           # (44,3), m
- #           masses = torch.tensor(atoms.get_masses()) * units._amu  # (44,), kg
-
-            # 2) Center‐of‐mass shift
- #           M_tot = masses.sum()
- #           com = (coords * masses[:,None]).sum(dim=0) / M_tot
- #           r = coords - com  # (44,3)
-
-            # 3) Build inertia tensor I = Σ m [(r·r)I − (r⊗r)]
- #           rr    = r.unsqueeze(2) * r.unsqueeze(1)               # (44,3,3)
- #           r2    = (r*r).sum(dim=1)                              # (44,)
- #           I_tens = (masses[:,None,None] * (r2[:,None,None]*torch.eye(3) - rr)).sum(dim=0)
-
-            # 4) Principal moments (kg·m²)
- #           I_vals = torch.linalg.eigvalsh(I_tens)  # (3,)
-
-            # 5) Rotational temperatures Θ_i = h²/(8π² I_i kB)
- #           Θ = h**2 / (8 * torch.pi**2 * I_vals * kB)
-
-            # 6) q_rot for non‐linear rotor: (√π/σ) T^(3/2)/(Θ_aΘ_bΘ_c)^(1/2)
- #           sigma = 1  # change if you know a higher symmetry
- #           ln_qrot = 0.5*torch.log(torch.tensor(torch.pi)) - torch.log(torch.tensor(sigma)) \
- #                   + 1.5*torch.log(torch.tensor(T)) \
- #                   - 0.5*torch.log(Θ.prod())
-
-            # 7) Entropy S_rot = R [ ln q_rot + 3/2 ]
- #           S_rot = R * (ln_qrot + 1.5)  # J/(mol·K)
-
- #           print(f"Rotational T·S term = {(S_rot * T)/4184:.2f} kcal/mol")
-
-            if self.model_type in ["FieldEMACE", "PerAtomFieldEMACE", "MACE"]:
-                ret_tensors["energies"] = out["energy"].detach()
-                ret_tensors["forces"] = out["forces"].detach()
-                ret_tensors["node_energy"] = out["node_energy"].detach()
-                #ret_tensors['frequencies'] = freqs_cm.detach()
-                #ret_tensors["normal_modes"] = normal_modes.detach()
-                #ret_tensors["dipoles"] = out["dipoles"].cpu().detach()
-                #print(
-        # if self.n_energies < 1:
-        #     if self.use_hessian_approx:
-        #         self.results["nacs"] = self.compute_nacs_from_hessian()
-        #     else:
-        #         self.results["nacs"] = out["nacs"].detach()
+            ret_tensors["energies"] = out["energy"].detach()
+            ret_tensors["forces"] = out["forces"].detach().squeeze()
+            ret_tensors["mm_forces"] = out["mm_forces"].detach()
 
         self.results = {}
-        if self.model_type in ["FieldEMACE", "PerAtomFieldEMACE", "ExcitedMACE", "MACE"]:
-            self.results["energy"] = ret_tensors["energies"].cpu().numpy() * self.energy_units_to_eV
-            self.results["free_energy"] = self.results["energy"]
-            self.results["node_energy"] = ret_tensors["node_energy"]
-            self.results["forces"] = ret_tensors["forces"].squeeze().cpu().numpy() * self.energy_units_to_eV
-            
-            #self.results["frequencies"] = ret_tensors['frequencies'].numpy()
-            #self.results["normal_modes"] = ret_tensors["normal_modes"].numpy()
-            #self.results["dipoles"] = ret_tensors["dipoles"].numpy()
-            if self.num_models > 1:
-                self.results["energies"] = (
-                    ret_tensors["energies"].cpu().numpy() * self.energy_units_to_eV
-                )
-                self.results["energy_var"] = (
-                    torch.var(ret_tensors["energies"], dim=0, unbiased=False)
-                    .cpu()
-                    .item()
-                    * self.energy_units_to_eV
-                )
-                self.results["forces_comm"] = (
-                    ret_tensors["forces"].cpu().numpy()
-                    * self.energy_units_to_eV
-                    / self.length_units_to_A
-                )
-            if out["stress"] is not None:
-                self.results["stress"] = full_3x3_to_voigt_6_stress(
-                    torch.mean(ret_tensors["stress"], dim=0).cpu().numpy()
-                    * self.energy_units_to_eV
-                    / self.length_units_to_A**3
-                )
-                if self.num_models > 1:
-                    self.results["stress_var"] = full_3x3_to_voigt_6_stress(
-                        torch.var(ret_tensors["stress"], dim=0, unbiased=False)
-                        .cpu()
-                        .numpy()
-                        * self.energy_units_to_eV
-                        / self.length_units_to_A**3
-                    )
-        if self.model_type in ["DipoleMACE", "EnergyDipoleMACE"]:
-            self.results["dipole"] = (
-                torch.mean(ret_tensors["dipole"], dim=0).cpu().numpy()
-            )
-            if self.num_models > 1:
-                self.results["dipole_var"] = (
-                    torch.var(ret_tensors["dipole"], dim=0, unbiased=False)
-                    .cpu()
-                    .numpy()
-                )
+        self.results["energy"] = ret_tensors["energies"].cpu().numpy()
+        self.results["forces"] = ret_tensors["forces"].cpu().numpy()
+        self.results["mm_forces"] = ret_tensors["mm_forces"].cpu().numpy()
+                
         return self.results
 
     def get_hessian(self, atoms=None):

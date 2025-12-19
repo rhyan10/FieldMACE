@@ -25,6 +25,7 @@ Nacs = np.ndarray #[...,...,3]
 Cell = np.ndarray  # [3,3]
 Mm_charges = np.ndarray
 Mm_positions = np.ndarray
+Mm_forces = np.ndarray
 Center_of_charge = np.ndarray
 Pbc = tuple  # (3,)
 
@@ -42,17 +43,20 @@ class Configuration:
     virials: Optional[Virials] = None  # eV
     dipoles: Optional[Vector] = None  # Debye
     charges: Optional[Charges] = None  # atomic unit
+    pc_array: Optional[Charges] = None 
     cell: Optional[Cell] = None
     pbc: Optional[Pbc] = None
     nacs: Optional[Nacs] = None
     mm_charges: Optional[Mm_charges] = None
     mm_positions: Optional[Mm_positions] = None
+    mm_forces: Optional[Mm_forces] = None
     weight: float = 1.0  # weight of config in loss
     energy_weight: float = 1.0  # weight of config energy in loss
     forces_weight: float = 1.0  # weight of config forces in loss
     stress_weight: float = 1.0  # weight of config stress in loss
     virials_weight: float = 1.0  # weight of config virial in loss
     dipoles_weight: float = 1.0
+    pc_weight: float = 1.0
     nacs_weight: float = 1.0
     config_type: Optional[str] = DEFAULT_CONFIG_TYPE  # config_type of config
 
@@ -100,6 +104,7 @@ def config_from_atoms_list(
     dipoles_key="REF_dipoles",
     nacs_key="REF_nacs",
     charges_key="REF_charges",
+    pc_key = "REF_mm_forces",
     config_type_weights: Dict[str, float] = None,
 ) -> Configurations:
     """Convert list of ase.Atoms into Configurations"""
@@ -118,6 +123,7 @@ def config_from_atoms_list(
                 dipoles_key=dipoles_key,
                 nacs_key=nacs_key,
                 charges_key=charges_key,
+                pc_key=pc_key,
                 config_type_weights=config_type_weights,
             )
         )
@@ -134,6 +140,7 @@ def config_from_atoms(
     nacs_key="nacs",
     mm_charges="mm_charges",
     mm_positions="mm_positions",
+    pc_key = "REF_mm_forces",
     config_type_weights: Dict[str, float] = None,
 ) -> Configuration:
     """Convert ase.Atoms to Configuration"""
@@ -148,6 +155,7 @@ def config_from_atoms(
     dipoles = atoms.info.get(dipoles_key, None)  # Debye
     mm_charges = np.expand_dims(atoms.info.get(mm_charges, None) , axis=0)
     mm_positions = np.expand_dims((atoms.info.get(mm_positions, None)), axis=0)
+    mm_forces = np.expand_dims((atoms.info.get(pc_key, None)), axis=0)
     charges = atoms.arrays.get(charges_key, np.zeros(len(atoms)))  # atomic unit
     atomic_numbers = np.array(
         [ase.data.atomic_numbers[symbol] for symbol in atoms.symbols]
@@ -198,6 +206,7 @@ def config_from_atoms(
         weight=weight,
         mm_charges=mm_charges,
         mm_positions=mm_positions,
+        mm_forces=mm_forces,
         energy_weight=energy_weight,
         forces_weight=forces_weight,
         stress_weight=stress_weight,
@@ -236,6 +245,7 @@ def load_from_xyz(
     dipoles_key: str = "REF_dipoles",
     charges_key: str = "REF_charges",
     nacs_key: str = 'REF_nacs',
+    pc_key = "REF_mm_forces",
     extract_atomic_energies: bool = False,
     keep_isolated_atoms: bool = False,
 ) -> Tuple[Dict[int, float], Configurations]:
@@ -312,6 +322,7 @@ def load_from_xyz(
         dipoles_key=dipoles_key,
         nacs_key=nacs_key,
         charges_key=charges_key,
+        pc_key = pc_key,
     )
     return atomic_energies_dict, configs
 

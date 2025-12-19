@@ -50,90 +50,21 @@ def valid_err_log(valid_loss, eval_metrics, logger, log_errors, epoch=None):
         inintial_phrase = "Initial"
     else:
         inintial_phrase = f"Epoch {epoch}"
-    if log_errors == "PerAtomRMSE":
-        error_e = eval_metrics["rmse_e_per_atom"] * 1e3
-        error_f = eval_metrics["rmse_f"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, RMSE_E_per_atom={error_e:8.1f} meV, RMSE_F={error_f:8.1f} meV / A"
-        )
-    elif (
-        log_errors == "PerAtomRMSEstressvirials"
-        and eval_metrics["rmse_stress_per_atom"] is not None
-    ):
-        error_e = eval_metrics["rmse_e_per_atom"] * 1e3
-        error_f = eval_metrics["rmse_f"] * 1e3
-        error_stress = eval_metrics["rmse_stress_per_atom"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, RMSE_E_per_atom={error_e:8.1f} meV, RMSE_F={error_f:8.1f} meV / A, RMSE_stress_per_atom={error_stress:8.1f} meV / A^3",
-        )
-    elif (
-        log_errors == "PerAtomRMSEstressvirials"
-        and eval_metrics["rmse_virials_per_atom"] is not None
-    ):
-        error_e = eval_metrics["rmse_e_per_atom"] * 1e3
-        error_f = eval_metrics["rmse_f"] * 1e3
-        error_virials = eval_metrics["rmse_virials_per_atom"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, RMSE_E_per_atom={error_e:8.1f} meV, RMSE_F={error_f:8.1f} meV / A, RMSE_virials_per_atom={error_virials:8.1f} meV",
-        )
-    elif (
-        log_errors == "PerAtomMAEstressvirials"
-        and eval_metrics["mae_stress_per_atom"] is not None
-    ):
-        error_e = eval_metrics["mae_e_per_atom"] * 1e3
+
+    error_e = eval_metrics["mae_e"] * 1e3
+    if "mae_f" in eval_metrics: 
         error_f = eval_metrics["mae_f"] * 1e3
-        error_stress = eval_metrics["mae_stress"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, MAE_E_per_atom={error_e:8.1f} meV, MAE_F={error_f:8.1f} meV / A, MAE_stress={error_stress:8.1f} meV / A^3"
-        )
-    elif (
-        log_errors == "PerAtomMAEstressvirials"
-        and eval_metrics["mae_virials_per_atom"] is not None
-    ):
-        error_e = eval_metrics["mae_e_per_atom"] * 1e3
-        error_f = eval_metrics["mae_f"] * 1e3
-        error_virials = eval_metrics["mae_virials"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, MAE_E_per_atom={error_e:8.1f} meV, MAE_F={error_f:8.1f} meV / A, MAE_virials={error_virials:8.1f} meV"
-        )
-    elif log_errors == "TotalRMSE":
-        error_e = eval_metrics["rmse_e"] * 1e3
-        error_f = eval_metrics["rmse_f"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, RMSE_E={error_e:8.1f} meV, RMSE_F={error_f:8.1f} meV / A",
-        )
-    elif log_errors == "PerAtomMAE":
-        error_e = eval_metrics["mae_e_per_atom"] * 1e3
-        error_f = eval_metrics["mae_f"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, MAE_E_per_atom={error_e:8.1f} meV, MAE_F={error_f:8.1f} meV / A",
-        )
-    elif log_errors == "TotalMAE":
-        error_e = eval_metrics["mae_e"] * 1e3
-        error_f = eval_metrics["mae_f"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, MAE_E={error_e:8.1f} meV, MAE_F={error_f:8.1f} meV / A",
-        )
-    elif log_errors == "DipoleRMSE":
-        error_mu = eval_metrics["rmse_mu_per_atom"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, RMSE_MU_per_atom={error_mu:8.2f} mDebye",
-        )
-    elif log_errors == "EnergyDipoleRMSE":
-        error_e = eval_metrics["rmse_e_per_atom"] * 1e3
-        error_f = eval_metrics["rmse_f"] * 1e3
-        error_mu = eval_metrics["rmse_mu_per_atom"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, RMSE_E_per_atom={error_e:8.1f} meV, RMSE_F={error_f:8.1f} meV / A, RMSE_Mu_per_atom={error_mu:8.2f} mDebye",
-        )
-    elif log_errors == "EnergyDipoleNacsRMSE":
-        error_e = eval_metrics["rmse_e_per_atom"] * 1e3
-        error_f = eval_metrics["rmse_f"] * 1e3
-        error_mu = eval_metrics["rmse_mu_per_atom"] * 1e3
-        error_nacs = eval_metrics["rmse_nacs_per_atom"] * 1e3
-        logging.info(
-            f"{inintial_phrase}: loss={valid_loss:8.4f}, RMSE_E_per_atom={error_e:8.1f} meV, RMSE_F={error_f:8.1f} meV / A, RMSE_Mu_per_atom={error_mu:8.2f} mDebye, RMSE_Nacs_per_atom={error_nacs:8.2f}",
-        )
+    else:
+        error_f = 0.0
+
+    if "mae_mm_f" in eval_metrics:
+        error_mm = eval_metrics["mae_mm_f"] * 1e3
+    else:
+        error_mm = 0.0
+    
+    logging.info(
+        f"{inintial_phrase}: loss={valid_loss:8.4f}, MAE_energy={error_e:8.1f} meV, MAE_Forces={error_f:8.1f} meV / A, MAE_mm_forces={error_mm:8.2f} meV / A",
+    )
 
 
 def train(
@@ -445,6 +376,10 @@ class MACELoss(Metric):
         self.add_state("nacs", default=[], dist_reduce_fx="cat")
         self.add_state("delta_nacs", default=[], dist_reduce_fx="cat")
         self.add_state("delta_nacs_per_atom", default=[], dist_reduce_fx="cat")
+        self.add_state("mm_forces_computed", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("mm_forces", default=[], dist_reduce_fx="cat")
+        self.add_state("delta_mm_forces", default=[], dist_reduce_fx="cat")
+        self.add_state("delta_mm_forces_per_atom", default=[], dist_reduce_fx="cat")
 
     def update(self, batch, output):  # pylint: disable=arguments-differ
         loss = self.loss_fn(pred=output, ref=batch)
@@ -461,6 +396,12 @@ class MACELoss(Metric):
             self.Fs_computed += 1.0
             self.fs.append(batch.forces)
             self.delta_fs.append(batch.forces - output["forces"])
+
+        if output.get("mm_forces") is not None and torch.count_nonzero(batch.mm_forces) != 0:
+            self.mm_forces_computed += 1.0
+            self.mm_forces.append(batch.mm_forces)
+            self.delta_mm_forces.append(batch.mm_forces - output["mm_forces"])
+
         if output.get("stress") is not None and batch.stress is not None:
             self.stress_computed += 1.0
             self.delta_stress.append(batch.stress - output["stress"])
@@ -475,14 +416,6 @@ class MACELoss(Metric):
                 (batch.virials - output["virials"])
                 / (batch.ptr[1:] - batch.ptr[:-1]).view(-1, 1, 1)
             )
-        #if output.get("dipoles") is not None and batch.dipoles is not None:
-        #    self.Mus_computed += 1.0
-        #    self.mus.append(batch.dipoles)
-        #    self.delta_mus.append(batch.dipoles - output["dipoles"])
-        #    self.delta_mus_per_atom.append(
-        #        (batch.dipoles - output["dipoles"])
-        #        / (batch.ptr[1:] - batch.ptr[:-1]).unsqueeze(-1)
-        #    )
         if output.get("nacs") is not None and batch.nacs is not None:
             self.nacs_computed += 1.0
             self.nacs.append(batch.nacs)
@@ -516,6 +449,14 @@ class MACELoss(Metric):
             aux["rmse_f"] = compute_rmse(delta_fs)
             aux["rel_rmse_f"] = compute_rel_rmse(delta_fs, fs)
             aux["q95_f"] = compute_q95(delta_fs)
+        if self.mm_forces_computed:
+            mm_forces = self.convert(self.mm_forces)
+            delta_mm_forces = self.convert(self.delta_mm_forces)
+            aux["mae_mm_f"] = compute_mae(delta_mm_forces)
+            aux["rel_mae_mm_f"] = compute_rel_mae(delta_mm_forces, mm_forces)
+            aux["rmse_mm_f"] = compute_rmse(delta_mm_forces)
+            aux["rel_rmse_mm_f"] = compute_rel_rmse(delta_mm_forces, mm_forces)
+            aux["q95_mm_f"] = compute_q95(delta_mm_forces)
         if self.nacs_computed:
             nacs = self.convert(self.nacs)
             delta_nacs = self.convert(self.delta_nacs)
@@ -538,17 +479,5 @@ class MACELoss(Metric):
             aux["rmse_virials"] = compute_rmse(delta_virials)
             aux["rmse_virials_per_atom"] = compute_rmse(delta_virials_per_atom)
             aux["q95_virials"] = compute_q95(delta_virials)
-#        print(self.Mus_computed)
-#        if self.Mus_computed:
-#            mus = self.convert(self.mus)
-#            delta_mus = self.convert(self.delta_mus)
-#            delta_mus_per_atom = self.convert(self.delta_mus_per_atom)
-#            aux["mae_mu"] = compute_mae(delta_mus)
-#            aux["mae_mu_per_atom"] = compute_mae(delta_mus_per_atom)
-#            aux["rel_mae_mu"] = compute_rel_mae(delta_mus, mus)
-#            aux["rmse_mu"] = compute_rmse(delta_mus)
-#            aux["rmse_mu_per_atom"] = compute_rmse(delta_mus_per_atom)
-#            aux["rel_rmse_mu"] = compute_rel_rmse(delta_mus, mus)
-#            aux["q95_mu"] = compute_q95(delta_mus)
 
         return aux["loss"], aux
