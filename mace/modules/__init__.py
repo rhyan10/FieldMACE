@@ -41,9 +41,6 @@ from .loss import (
     WeightedHuberEnergyForcesStressLoss,
     WeightedEnergyForcesNacsDipoleLoss,
 )
-from .models import (
-    ExcitedMACE
-)
 from .radial import BesselBasis, GaussianBasis, PolynomialCutoff, ZBLBasis
 from .symmetric_contraction import SymmetricContraction
 from .utils import (
@@ -56,6 +53,7 @@ from .utils import (
     compute_multipole_expansion,
     _calc_multipole_moments,
 )
+from .field import EquivariantMultipoleEmbedding, multipole_terms, qm_mm_pairs
 
 interaction_classes: Dict[str, Type[InteractionBlock]] = {
     "AgnosticNonlinearInteractionBlock": AgnosticNonlinearInteractionBlock,

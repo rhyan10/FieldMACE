@@ -789,7 +789,7 @@ class ElectrostaticFieldInteractionBlock(torch.nn.Module):
         self,
         node_feats: torch.Tensor,
         multipole_feats: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> torch.Tensor:
         node_feats = self.linear_up(node_feats)
         mi = self.conv_tp(
             node_feats, multipole_feats
