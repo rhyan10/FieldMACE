@@ -50,6 +50,7 @@ class Configuration:
     mm_charges: Optional[Mm_charges] = None
     mm_positions: Optional[Mm_positions] = None
     mm_forces: Optional[Mm_forces] = None
+    mm_forces_weight: float = 1.0  # weight of the forces on the MM point charges
     weight: float = 1.0  # weight of config in loss
     energy_weight: float = 1.0  # weight of config energy in loss
     forces_weight: float = 1.0  # weight of config forces in loss
@@ -129,6 +130,13 @@ def config_from_atoms_list(
         )
     return all_configs
 
+def _info_or_array(atoms: ase.Atoms, key: str):
+    """Per-configuration labels may live in atoms.info (FieldMACE convention) or atoms.arrays."""
+    if key in atoms.info:
+        return atoms.info[key]
+    return atoms.arrays.get(key, None)
+
+
 def config_from_atoms(
     atoms: ase.Atoms,
     energy_key="REF_energy",
@@ -140,22 +148,48 @@ def config_from_atoms(
     nacs_key="nacs",
     mm_charges="mm_charges",
     mm_positions="mm_positions",
-    pc_key = "REF_mm_forces",
+    pc_key="REF_mm_forces",
     config_type_weights: Dict[str, float] = None,
 ) -> Configuration:
-    """Convert ase.Atoms to Configuration"""
+    """Convert ase.Atoms to Configuration.
+
+    QM/MM fields (all optional, in atoms.info):
+      mm_positions [M, 3] (Angstrom), mm_charges [M] (e), REF_mm_forces [M, 3] or [M, n_states, 3].
+    A configuration without point charges (gas phase) is valid and gets M = 0.
+    """
     if config_type_weights is None:
         config_type_weights = DEFAULT_CONFIG_TYPE_WEIGHTS
 
     energy = atoms.info.get(energy_key, None)  # eV
-    forces = atoms.info.get(forces_key, None) #* 27.211407952  # eV / Ang
+    forces = _info_or_array(atoms, forces_key)  # eV / Ang
     stress = atoms.info.get(stress_key, None)  # eV / Ang ^ 3
     virials = atoms.info.get(virials_key, None)
     nacs = atoms.info.get(nacs_key, None)
     dipoles = atoms.info.get(dipoles_key, None)  # Debye
-    mm_charges = np.expand_dims(atoms.info.get(mm_charges, None) , axis=0)
-    mm_positions = np.expand_dims((atoms.info.get(mm_positions, None)), axis=0)
-    mm_forces = np.expand_dims((atoms.info.get(pc_key, None)), axis=0)
+
+    q_mm = atoms.info.get(mm_charges, None)
+    r_mm = atoms.info.get(mm_positions, None)
+    if (q_mm is None) != (r_mm is None):
+        raise ValueError(f"'{mm_charges}' and '{mm_positions}' must be given together")
+    if q_mm is None:
+        q_mm = np.zeros(0)
+        r_mm = np.zeros((0, 3))
+    q_mm = np.asarray(q_mm, dtype=float).reshape(-1)
+    r_mm = np.asarray(r_mm, dtype=float).reshape(-1, 3)
+    if len(q_mm) != len(r_mm):
+        raise ValueError(f"{len(q_mm)} MM charges but {len(r_mm)} MM positions")
+    if not (np.all(np.isfinite(q_mm)) and np.all(np.isfinite(r_mm))):
+        raise ValueError("non-finite MM charges or positions")
+    f_mm = atoms.info.get(pc_key, None)
+    mm_forces_weight = atoms.info.get("config_mm_forces_weight", 1.0)
+    if f_mm is not None:
+        f_mm = np.asarray(f_mm, dtype=float)
+        if f_mm.shape[0] != len(q_mm) or f_mm.shape[-1] != 3:
+            raise ValueError(f"'{pc_key}' has shape {f_mm.shape}, expected ({len(q_mm)}, [n_states,] 3)")
+        f_mm = f_mm.reshape(len(q_mm), -1, 3) if f_mm.size else None
+    if f_mm is None:
+        mm_forces_weight = 0.0
+
     charges = atoms.arrays.get(charges_key, np.zeros(len(atoms)))  # atomic unit
     atomic_numbers = np.array(
         [ase.data.atomic_numbers[symbol] for symbol in atoms.symbols]
@@ -193,6 +227,21 @@ def config_from_atoms(
         nacs = np.zeros(3)
         nacs_weight = 0.0
 
+    # label layout: energy [n_states], forces [n_atoms, n_states, 3]
+    energy = np.atleast_1d(np.asarray(energy, dtype=float)).reshape(-1)
+    forces = np.asarray(forces, dtype=float).reshape(len(atoms), -1, 3)
+    n_states = len(energy) if energy_weight != 0.0 or forces_weight == 0.0 else forces.shape[1]
+    if forces_weight == 0.0:
+        forces = np.zeros((len(atoms), n_states, 3))
+    if energy_weight == 0.0:
+        energy = np.zeros(forces.shape[1])
+    if forces.shape[1] != len(energy):
+        raise ValueError(f"{len(energy)} energies but forces for {forces.shape[1]} states")
+    if f_mm is None:
+        f_mm = np.zeros((len(q_mm), len(energy), 3))
+    elif f_mm.shape[1] != len(energy):
+        raise ValueError(f"MM forces for {f_mm.shape[1]} states but {len(energy)} energies")
+
     return Configuration(
         atomic_numbers=atomic_numbers,
         positions=atoms.get_positions(),
@@ -204,9 +253,10 @@ def config_from_atoms(
         charges=charges,
         nacs=nacs,
         weight=weight,
-        mm_charges=mm_charges,
-        mm_positions=mm_positions,
-        mm_forces=mm_forces,
+        mm_charges=q_mm,
+        mm_positions=r_mm,
+        mm_forces=f_mm,
+        mm_forces_weight=mm_forces_weight,
         energy_weight=energy_weight,
         forces_weight=forces_weight,
         stress_weight=stress_weight,
@@ -334,6 +384,8 @@ def compute_average_E0s(
     Function to compute the average interaction energy of each chemical element
     returns dictionary of E0s
     """
+    # configurations without an energy label (energy_weight == 0) carry a dummy energy
+    collections_train = [c for c in collections_train if getattr(c, "energy_weight", 1.0) != 0.0]
     len_train = len(collections_train)
     len_zs = len(z_table)
     A = np.zeros((len_train, len_zs))
@@ -380,6 +432,11 @@ def save_dataset_as_HDF5(dataset: List, out_name: str) -> None:
             grp["dipoles"] = data.dipoles
             grp["charges"] = data.charges
             grp["nacs"] = data.nacs
+            grp["mm_charges"] = data.mm_charges
+            grp["mm_positions"] = data.mm_positions
+            grp["mm_forces"] = data.mm_forces
+            grp["num_mm"] = data.num_mm
+            grp["mm_forces_weight"] = data.mm_forces_weight
 
 
 def save_AtomicData_to_HDF5(data, i, h5_file) -> None:
@@ -403,6 +460,12 @@ def save_AtomicData_to_HDF5(data, i, h5_file) -> None:
     grp["dipoles"] = data.dipoles
     grp["charges"] = data.charges
     grp["nacs"] = data.nacs
+    grp["mm_charges"] = data.mm_charges
+    grp["mm_positions"] = data.mm_positions
+    grp["mm_forces"] = data.mm_forces
+    grp["num_mm"] = data.num_mm
+    grp["mm_forces_weight"] = data.mm_forces_weight
+
 
 def save_configurations_as_HDF5(configurations: Configurations, _, h5_file) -> None:
     grp = h5_file.create_group("config_batch_0")
@@ -426,6 +489,10 @@ def save_configurations_as_HDF5(configurations: Configurations, _, h5_file) -> N
         subgroup["stress_weight"] = write_value(config.stress_weight)
         subgroup["virials_weight"] = write_value(config.virials_weight)
         subgroup["config_type"] = write_value(config.config_type)
+        subgroup["mm_charges"] = write_value(config.mm_charges)
+        subgroup["mm_positions"] = write_value(config.mm_positions)
+        subgroup["mm_forces"] = write_value(config.mm_forces)
+        subgroup["mm_forces_weight"] = write_value(config.mm_forces_weight)
 
 
 def write_value(value):

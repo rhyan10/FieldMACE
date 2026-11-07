@@ -6,6 +6,8 @@
 
 from typing import Optional, Sequence
 
+import numpy as np
+
 import torch.utils.data
 
 from mace.tools import (
@@ -50,9 +52,9 @@ class AtomicData(torch_geometric.data.Data):
         edge_index: torch.Tensor,  # [2, n_edges]
         node_attrs: torch.Tensor,  # [n_nodes, n_node_feats]
         positions: torch.Tensor,  # [n_nodes, 3]
-        mm_charges: torch.Tensor,
-        mm_positions: torch.Tensor,
-        mm_forces: torch.Tensor,
+        mm_charges: torch.Tensor,  # [M]
+        mm_positions: torch.Tensor,  # [M, 3]
+        mm_forces: torch.Tensor,  # [M, n_states, 3]
         shifts: torch.Tensor,  # [n_edges, 3],
         unit_shifts: torch.Tensor,  # [n_edges, 3]
         cell: Optional[torch.Tensor],  # [3,3]
@@ -69,7 +71,9 @@ class AtomicData(torch_geometric.data.Data):
         virials: Optional[torch.Tensor],  # [1,3,3]
         dipoles: Optional[torch.Tensor],  # [, 3]
         charges: Optional[torch.Tensor],  # [n_nodes, ]
-        nacs: Optional[torch.Tensor]
+        nacs: Optional[torch.Tensor],
+        num_mm: Optional[torch.Tensor] = None,  # [] number of MM charges
+        mm_forces_weight: Optional[torch.Tensor] = None,  # []
     ):
         # Check shapes
         num_nodes = node_attrs.shape[0]
@@ -92,6 +96,13 @@ class AtomicData(torch_geometric.data.Data):
         assert dipoles is None or dipoles.shape[-1] == 3
         assert nacs is None or nacs.shape[-1] == 3
         assert charges is None or charges.shape == (num_nodes,)
+        assert mm_positions.dim() == 2 and mm_positions.shape[1] == 3
+        assert mm_charges.shape == (mm_positions.shape[0],)
+        assert mm_forces.dim() == 3 and mm_forces.shape[0] == mm_positions.shape[0]
+        if num_mm is None:
+            num_mm = torch.tensor(mm_positions.shape[0], dtype=torch.long)
+        if mm_forces_weight is None:
+            mm_forces_weight = torch.tensor(1.0, dtype=torch.get_default_dtype())
         # Aggregate data
         data = {
             "num_nodes": num_nodes,
@@ -99,7 +110,9 @@ class AtomicData(torch_geometric.data.Data):
             "positions": positions,
             "mm_charges": mm_charges,
             "mm_positions": mm_positions,  
-            "mm_forces": mm_forces,         
+            "mm_forces": mm_forces,
+            "num_mm": num_mm,
+            "mm_forces_weight": mm_forces_weight,
             "shifts": shifts,
             "unit_shifts": unit_shifts,
             "cell": cell,
@@ -188,16 +201,11 @@ class AtomicData(torch_geometric.data.Data):
             else 1
         )
 
-        forces = (
-            torch.tensor(config.forces, dtype=torch.get_default_dtype())
-            if config.forces is not None
-            else None
-        )
-        energy = (
-            torch.tensor(config.energy, dtype=torch.get_default_dtype())
-            if config.energy is not None
-            else None
-        )
+        dt = torch.get_default_dtype()
+        forces = torch.tensor(np.asarray(config.forces), dtype=dt)
+        energy = torch.tensor(np.asarray(config.energy), dtype=dt).reshape(1, -1)  # [1, n_states]
+        n_states = energy.shape[1]
+        forces = forces.reshape(forces.shape[0], -1, 3)  # [n_atoms, n_states, 3]
         stress = (
             voigt_to_matrix(
                 torch.tensor(config.stress, dtype=torch.get_default_dtype())
@@ -227,20 +235,21 @@ class AtomicData(torch_geometric.data.Data):
             if config.charges is not None
             else None
         )
-        mm_charges = (
-            torch.tensor(config.mm_charges, dtype=torch.get_default_dtype())
-            if config.mm_charges[0] is not None
-            else None
-        )
-        mm_positions = (
-            torch.tensor(config.mm_positions, dtype=torch.get_default_dtype())
-            if config.mm_positions[0] is not None
-            else None
-        )
-        mm_forces = (
-            torch.tensor(config.mm_forces, dtype=torch.get_default_dtype())
-            if config.mm_forces[0] is not None
-            else None
+        mm_q = np.zeros(0) if config.mm_charges is None else np.asarray(config.mm_charges, dtype=float)
+        mm_r = np.zeros((0, 3)) if config.mm_positions is None else np.asarray(config.mm_positions, dtype=float)
+        mm_q = mm_q.reshape(-1)
+        mm_r = mm_r.reshape(-1, 3)
+        if config.mm_forces is None:
+            mm_f = np.zeros((len(mm_q), n_states, 3))
+        else:
+            mm_f = np.asarray(config.mm_forces, dtype=float)
+            mm_f = mm_f.reshape(len(mm_q), n_states, 3) if mm_f.size == 0 else mm_f.reshape(len(mm_q), -1, 3)
+        mm_charges = torch.tensor(mm_q, dtype=dt)
+        mm_positions = torch.tensor(mm_r, dtype=dt)
+        mm_forces = torch.tensor(mm_f, dtype=dt)
+        mm_forces_weight = torch.tensor(
+            float(getattr(config, "mm_forces_weight", 1.0)) if config.mm_forces is not None else 0.0,
+            dtype=dt,
         )
 
         return cls(
@@ -267,6 +276,8 @@ class AtomicData(torch_geometric.data.Data):
             mm_charges=mm_charges,
             mm_positions=mm_positions,
             mm_forces=mm_forces,
+            num_mm=torch.tensor(len(mm_q), dtype=torch.long),
+            mm_forces_weight=mm_forces_weight,
         )
 
 
