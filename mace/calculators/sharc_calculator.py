@@ -60,17 +60,17 @@ class SharcCalculator:
         self.nac_key = nac_key
         #self._check_modelpath()
 
-        self.n_states = n_states
-        self.n_total_states = 11
         self.n_atoms = len(atom_types)
-
-        # self.nac_idx = np.triu_indices(self.n_states["n_singlets"], 1)
-        # self.dm_idx = np.triu_indices(self.n_states["n_singlets"], 0)
-        # self.soc_idx = np.triu_indices(self.n_total_states, 1)
-
         self.last_prediction = None
-        self.calc = MACECalculator(model_paths=modelpath, n_energies=self.n_total_states, device=device)
-            
+        self.calc = MACECalculator(model_paths=modelpath, device=device)
+        self.n_total_states = int(getattr(self.calc.models[0], "n_energies", 1))
+        # number of states handed to SHARC (default: all states the model predicts)
+        if isinstance(n_states, dict):
+            n_states = n_states.get("n_singlets", self.n_total_states)
+        self.n_states = self.n_total_states if n_states is None else int(n_states)
+        if not 1 <= self.n_states <= self.n_total_states:
+            raise ValueError(f"n_states={self.n_states} but the model predicts {self.n_total_states}")
+
     def calculate(
         self, sharc_coords, mm_positions, mm_charges
     ) -> Dict[str, List[np.ndarray]]:
@@ -80,12 +80,15 @@ class SharcCalculator:
         the two predictions with the lowest NAC MAE will be returned
         """
         self.molecule.set_positions(np.array(sharc_coords)*self.distance_unit_conversion)
-        self.molecule.info = {"mm_charges": mm_charges, "mm_positions": mm_positions}
+        self.molecule.info = {"mm_charges": np.asarray(mm_charges, dtype=float),
+                              "mm_positions": np.asarray(mm_positions, dtype=float)}
         self.calc.calculate(self.molecule)
-        results = self.calc.results 
-        results["energy"] = results["energy"][:,:5] * self.energy_unit_conversion
-        print(self.energy_unit_conversion)
-        results["forces"] = results["forces"][:,:5,:] * (self.energy_unit_conversion/self.distance_unit_conversion)
+        res = self.calc.results
+        k = self.n_states
+        results = {
+            "energy": res["energies"][None, :k] * self.energy_unit_conversion,
+            "forces": res["forces_all"][:, :k, :] * (self.energy_unit_conversion / self.distance_unit_conversion),
+        }
         #results["nacs"] = results["nacs"] * self.distance_unit_conversion
 
             # Save first prediction for phase tracking
@@ -105,7 +108,7 @@ class SharcCalculator:
         Calculate QM string for SHARC
         with predictions from model
         """
-        states = self.n_total_states
+        states = self.n_states
         n_singlets = self.n_states
 
         qm_out = {}

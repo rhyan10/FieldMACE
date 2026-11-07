@@ -58,13 +58,16 @@ class MACECalculator(Calculator):
         model_type="MACE",
         compile_mode=None,
         fullgraph=True,
+        state: int = 0,
         **kwargs,
     ):
+        kwargs.pop("n_energies", None)  # accepted for backwards compatibility, read from the model
         Calculator.__init__(self, **kwargs)
         self.results = {}
 
         self.model_type = model_type
         self.use_hessian_approx = True
+        self.state = int(state)  # electronic state returned as "energy"/"forces"
         if model_type == "MACE":
             self.implemented_properties = [
                 "energy",
@@ -72,6 +75,9 @@ class MACECalculator(Calculator):
                 "node_energy",
                 "forces",
                 "stress",
+                "energies",
+                "forces_all",
+                "mm_forces",
             ]
         elif model_type == "DipoleMACE":
             self.implemented_properties = ["dipole"]
@@ -128,10 +134,9 @@ class MACECalculator(Calculator):
                 torch.load(f=model_path, map_location=device, weights_only=False)
                 for model_path in model_paths
             ]
-            self.use_compile = True
+            self.use_compile = False
         for model in self.models:
             model.to(device)  # shouldn't be necessary but seems to help with GPU
-        print(model)
         r_maxs = [model.r_max.cpu() for model in self.models]
         r_maxs = np.array(r_maxs)
         assert np.all(
@@ -219,37 +224,49 @@ class MACECalculator(Calculator):
     def calculate(self, atoms=None, properties=None, system_changes=all_changes):
         """
         Calculate properties.
-        :param atoms: ase.Atoms object
-        :param properties: [str], properties to be computed, used by ASE internally
-        :param system_changes: [str], system changes since last calculation, used by ASE internally
-        :return:
+
+        For FieldMACE models the MM point charges are read from atoms.info["mm_positions"]
+        (Angstrom) and atoms.info["mm_charges"] (e); without them the molecule is in vacuum.
+        Results:
+          energy / free_energy : energy of ``self.state`` (eV)
+          energies             : all states [n_states] (eV)
+          forces               : forces of ``self.state`` [n_atoms, 3] (eV/A)
+          forces_all           : [n_atoms, n_states, 3]
+          mm_forces            : forces on the point charges [M, n_states, 3]
+          energy_var / forces_var : committee variances (several models)
         """
-        # call to base-class to set atoms attribute
         Calculator.calculate(self, atoms)
         batch_base = self._atoms_to_batch(atoms)
-
-        batch = self._clone_batch(batch_base)
-        node_e0 = self.models[0].atomic_energies_fn(batch["node_attrs"])
-        ret_tensors = self._create_result_tensors(
-            self.model_type, self.num_models, len(atoms)
-        )
-        for i, model in enumerate(self.models):
+        state = int(getattr(self, "state", 0))
+        energies, forces, mm_forces = [], [], []
+        for model in self.models:
             batch = self._clone_batch(batch_base)
-            out = model(
-                batch.to_dict(),
-                compute_hessian=False,
-                training=self.use_compile,
-            )
-
-            ret_tensors["energies"] = out["energy"].detach()
-            ret_tensors["forces"] = out["forces"].detach().squeeze()
-            ret_tensors["mm_forces"] = out["mm_forces"].detach()
-
+            out = model(batch.to_dict(), compute_hessian=False, training=False)
+            energies.append(out["energy"].detach().reshape(-1))
+            forces.append(out["forces"].detach().reshape(len(atoms), -1, 3))
+            if out.get("mm_forces") is not None:
+                mm_forces.append(out["mm_forces"].detach().reshape(-1, energies[-1].shape[0], 3))
+        e = torch.stack(energies)  # [n_models, n_states]
+        f = torch.stack(forces)  # [n_models, n_atoms, n_states, 3]
+        n_states = e.shape[1]
+        if not 0 <= state < n_states:
+            raise ValueError(f"state={state} but the model predicts {n_states} state(s)")
         self.results = {}
-        self.results["energy"] = ret_tensors["energies"].cpu().numpy()
-        self.results["forces"] = ret_tensors["forces"].cpu().numpy()
-        self.results["mm_forces"] = ret_tensors["mm_forces"].cpu().numpy()
-                
+        e_mean = (e.mean(0) * self.energy_units_to_eV).cpu().numpy()
+        f_mean = (f.mean(0) * self.energy_units_to_eV / self.length_units_to_A).cpu().numpy()
+        self.results["energies"] = e_mean
+        self.results["energy"] = float(e_mean[state])
+        self.results["free_energy"] = self.results["energy"]
+        self.results["forces_all"] = f_mean
+        self.results["forces"] = f_mean[:, state, :]
+        if mm_forces:
+            fm = torch.stack(mm_forces).mean(0) * self.energy_units_to_eV / self.length_units_to_A
+            self.results["mm_forces"] = fm.cpu().numpy()
+        if self.num_models > 1:
+            self.results["energy_var"] = (e.var(0, unbiased=False) * self.energy_units_to_eV**2).cpu().numpy()
+            self.results["forces_var"] = (
+                f.var(0, unbiased=False) * (self.energy_units_to_eV / self.length_units_to_A) ** 2
+            ).cpu().numpy()
         return self.results
 
     def get_hessian(self, atoms=None):
