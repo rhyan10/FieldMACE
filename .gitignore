@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# editor swap files
+.*.sw?
+*~
+
+# training outputs
+logs/
+checkpoints/
+results/
+valid_indices_*.txt
+*.model
+!mace/calculators/foundations_models/*.model
+*.pt
