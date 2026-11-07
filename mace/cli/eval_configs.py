@@ -87,6 +87,7 @@ def run(args: argparse.Namespace) -> None:
     )
 
     energies, forces, mm_forces, stresses, contributions = [], [], [], [], []
+    props = {"nacs": [], "dipoles": [], "socs": []}
     for batch in data_loader:
         batch = batch.to(device)
         kwargs = {"compute_pc_grads": True} if is_field else {"compute_stress": args.compute_stress}
@@ -100,6 +101,11 @@ def run(args: argparse.Namespace) -> None:
             fm = torch_tools.to_numpy(output["mm_forces"]).reshape(-1, n_states, 3)
             bounds = np.cumsum(torch_tools.to_numpy(batch["num_mm"]))[:-1]
             mm_forces.extend(np.split(fm, bounds))
+        if output.get("nacs") is not None:
+            props["nacs"].extend(np.split(torch_tools.to_numpy(output["nacs"]), torch_tools.to_numpy(batch.ptr[1:-1])))
+        for key in ("dipoles", "socs"):
+            if output.get(key) is not None:
+                props[key].extend(list(torch_tools.to_numpy(output[key])))
         if not is_field and args.compute_stress:
             stresses.extend(list(torch_tools.to_numpy(output["stress"])))
         if args.return_contributions:
@@ -120,6 +126,12 @@ def run(args: argparse.Namespace) -> None:
             atoms.info[p + "forces_states"] = f  # [n_atoms, n_states, 3]
         if mm_forces:
             atoms.info[p + "mm_forces"] = mm_forces[i] if len(e) > 1 else mm_forces[i][:, 0, :]
+        if props["nacs"]:
+            atoms.info[p + "nacs"] = props["nacs"][i]  # [n_atoms, n_pairs, 3]
+        if props["dipoles"]:
+            atoms.info[p + "dipoles"] = props["dipoles"][i]  # [n_states + n_pairs, 3]
+        if props["socs"]:
+            atoms.info[p + "socs"] = props["socs"][i]  # [n_pairs, 2]
         if stresses:
             atoms.info[p + "stress"] = stresses[i]
         if contributions:

@@ -62,8 +62,15 @@ def valid_err_log(valid_loss, eval_metrics, logger, log_errors, epoch=None):
     else:
         error_mm = 0.0
     
+    extra = ""
+    if "mae_nacs" in eval_metrics:
+        extra += f", MAE_nacs={eval_metrics['mae_nacs']:.4f}"
+    if "mae_mu" in eval_metrics:
+        extra += f", MAE_dipoles={eval_metrics['mae_mu']:.4f}"
+    if "mae_socs" in eval_metrics:
+        extra += f", MAE_socs={eval_metrics['mae_socs']:.4g}"
     logging.info(
-        f"{inintial_phrase}: loss={valid_loss:8.4f}, MAE_energy={error_e:8.1f} meV, MAE_Forces={error_f:8.1f} meV / A, MAE_mm_forces={error_mm:8.2f} meV / A",
+        f"{inintial_phrase}: loss={valid_loss:8.4f}, MAE_energy={error_e:8.1f} meV, MAE_Forces={error_f:8.1f} meV / A, MAE_mm_forces={error_mm:8.2f} meV / A{extra}",
     )
 
 
@@ -386,6 +393,9 @@ class MACELoss(Metric):
         self.add_state("nacs", default=[], dist_reduce_fx="cat")
         self.add_state("delta_nacs", default=[], dist_reduce_fx="cat")
         self.add_state("delta_nacs_per_atom", default=[], dist_reduce_fx="cat")
+        self.add_state("socs_computed", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("socs", default=[], dist_reduce_fx="cat")
+        self.add_state("delta_socs", default=[], dist_reduce_fx="cat")
         self.add_state("mm_forces_computed", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.add_state("mm_forces", default=[], dist_reduce_fx="cat")
         self.add_state("delta_mm_forces", default=[], dist_reduce_fx="cat")
@@ -435,14 +445,41 @@ class MACELoss(Metric):
                 (batch.virials - output["virials"])
                 / (batch.ptr[1:] - batch.ptr[:-1]).view(-1, 1, 1)
             )
-        if output.get("nacs") is not None and batch.nacs is not None:
-            self.nacs_computed += 1.0
-            self.nacs.append(batch.nacs)
-            neg = torch.abs(batch.nacs - output["nacs"]).unsqueeze(-1)
-            pos = torch.abs(batch.nacs + output["nacs"]).unsqueeze(-1)
-            vec = torch.cat((pos,neg),dim=-1)
-            val = torch.min(vec, dim=-1)[0]
-            self.delta_nacs.append(batch.nacs - val)
+        from mace.modules.loss import phase_aligned_error  # pylint: disable=import-outside-toplevel
+
+        n_graphs = n_atoms.shape[0]
+        graphs = torch.arange(n_graphs, device=n_atoms.device)
+        if output.get("nacs") is not None and output["nacs"].numel() > 0:
+            ref_n = batch.nacs.reshape(output["nacs"].shape)
+            keep = torch.repeat_interleave((batch.weight * batch.nacs_weight) > 0, n_atoms)
+            if bool(keep.any()):
+                self.nacs_computed += 1.0
+                err = phase_aligned_error(ref_n, output["nacs"], batch.batch, n_graphs)
+                self.nacs.append(ref_n[keep])
+                self.delta_nacs.append(err[keep])
+
+        if output.get("dipoles") is not None:
+            ref_d = batch.dipoles.reshape(output["dipoles"].shape)
+            keep = (batch.weight * batch.dipoles_weight) > 0
+            if bool(keep.any()):
+                n_s = output["energy"].shape[1]
+                err = torch.cat([
+                    ref_d[:, :n_s] - output["dipoles"][:, :n_s],
+                    phase_aligned_error(ref_d[:, n_s:], output["dipoles"][:, n_s:], graphs, n_graphs),
+                ], dim=1)
+                self.Mus_computed += 1.0
+                self.mus.append(ref_d[keep])
+                self.delta_mus.append(err[keep])
+                self.delta_mus_per_atom.append(err[keep] / n_atoms[keep].view(-1, 1, 1))
+
+        if output.get("socs") is not None and output["socs"].numel() > 0:
+            ref_s = batch["socs"].reshape(output["socs"].shape)
+            keep = (batch.weight * batch["socs_weight"].reshape(-1)) > 0
+            if bool(keep.any()):
+                self.socs_computed += 1.0
+                err = phase_aligned_error(ref_s, output["socs"], graphs, n_graphs)
+                self.socs.append(ref_s[keep])
+                self.delta_socs.append(err[keep])
 
     def convert(self, delta: Union[torch.Tensor, List[torch.Tensor]]) -> np.ndarray:
         if isinstance(delta, list):
@@ -476,6 +513,19 @@ class MACELoss(Metric):
             aux["rmse_mm_f"] = compute_rmse(delta_mm_forces)
             aux["rel_rmse_mm_f"] = compute_rel_rmse(delta_mm_forces, mm_forces)
             aux["q95_mm_f"] = compute_q95(delta_mm_forces)
+        if self.Mus_computed:
+            mus = self.convert(self.mus)
+            delta_mus = self.convert(self.delta_mus)
+            aux["mae_mu"] = compute_mae(delta_mus)
+            aux["mae_mu_per_atom"] = compute_mae(self.convert(self.delta_mus_per_atom))
+            aux["rel_mae_mu"] = compute_rel_mae(delta_mus, mus)
+            aux["rmse_mu"] = compute_rmse(delta_mus)
+        if self.socs_computed:
+            socs = self.convert(self.socs)
+            delta_socs = self.convert(self.delta_socs)
+            aux["mae_socs"] = compute_mae(delta_socs)
+            aux["rel_mae_socs"] = compute_rel_mae(delta_socs, socs)
+            aux["rmse_socs"] = compute_rmse(delta_socs)
         if self.nacs_computed:
             nacs = self.convert(self.nacs)
             delta_nacs = self.convert(self.delta_nacs)

@@ -70,6 +70,10 @@ class HDF5Dataset(Dataset):
             mm_positions=unpack_value(subgrp["mm_positions"][()]) if "mm_positions" in subgrp else None,
             mm_forces=unpack_value(subgrp["mm_forces"][()]) if "mm_forces" in subgrp else None,
             mm_forces_weight=unpack_value(subgrp["mm_forces_weight"][()]) if "mm_forces_weight" in subgrp else 0.0,
+            socs=unpack_value(subgrp["socs"][()]) if "socs" in subgrp else None,
+            nacs_weight=unpack_value(subgrp["nacs_weight"][()]) if "nacs_weight" in subgrp else 1.0,
+            dipoles_weight=unpack_value(subgrp["dipoles_weight"][()]) if "dipoles_weight" in subgrp else 1.0,
+            socs_weight=unpack_value(subgrp["socs_weight"][()]) if "socs_weight" in subgrp else 0.0,
         )
         atomic_data = AtomicData.from_config(
             config, z_table=self.z_table, cutoff=self.r_max

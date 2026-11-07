@@ -35,49 +35,6 @@ from .symmetric_contraction import SymmetricContraction
 import torch
 import numpy as np
 
-class RotInvariantAttention(torch.nn.Module):
-    def __init__(self, irreps_in, irreps_hidden, irreps_out, node_feats_irreps):
-        super(RotInvariantAttention, self).__init__()
-        self.irreps_in = Irreps(irreps_in)
-        self.irreps_hidden = Irreps(irreps_hidden)
-        self.irreps_out = Irreps(irreps_out)
-        self.node_feats_irreps = Irreps(node_feats_irreps)
-
-       # Equivariant linear layers
-        self.to_queries = o3.Linear(self.irreps_in, self.irreps_hidden)
-        self.to_keys = o3.Linear(self.node_feats_irreps, self.irreps_hidden)
-        self.to_values = o3.Linear(self.irreps_in, self.irreps_hidden)
-
-        self.scores_multi = o3.Linear(self.irreps_hidden, "0e")
-
-        # Output mapping
-        self.to_out = o3.Linear(self.irreps_hidden, self.irreps_out)
-
-    def forward(self, x, node_feats):
-        batch_size, sequence_length, _ = x.shape
-        queries = self.to_queries(x) 
-        keys = self.to_keys(node_feats)
-        values = self.to_values(x)    
-
-        keys = keys.reshape(x.shape[0], int(node_feats.shape[0]/x.shape[0]), keys.shape[-1])
-	
-        # Expand queries and keys to compute pairwise tensor products
-        queries_expanded = queries.unsqueeze(2) 
-        keys_expanded = keys.unsqueeze(1)
-
-        diff = queries_expanded-keys_expanded
-        scores = torch.squeeze(self.scores_multi(diff), dim=-1)
-
-        scores = torch.transpose(scores, 1, 2)
-
-        # Compute attention weights
-        attention_weights = torch.softmax(scores / scores.size(-1)**0.5, dim=-1)
-        # Apply attention weights to values
-        context = torch.einsum('bqk,bkd->bqd', attention_weights, values)
-        output = torch.sum(self.to_out(context), dim=1)
-
-        return output
-
 @compile_mode("script")
 class LinearNodeEmbeddingBlock(torch.nn.Module):
     def __init__(self, irreps_in: o3.Irreps, irreps_out: o3.Irreps):

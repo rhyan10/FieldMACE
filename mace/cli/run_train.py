@@ -160,6 +160,7 @@ def run(args: argparse.Namespace) -> None:
             dipoles_key=args.dipoles_key,
             charges_key=args.charges_key,
             nacs_key=args.nacs_key,
+            socs_key=args.socs_key,
             keep_isolated_atoms=args.keep_isolated_atoms,
         )
         if len(collections.train) < args.batch_size:
@@ -236,57 +237,25 @@ def run(args: argparse.Namespace) -> None:
             f"Atomic Energies used (z: eV): {{{', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}}}"
         )
         
-    if args.model == "FieldEMACE":
-        atomic_energies = None
-        compute_dipole = False
+    if args.model in ("FieldEMACE", "PerAtomFieldEMACE"):
         compute_energy = True
         args.compute_forces = True
-        compute_nacs = False
+        compute_dipole = bool(args.compute_dipoles)
+        compute_nacs = bool(args.compute_nacs)
+        compute_socs = bool(args.compute_socs)
         compute_virials = False
         args.compute_stress = False
-
         atomic_energies: np.ndarray = np.array(
             [atomic_energies_dict[z] for z in z_table.zs]
         )
-
         logging.info(
             f"Atomic Energies used (z: eV): {{{', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}}}"
         )
-    
-    if args.model == "PerAtomFieldEMACE" or args.model == "AttentionPerAtomFieldEMACE":
-        atomic_energies = None
-        compute_dipole = False
-        compute_energy = True
-        args.compute_forces = True
-        compute_nacs = False
-        compute_virials = False
-        args.compute_stress = False
-
-        atomic_energies: np.ndarray = np.array(
-            [atomic_energies_dict[z] for z in z_table.zs]
-        )
-
-        logging.info(
-            f"Atomic Energies used (z: eV): {{{', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}}}"
-        )
-
-    if args.model == "AttentionFieldEMACE":
-        atomic_energies = None
-        compute_dipole = False
-        compute_energy = True
-        args.compute_forces = True
-        compute_nacs = False
-        compute_virials = False
-        args.compute_stress = False
-
-        atomic_energies: np.ndarray = np.array(
-            [atomic_energies_dict[z] for z in z_table.zs]
-        )
-
-        logging.info(
-            f"Atomic Energies used (z: eV): {{{', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}}}"
-        )
-    
+        if compute_nacs or compute_dipole or compute_socs:
+            logging.info(
+                f"Excited-state properties: NACs={compute_nacs} (key {args.nacs_key}), "
+                f"dipoles={compute_dipole} (key {args.dipoles_key}), SOCs={compute_socs} (key {args.socs_key})"
+            )
 
     if args.train_file.endswith(".xyz"):
         train_set = [
@@ -355,6 +324,7 @@ def run(args: argparse.Namespace) -> None:
         dipoles_weight=args.dipoles_weight,
         nacs_weight=args.nacs_weight,
         mm_forces_weight=args.mm_forces_weight,
+        socs_weight=args.socs_weight,
     )
     
     if args.compute_avg_num_neighbors:
@@ -511,7 +481,7 @@ def run(args: argparse.Namespace) -> None:
             compute_nacs=args.compute_nacs,
             compute_dipoles=args.compute_dipoles,
         )
-    elif args.model in ("FieldEMACE", "PerAtomFieldEMACE", "AttentionPerAtomFieldEMACE"):
+    elif args.model in ("FieldEMACE", "PerAtomFieldEMACE"):
         model = getattr(modules, args.model)(
             **model_config,
             pair_repulsion=args.pair_repulsion,
@@ -529,6 +499,7 @@ def run(args: argparse.Namespace) -> None:
             radial_type=args.radial_type,
             compute_nacs=args.compute_nacs,
             compute_dipoles=args.compute_dipoles,
+            compute_socs=args.compute_socs,
             multipole_embedding=args.multipole_embedding,
             num_multipole_basis=args.num_multipole_basis,
             expansion_centre=args.expansion_centre,
@@ -560,8 +531,8 @@ def run(args: argparse.Namespace) -> None:
 
     # Optimizer: weight decay on the linear weights of interactions, field interactions and
     # products (as in MACE); every other parameter (embeddings, multipole embedding,
-    # multipole linear_up, attention, readouts, ...) is trained without decay.
-    # The original FieldMACE left linear_up and the attention blocks out of the optimizer,
+    # multipole linear_up, readouts, property heads, ...) is trained without decay.
+    # The original FieldMACE left linear_up (and the attention blocks) out of the optimizer,
     # so they were never trained.
     decay_params, no_decay_params = [], []
     for name, param in model.named_parameters():

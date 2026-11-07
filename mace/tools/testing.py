@@ -6,7 +6,7 @@ import torch
 from e3nn import o3
 
 TEST_ZS = [1, 6, 7, 8]
-FIELD_MODELS = ["PerAtomFieldEMACE", "FieldEMACE", "AttentionPerAtomFieldEMACE"]
+FIELD_MODELS = ["PerAtomFieldEMACE", "FieldEMACE"]
 
 
 def build_field_model(

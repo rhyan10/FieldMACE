@@ -74,6 +74,8 @@ class AtomicData(torch_geometric.data.Data):
         nacs: Optional[torch.Tensor],
         num_mm: Optional[torch.Tensor] = None,  # [] number of MM charges
         mm_forces_weight: Optional[torch.Tensor] = None,  # []
+        socs: Optional[torch.Tensor] = None,  # [1, n_pairs, 2]
+        socs_weight: Optional[torch.Tensor] = None,  # []
     ):
         # Check shapes
         num_nodes = node_attrs.shape[0]
@@ -113,6 +115,8 @@ class AtomicData(torch_geometric.data.Data):
             "mm_forces": mm_forces,
             "num_mm": num_mm,
             "mm_forces_weight": mm_forces_weight,
+            "socs": socs,
+            "socs_weight": socs_weight,
             "shifts": shifts,
             "unit_shifts": unit_shifts,
             "cell": cell,
@@ -220,15 +224,25 @@ class AtomicData(torch_geometric.data.Data):
             if config.virials is not None
             else None
         )
+        n_pairs = n_states * (n_states - 1) // 2
         dipoles = (
-            torch.tensor(config.dipoles, dtype=torch.get_default_dtype()).unsqueeze(0)
+            torch.tensor(np.asarray(config.dipoles), dtype=dt).reshape(1, -1, 3)  # [1, S+P, 3]
             if config.dipoles is not None
-            else None
+            else torch.zeros(1, n_states + n_pairs, 3, dtype=dt)
         )
         nacs = (
-            torch.tensor(config.nacs, dtype=torch.get_default_dtype())
-            if config.nacs is not None
-            else None
+            torch.tensor(np.asarray(config.nacs), dtype=dt).reshape(forces.shape[0], -1, 3)  # [N, P, 3]
+            if config.nacs is not None and np.asarray(config.nacs).size > 0
+            else torch.zeros(forces.shape[0], n_pairs, 3, dtype=dt)
+        )
+        socs_arr = getattr(config, "socs", None)
+        socs = (
+            torch.tensor(np.asarray(socs_arr), dtype=dt).reshape(1, -1, 2)  # [1, P, 2]
+            if socs_arr is not None and np.asarray(socs_arr).size > 0
+            else torch.zeros(1, n_pairs, 2, dtype=dt)
+        )
+        socs_weight = torch.tensor(
+            float(getattr(config, "socs_weight", 1.0)) if socs_arr is not None else 0.0, dtype=dt
         )
         charges = (
             torch.tensor(config.charges, dtype=torch.get_default_dtype())
@@ -278,6 +292,8 @@ class AtomicData(torch_geometric.data.Data):
             mm_forces=mm_forces,
             num_mm=torch.tensor(len(mm_q), dtype=torch.long),
             mm_forces_weight=mm_forces_weight,
+            socs=socs,
+            socs_weight=socs_weight,
         )
 
 

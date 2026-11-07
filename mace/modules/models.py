@@ -31,7 +31,6 @@ from .blocks import (
     ScaleShiftBlock,
     ElectrostaticFieldInteractionBlock,
     MultipoleRadialEmbeddingBlock,
-    RotInvariantAttention
 )
 from .utils import (
     compute_fixed_charge_dipole,
@@ -40,7 +39,6 @@ from .utils import (
     get_outputs,
     get_symmetric_displacement,
     compute_multipole_expansion,
-    compute_multipole_expansion_attention,
     _calc_multipole_moments,
     compute_columb_potential,
     compute_ewald_sum_loop,
@@ -720,8 +718,6 @@ class ExcitedMACE(torch.nn.Module):
 # Field models (QM/MM). Defined in field.py; re-exported here so that models pickled with
 # the original FieldMACE (mace.modules.models.<Class>) still load.
 from .field import (  # noqa: E402  pylint: disable=wrong-import-position
-    AttentionFieldEMACE,
-    AttentionPerAtomFieldEMACE,
     FieldEMACE,
     PerAtomFieldEMACE,
 )

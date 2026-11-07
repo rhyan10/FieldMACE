@@ -46,7 +46,8 @@ class Configuration:
     pc_array: Optional[Charges] = None 
     cell: Optional[Cell] = None
     pbc: Optional[Pbc] = None
-    nacs: Optional[Nacs] = None
+    nacs: Optional[Nacs] = None  # [n_atoms, n_pairs, 3]
+    socs: Optional[np.ndarray] = None  # [n_pairs, 2] (real, imaginary)
     mm_charges: Optional[Mm_charges] = None
     mm_positions: Optional[Mm_positions] = None
     mm_forces: Optional[Mm_forces] = None
@@ -59,6 +60,7 @@ class Configuration:
     dipoles_weight: float = 1.0
     pc_weight: float = 1.0
     nacs_weight: float = 1.0
+    socs_weight: float = 1.0
     config_type: Optional[str] = DEFAULT_CONFIG_TYPE  # config_type of config
 
 
@@ -104,6 +106,7 @@ def config_from_atoms_list(
     virials_key="REF_virials",
     dipoles_key="REF_dipoles",
     nacs_key="REF_nacs",
+    socs_key="REF_socs",
     charges_key="REF_charges",
     pc_key = "REF_mm_forces",
     config_type_weights: Dict[str, float] = None,
@@ -123,6 +126,7 @@ def config_from_atoms_list(
                 virials_key=virials_key,
                 dipoles_key=dipoles_key,
                 nacs_key=nacs_key,
+                socs_key=socs_key,
                 charges_key=charges_key,
                 pc_key=pc_key,
                 config_type_weights=config_type_weights,
@@ -150,12 +154,18 @@ def config_from_atoms(
     mm_positions="mm_positions",
     pc_key="REF_mm_forces",
     config_type_weights: Dict[str, float] = None,
+    socs_key="REF_socs",
 ) -> Configuration:
     """Convert ase.Atoms to Configuration.
 
     QM/MM fields (all optional, in atoms.info):
       mm_positions [M, 3] (Angstrom), mm_charges [M] (e), REF_mm_forces [M, 3] or [M, n_states, 3].
     A configuration without point charges (gas phase) is valid and gets M = 0.
+
+    Excited-state labels (optional; S states, P = S(S-1)/2 pairs ordered (0,1), (0,2), ..., (1,2), ...):
+      nacs    [n_atoms, P, 3] (or [P, n_atoms, 3])   non-adiabatic couplings
+      dipoles [S + P, 3]                             S permanent, then P transition dipoles
+      socs    [P] real, [P, 2] (re, im) or complex   spin-orbit couplings
     """
     if config_type_weights is None:
         config_type_weights = DEFAULT_CONFIG_TYPE_WEIGHTS
@@ -164,8 +174,9 @@ def config_from_atoms(
     forces = _info_or_array(atoms, forces_key)  # eV / Ang
     stress = atoms.info.get(stress_key, None)  # eV / Ang ^ 3
     virials = atoms.info.get(virials_key, None)
-    nacs = atoms.info.get(nacs_key, None)
-    dipoles = atoms.info.get(dipoles_key, None)  # Debye
+    nacs = _info_or_array(atoms, nacs_key)
+    dipoles = atoms.info.get(dipoles_key, None)
+    socs = atoms.info.get(socs_key, None)
 
     q_mm = atoms.info.get(mm_charges, None)
     r_mm = atoms.info.get(mm_positions, None)
@@ -206,6 +217,7 @@ def config_from_atoms(
     virials_weight = atoms.info.get("config_virials_weight", 1.0)
     dipoles_weight = atoms.info.get("config_dipoles_weight", 1.0)
     nacs_weight = atoms.info.get("config_nacs_weight", 1.0)
+    socs_weight = atoms.info.get("config_socs_weight", 1.0)
 
     # fill in missing quantities but set their weight to 0.0
     if energy is None:
@@ -220,12 +232,6 @@ def config_from_atoms(
     if virials is None:
         virials = np.zeros((3, 3))
         virials_weight = 0.0
-    if dipoles is None:
-        dipoles = np.zeros(3)
-        dipoles_weight = 0.0
-    if nacs is None:
-        nacs = np.zeros(3)
-        nacs_weight = 0.0
 
     # label layout: energy [n_states], forces [n_atoms, n_states, 3]
     energy = np.atleast_1d(np.asarray(energy, dtype=float)).reshape(-1)
@@ -242,6 +248,42 @@ def config_from_atoms(
     elif f_mm.shape[1] != len(energy):
         raise ValueError(f"MM forces for {f_mm.shape[1]} states but {len(energy)} energies")
 
+    n_s = len(energy)
+    n_p = n_s * (n_s - 1) // 2
+    n_at = len(atoms)
+    if nacs is None:
+        nacs = np.zeros((n_at, n_p, 3))
+        nacs_weight = 0.0
+    else:
+        nacs = np.asarray(nacs, dtype=float)
+        if nacs.size != n_at * n_p * 3:
+            raise ValueError(f"'{nacs_key}' has shape {nacs.shape}; expected ({n_at}, {n_p}, 3) for {n_s} states")
+        if nacs.ndim == 3 and nacs.shape[0] == n_p and nacs.shape[1] == n_at and n_p != n_at:
+            nacs = np.transpose(nacs, (1, 0, 2))  # [P, n_atoms, 3] -> [n_atoms, P, 3]
+        nacs = nacs.reshape(n_at, n_p, 3)
+    if dipoles is None:
+        dipoles = np.zeros((n_s + n_p, 3))
+        dipoles_weight = 0.0
+    else:
+        dipoles = np.asarray(dipoles, dtype=float)
+        if dipoles.size != (n_s + n_p) * 3:
+            raise ValueError(f"'{dipoles_key}' has shape {dipoles.shape}; expected ({n_s + n_p}, 3): "
+                             f"{n_s} permanent then {n_p} transition dipoles")
+        dipoles = dipoles.reshape(n_s + n_p, 3)
+    if socs is None:
+        socs = np.zeros((n_p, 2))
+        socs_weight = 0.0
+    else:
+        socs = np.asarray(socs)
+        if np.iscomplexobj(socs):
+            socs = np.stack([socs.real, socs.imag], axis=-1)
+        socs = socs.astype(float)
+        if socs.size == n_p:
+            socs = np.stack([socs.reshape(n_p), np.zeros(n_p)], axis=-1)
+        if socs.size != 2 * n_p:
+            raise ValueError(f"'{socs_key}' has shape {socs.shape}; expected ({n_p},) or ({n_p}, 2)")
+        socs = socs.reshape(n_p, 2)
+
     return Configuration(
         atomic_numbers=atomic_numbers,
         positions=atoms.get_positions(),
@@ -252,6 +294,7 @@ def config_from_atoms(
         dipoles=dipoles,
         charges=charges,
         nacs=nacs,
+        socs=socs,
         weight=weight,
         mm_charges=q_mm,
         mm_positions=r_mm,
@@ -263,6 +306,7 @@ def config_from_atoms(
         virials_weight=virials_weight,
         dipoles_weight=dipoles_weight,
         nacs_weight=nacs_weight,
+        socs_weight=socs_weight,
         config_type=config_type,
         pbc=pbc,
         cell=cell,
@@ -295,6 +339,7 @@ def load_from_xyz(
     dipoles_key: str = "REF_dipoles",
     charges_key: str = "REF_charges",
     nacs_key: str = 'REF_nacs',
+    socs_key: str = "REF_socs",
     pc_key = "REF_mm_forces",
     extract_atomic_energies: bool = False,
     keep_isolated_atoms: bool = False,
@@ -371,6 +416,7 @@ def load_from_xyz(
         virials_key=virials_key,
         dipoles_key=dipoles_key,
         nacs_key=nacs_key,
+        socs_key=socs_key,
         charges_key=charges_key,
         pc_key = pc_key,
     )
@@ -432,6 +478,10 @@ def save_dataset_as_HDF5(dataset: List, out_name: str) -> None:
             grp["dipoles"] = data.dipoles
             grp["charges"] = data.charges
             grp["nacs"] = data.nacs
+            grp["socs"] = data.socs
+            grp["socs_weight"] = data.socs_weight
+            grp["nacs_weight"] = data.nacs_weight
+            grp["dipoles_weight"] = data.dipoles_weight
             grp["mm_charges"] = data.mm_charges
             grp["mm_positions"] = data.mm_positions
             grp["mm_forces"] = data.mm_forces
@@ -460,6 +510,10 @@ def save_AtomicData_to_HDF5(data, i, h5_file) -> None:
     grp["dipoles"] = data.dipoles
     grp["charges"] = data.charges
     grp["nacs"] = data.nacs
+    grp["socs"] = data.socs
+    grp["socs_weight"] = data.socs_weight
+    grp["nacs_weight"] = data.nacs_weight
+    grp["dipoles_weight"] = data.dipoles_weight
     grp["mm_charges"] = data.mm_charges
     grp["mm_positions"] = data.mm_positions
     grp["mm_forces"] = data.mm_forces
@@ -480,6 +534,10 @@ def save_configurations_as_HDF5(configurations: Configurations, _, h5_file) -> N
         subgroup["virials"] = write_value(config.virials)
         subgroup["dipoles"] = write_value(config.dipoles)
         subgroup["nacs"] = write_value(config.nacs)
+        subgroup["socs"] = write_value(config.socs)
+        subgroup["nacs_weight"] = write_value(config.nacs_weight)
+        subgroup["dipoles_weight"] = write_value(config.dipoles_weight)
+        subgroup["socs_weight"] = write_value(config.socs_weight)
         subgroup["charges"] = write_value(config.charges)
         subgroup["cell"] = write_value(config.cell)
         subgroup["pbc"] = write_value(config.pbc)

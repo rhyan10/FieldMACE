@@ -7,6 +7,7 @@
 import torch
 
 from mace.tools import TensorDict
+from mace.tools.scatter import scatter_sum
 from mace.tools.torch_geometric import Batch
 
 
@@ -436,23 +437,44 @@ def _match(ref_t: torch.Tensor, pred_t: torch.Tensor, name: str) -> torch.Tensor
     )
 
 
-class WeightedEnergyForcesNacsDipoleLoss(torch.nn.Module):
-    """Loss for the (field) models: energies [B, n_states], forces [N, n_states, 3],
-    forces on the MM point charges [M, n_states, 3], optional NACs and dipoles.
+def phase_signs(ref: torch.Tensor, pred: torch.Tensor, index: torch.Tensor, n_groups: int) -> torch.Tensor:
+    """Sign (+1/-1) per (group, pair) that best aligns pred with ref.
 
-    Per-configuration weights (config_weight, config_energy_weight, config_forces_weight,
-    config_mm_forces_weight) are honoured, so configurations with missing labels (weight 0)
-    do not contribute.
+    ref, pred: [X, P, C] (X atoms or configurations), index: [X] group (configuration) of each row.
+    The phase of each electronic state is arbitrary in QM data, so couplings between two states
+    (NACs, transition dipoles, SOCs) are only defined up to a sign per configuration and pair.
+    """
+    with torch.no_grad():
+        plus = scatter_sum(torch.square(ref - pred).sum(-1), index, dim=0, dim_size=n_groups)
+        minus = scatter_sum(torch.square(ref + pred).sum(-1), index, dim=0, dim_size=n_groups)
+        return torch.where(minus < plus, -torch.ones_like(plus), torch.ones_like(plus))  # [G, P]
+
+
+def phase_aligned_error(ref: torch.Tensor, pred: torch.Tensor, index: torch.Tensor, n_groups: int) -> torch.Tensor:
+    """ref - s * pred with the best sign s per (group, pair)."""
+    s = phase_signs(ref, pred, index, n_groups)
+    return ref - s[index].unsqueeze(-1) * pred
+
+
+class WeightedEnergyForcesNacsDipoleLoss(torch.nn.Module):
+    """Loss for the field models.
+
+    energies [B, S], forces [N, S, 3], forces on the MM charges [M, S, 3] and, if the model
+    predicts them, NACs [N, P, 3], dipoles [B, S+P, 3] (S permanent + P transition) and
+    SOCs [B, P, 2]. NACs, transition dipoles and SOCs use a phase-free error (best sign per
+    configuration and state pair). Per-configuration weights (config_*_weight) are honoured,
+    so configurations without a label (weight 0) do not contribute to that term.
     """
 
     def __init__(self, energy_weight=1.0, forces_weight=1.0, dipoles_weight=1.0, nacs_weight=1.0,
-                 mm_forces_weight=None) -> None:
+                 mm_forces_weight=None, socs_weight=1.0) -> None:
         super().__init__()
         dt = torch.get_default_dtype()
         self.register_buffer("energy_weight", torch.tensor(energy_weight, dtype=dt))
         self.register_buffer("forces_weight", torch.tensor(forces_weight, dtype=dt))
         self.register_buffer("nacs_weight", torch.tensor(nacs_weight, dtype=dt))
         self.register_buffer("dipoles_weight", torch.tensor(dipoles_weight, dtype=dt))
+        self.register_buffer("socs_weight", torch.tensor(socs_weight, dtype=dt))
         self.register_buffer(
             "mm_forces_weight",
             torch.tensor(forces_weight if mm_forces_weight is None else mm_forces_weight, dtype=dt),
@@ -460,7 +482,9 @@ class WeightedEnergyForcesNacsDipoleLoss(torch.nn.Module):
 
     def forward(self, ref: Batch, pred: TensorDict, training=False) -> torch.Tensor:
         n_atoms = ref.ptr[1:] - ref.ptr[:-1]
+        n_graphs = n_atoms.shape[0]
         w_graph = ref.weight
+        graphs = torch.arange(n_graphs, device=n_atoms.device)
         e_ref = _match(ref["energy"], pred["energy"], "energy")
         w_e = (w_graph * ref.energy_weight).unsqueeze(-1)
         loss = self.energy_weight * torch.mean(w_e * torch.square(e_ref - pred["energy"]))
@@ -478,16 +502,36 @@ class WeightedEnergyForcesNacsDipoleLoss(torch.nn.Module):
             w_m = w_m.view(-1, *([1] * (fm_ref.dim() - 1)))
             loss = loss + self.mm_forces_weight * torch.mean(w_m * torch.square(fm_ref - pred["mm_forces"]))
 
-        if pred.get("nacs") is not None and ref["nacs"].shape == pred["nacs"].shape:
-            loss = loss + self.nacs_weight * phase_rmse_loss(ref, pred)
+        nacs = pred.get("nacs")
+        if nacs is not None and self.nacs_weight > 0 and nacs.numel() > 0:
+            n_ref = _match(ref["nacs"], nacs, "nacs")
+            err = phase_aligned_error(n_ref, nacs, ref.batch, n_graphs)
+            w_n = torch.repeat_interleave(w_graph * ref.nacs_weight, n_atoms).view(-1, 1, 1)
+            loss = loss + self.nacs_weight * torch.mean(w_n * torch.square(err))
 
-        if pred.get("dipoles") is not None and ref["dipoles"].shape == pred["dipoles"].shape:
-            loss = loss + self.dipoles_weight * 1000 * weighted_mean_squared_error_dipole(ref, pred)
+        dip = pred.get("dipoles")
+        if dip is not None and self.dipoles_weight > 0:
+            d_ref = _match(ref["dipoles"], dip, "dipoles")
+            n_s = e_ref.shape[1]
+            err_perm = d_ref[:, :n_s] - dip[:, :n_s]
+            err_trans = phase_aligned_error(d_ref[:, n_s:], dip[:, n_s:], graphs, n_graphs)
+            err = torch.cat([err_perm, err_trans], dim=1)
+            w_d = (w_graph * ref.dipoles_weight).view(-1, 1, 1)
+            loss = loss + self.dipoles_weight * torch.mean(w_d * torch.square(err))
+
+        socs = pred.get("socs")
+        if socs is not None and self.socs_weight > 0 and socs.numel() > 0:
+            s_ref = _match(ref["socs"], socs, "socs")
+            err = phase_aligned_error(s_ref, socs, graphs, n_graphs)
+            w_s = (w_graph * ref["socs_weight"].reshape(-1)).view(-1, 1, 1)
+            loss = loss + self.socs_weight * torch.mean(w_s * torch.square(err))
 
         return loss
 
     def __repr__(self):
         return (
             f"{self.__class__.__name__}(energy_weight={self.energy_weight:.3f}, "
-            f"forces_weight={self.forces_weight:.3f}, dipole_weight={self.dipoles_weight:.3f})"
+            f"forces_weight={self.forces_weight:.3f}, mm_forces_weight={self.mm_forces_weight:.3f}, "
+            f"nacs_weight={self.nacs_weight:.3f}, dipoles_weight={self.dipoles_weight:.3f}, "
+            f"socs_weight={self.socs_weight:.3f})"
         )

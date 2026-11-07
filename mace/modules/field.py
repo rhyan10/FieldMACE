@@ -13,6 +13,10 @@
 #     the model is translation invariant (originally the expansion centre was (0, 0, 0)).
 #   * Forces on QM atoms and on MM charges come from one backward pass per state.
 #   * The forward pass is TorchScript compatible.
+#   * Excited-state properties (optional): non-adiabatic couplings (per-atom vectors for every
+#     pair of states), permanent and transition dipoles, and spin-orbit couplings, predicted
+#     with equivariant readouts. Their phase (sign) is arbitrary in the reference data, so the
+#     losses are phase-free.
 #
 # Models pickled with the original code still load and give the original numbers: they are
 # detected in __setstate__ and run in "legacy" mode.
@@ -38,12 +42,11 @@ from .blocks import (
     MultipoleRadialEmbeddingBlock,
     NonLinearReadoutBlock,
     RadialEmbeddingBlock,
-    RotInvariantAttention,
 )
 from .radial import ZBLBasis
 from .utils import compute_hessians_vmap, get_edge_vectors_and_lengths
 
-FIELD_MODEL_VERSION = 2
+FIELD_MODEL_VERSION = 3
 
 
 # --------------------------------------------------------------------------------------- #
@@ -158,42 +161,26 @@ class EquivariantMultipoleEmbedding(torch.nn.Module):
         return torch.cat(out, dim=-1)
 
 
-@compile_mode("script")
-class _NoAttention(torch.nn.Module):
-    """Placeholder so every model has one attention entry per layer (never called)."""
-
-    def __init__(self):
-        super().__init__()
-        self.to_queries = torch.nn.Identity()
-        self.to_keys = torch.nn.Identity()
-        self.to_values = torch.nn.Identity()
-        self.scores_multi = torch.nn.Identity()
-        self.to_out = torch.nn.Identity()
-
-
-def segment_softmax_context(
-    scores: torch.Tensor, values: torch.Tensor, index: torch.Tensor, valid: torch.Tensor, n: int
-) -> torch.Tensor:
-    """sum_j softmax_j(scores_ij) values_ij for every segment i (pairs with valid=False ignored)."""
-    neg = torch.full_like(scores, -1e30)
-    masked = torch.where(valid, scores, neg)
-    smax = torch.full((n,), -1e30, dtype=scores.dtype, device=scores.device)
-    smax = smax.scatter_reduce(0, index, masked, reduce="amax", include_self=True)
-    w = torch.exp(masked - smax[index]) * valid.to(scores.dtype)
-    denom = scatter_sum(w, index, dim=0, dim_size=n)
-    w = w / (denom[index] + 1e-30)
-    return scatter_sum(w.unsqueeze(-1) * values, index, dim=0, dim_size=n)
+def state_pairs(n_states: int) -> List[List[int]]:
+    """Order of the state pairs used for NACs, transition dipoles and SOCs: (0,1), (0,2), ..., (1,2), ..."""
+    return [[i, j] for i in range(n_states) for j in range(i + 1, n_states)]
 
 
 # --------------------------------------------------------------------------------------- #
 # base model
 # --------------------------------------------------------------------------------------- #
 class _FieldMACEBase(torch.nn.Module):
-    """Shared implementation. Subclasses only set the expansion mode."""
+    """Shared implementation. Subclasses only set the expansion mode.
+
+    Outputs (B configurations, N atoms, M point charges, S states, P = S(S-1)/2 pairs):
+      energy [B, S], forces [N, S, 3], mm_forces [M, S, 3]
+      nacs     [N, P, 3]       if compute_nacs     (per-atom couplings for every state pair)
+      dipoles  [B, S + P, 3]   if compute_dipoles  (S permanent dipoles, then P transition dipoles)
+      socs     [B, P, 2]       if compute_socs     (real and imaginary part for every state pair)
+    """
 
     # set by subclasses
     _expansion = "global"  # "global" (FieldEMACE) or "per_atom"
-    _attention = False
 
     def __init__(
         self,
@@ -224,34 +211,44 @@ class _FieldMACEBase(torch.nn.Module):
         multipole_embedding: str = "equivariant",
         num_multipole_basis: int = 8,
         expansion_centre: str = "centroid",
+        compute_socs: bool = False,
     ):
         super().__init__()
-        if compute_nacs or compute_dipoles:
-            raise NotImplementedError(
-                "NACs and dipoles are not implemented for the field models (the readouts never "
-                "produced them). Train with compute_nacs=False, compute_dipoles=False."
-            )
         if multipole_embedding not in ("equivariant", "legacy"):
             raise ValueError("multipole_embedding must be 'equivariant' or 'legacy'")
         if expansion_centre not in ("centroid", "origin"):
             raise ValueError("expansion_centre must be 'centroid' or 'origin'")
         if multipole_max_ell < 0:
             raise ValueError("multipole_max_ell must be >= 0")
+        if n_energies < 1:
+            raise ValueError("n_energies must be >= 1")
+        if (compute_nacs or compute_socs) and n_energies < 2:
+            raise ValueError("NACs and SOCs couple pairs of states: they need n_energies >= 2")
         self.register_buffer("atomic_numbers", torch.tensor(atomic_numbers, dtype=torch.int64))
         self.register_buffer("r_max", torch.tensor(r_max, dtype=torch.get_default_dtype()))
         self.register_buffer("num_interactions", torch.tensor(num_interactions, dtype=torch.int64))
         self.n_energies = n_energies
         self.n_nacs = int(n_energies * (n_energies - 1) / 2)
         self.n_dipoles = int(n_energies + self.n_nacs)
-        self.compute_dipoles = False
-        self.compute_nacs = False
+        self.compute_nacs = bool(compute_nacs)
+        self.compute_dipoles = bool(compute_dipoles)
+        self.compute_socs = bool(compute_socs)
         self.multipole_max_ell = multipole_max_ell
         self.field_model_version = FIELD_MODEL_VERSION
         self.legacy = multipole_embedding == "legacy"
         self.centre_on_qm = expansion_centre == "centroid" and self._expansion == "global"
-        self.attention = self._attention
         self.expansion = self._expansion
         self.pair_repulsion = pair_repulsion
+
+        # property readout layout: [2*P SOC scalars | P NAC vectors | S+P dipole vectors]
+        self.n_prop_scalars = 2 * self.n_nacs if self.compute_socs else 0
+        self.n_nac_vectors = self.n_nacs if self.compute_nacs else 0
+        self.n_dipole_vectors = self.n_dipoles if self.compute_dipoles else 0
+        n_vectors = self.n_nac_vectors + self.n_dipole_vectors
+        self.n_prop_out = self.n_prop_scalars + 3 * n_vectors
+        prop_irreps = o3.Irreps(
+            [(m, ir) for m, ir in [(self.n_prop_scalars, (0, 1)), (n_vectors, (1, -1))] if m > 0]
+        )
 
         if isinstance(correlation, int):
             correlation = [correlation] * num_interactions
@@ -283,11 +280,7 @@ class _FieldMACEBase(torch.nn.Module):
         else:
             self.multipole_radial_embedding = EquivariantMultipoleEmbedding(multipole_max_ell, num_multipole_basis)
             emb_irreps = self.multipole_radial_embedding.irreps_out
-        self.multipole_attention = torch.nn.ModuleList()
-        if self.attention:
-            self.linear_up = torch.nn.Identity()
-        else:
-            self.linear_up = o3.Linear(emb_irreps, field_irreps)
+        self.linear_up = o3.Linear(emb_irreps, field_irreps)
 
         sh_irreps = o3.Irreps.spherical_harmonics(max_ell)
         num_features = hidden_irreps.count(o3.Irrep(0, 1))
@@ -297,15 +290,19 @@ class _FieldMACEBase(torch.nn.Module):
             radial_MLP = [64, 64, 64]
         self.atomic_energies_fn = AtomicEnergiesBlock(atomic_energies)
 
+        # vector properties need vectors in the last layer too (MACE normally keeps only scalars)
+        keep_vectors = n_vectors > 0
         use_sc_first = "Residual" in str(interaction_cls_first)
         self.interactions = torch.nn.ModuleList()
         self.field_interactions = torch.nn.ModuleList()
         self.products = torch.nn.ModuleList()
         self.readouts = torch.nn.ModuleList()
+        self.property_readouts = torch.nn.ModuleList()
         for i in range(num_interactions):
             first = i == 0
             last = i == num_interactions - 1
-            hidden_out = str(hidden_irreps[0]) if (last and num_interactions > 1) else hidden_irreps
+            scalar_last = last and num_interactions > 1 and not keep_vectors
+            hidden_out = o3.Irreps(str(hidden_irreps[0])) if scalar_last else hidden_irreps
             feats_in = node_feats_irreps if first else hidden_irreps
             inter = (interaction_cls_first if first else interaction_cls)(
                 node_attrs_irreps=node_attr_irreps,
@@ -323,17 +320,6 @@ class _FieldMACEBase(torch.nn.Module):
                     node_feats_irreps=feats_in, target_irreps=interaction_irreps, field_irreps=field_irreps
                 )
             )
-            if self.attention:
-                self.multipole_attention.append(
-                    RotInvariantAttention(
-                        irreps_in=multipole_sh_irreps,
-                        irreps_hidden=field_irreps,
-                        irreps_out=field_irreps,
-                        node_feats_irreps=feats_in,
-                    )
-                )
-            else:
-                self.multipole_attention.append(_NoAttention())
             self.products.append(
                 EquivariantProductBasisBlock(
                     node_feats_irreps=inter.target_irreps if first else interaction_irreps,
@@ -347,17 +333,18 @@ class _FieldMACEBase(torch.nn.Module):
                 self.readouts.append(NonLinearReadoutBlock(hidden_out, MLP_irreps, gate, n_energies, False))
             else:
                 self.readouts.append(LinearReadoutBlock(hidden_irreps, n_energies, False))
+            if self.n_prop_out > 0:
+                self.property_readouts.append(o3.Linear(hidden_out, prop_irreps))
 
     # ------------------------------------------------------------------ #
-    # models pickled by the original FieldMACE code
+    # models pickled by earlier versions
     # ------------------------------------------------------------------ #
     def __setstate__(self, state):
         super().__setstate__(state)
-        if "field_model_version" not in self.__dict__:
+        if "field_model_version" not in self.__dict__:  # FieldMACE 1
             self.field_model_version = 1
             self.legacy = True
             self.centre_on_qm = False
-            self.attention = self._attention
             self.expansion = self._expansion
             self.pair_repulsion = "pair_repulsion_fn" in self._modules
             self.register_buffer(
@@ -365,12 +352,17 @@ class _FieldMACEBase(torch.nn.Module):
                 torch.tensor(_l_index(int(self.multipole_max_ell)), dtype=torch.long),
                 persistent=False,
             )
+        if "property_readouts" not in self._modules:  # FieldMACE 1 and early 2.0
+            self.property_readouts = torch.nn.ModuleList()
             self.compute_nacs = False
             self.compute_dipoles = False
-            if not self.attention:
-                self.multipole_attention = torch.nn.ModuleList(
-                    [_NoAttention() for _ in range(int(self.num_interactions))]
-                )
+            self.compute_socs = False
+            self.n_prop_scalars = 0
+            self.n_nac_vectors = 0
+            self.n_dipole_vectors = 0
+            self.n_prop_out = 0
+        if "multipole_attention" in self._modules:
+            del self._modules["multipole_attention"]
 
     # ------------------------------------------------------------------ #
     def _field_features(
@@ -384,7 +376,7 @@ class _FieldMACEBase(torch.nn.Module):
         mm_batch: torch.Tensor,
         num_graphs: int,
     ) -> torch.Tensor:
-        """Per-atom multipole features phi [n_nodes, (lmax+1)^2] (or pair moments for attention)."""
+        """Per-atom multipole features phi [n_nodes, (lmax+1)^2]."""
         l_index = self.multipole_l_index
         n_nodes = positions.shape[0]
         if self.expansion == "global":
@@ -457,41 +449,13 @@ class _FieldMACEBase(torch.nn.Module):
             energies.append(pair_e.unsqueeze(-1).expand(-1, self.n_energies))
             node_energies_list.append(pair_node.unsqueeze(-1).expand(-1, self.n_energies))
 
-        # ---- field features ------------------------------------------------
-        multipole_feats = torch.zeros(0, dtype=positions.dtype, device=positions.device)
-        pair_terms = torch.zeros(0, dtype=positions.dtype, device=positions.device)
-        qi = torch.zeros(0, dtype=torch.long, device=positions.device)
-        q_pair = torch.zeros(0, dtype=positions.dtype, device=positions.device)
-        m_scale = torch.zeros(0, dtype=torch.long, device=positions.device)
-        if self.attention:
-            qi, mj, pg = qm_mm_pairs(ptr, num_mm)
-            vec = mm_pos[mj] - positions[qi]
-            q_pair = mm_q[mj]
-            pair_terms = multipole_terms(vec, q_pair, self.multipole_spherical_harmonics(vec), self.multipole_l_index)
-            m_scale = num_mm[pg]
-        else:
-            phi = self._field_features(positions, batch, ptr, mm_pos, mm_q, num_mm, mm_batch, num_graphs)
-            multipole_feats = self.linear_up(self.multipole_radial_embedding(phi))
+        phi = self._field_features(positions, batch, ptr, mm_pos, mm_q, num_mm, mm_batch, num_graphs)
+        multipole_feats = self.linear_up(self.multipole_radial_embedding(phi))
 
         node_feats_list: List[torch.Tensor] = []
-        for interaction, product, readout, field_interaction, att in zip(
-            self.interactions, self.products, self.readouts, self.field_interactions, self.multipole_attention
+        for interaction, product, readout, field_interaction in zip(
+            self.interactions, self.products, self.readouts, self.field_interactions
         ):
-            if self.attention:
-                queries = att.to_queries(pair_terms)  # [P, h]
-                keys = att.to_keys(node_feats)  # [n, h]
-                scores = att.scores_multi(queries - keys[qi]).squeeze(-1)  # [P]
-                if self.legacy:
-                    scores = scores / torch.sqrt(m_scale.to(scores.dtype))
-                    valid = torch.ones_like(scores, dtype=torch.bool)
-                else:
-                    valid = q_pair != 0
-                context = segment_softmax_context(scores, att.to_values(pair_terms), qi, valid, n_nodes)
-                att_out = att.to_out(context)
-                if self.legacy:
-                    multipole_feats = self.multipole_radial_embedding(att_out)
-                else:
-                    multipole_feats = att_out
             inter_feats, sc = interaction(
                 node_attrs=node_attrs,
                 node_feats=node_feats,
@@ -510,6 +474,23 @@ class _FieldMACEBase(torch.nn.Module):
         total_energy = torch.sum(contributions, dim=1)  # [B, n_e]
         node_energy = torch.sum(torch.stack(node_energies_list, dim=1), dim=1)  # [n, n_e]
         node_feats_out = torch.cat(node_feats_list, dim=-1)
+
+        # ---- excited-state properties ------------------------------------
+        nacs: Optional[torch.Tensor] = None
+        dipoles: Optional[torch.Tensor] = None
+        socs: Optional[torch.Tensor] = None
+        if self.n_prop_out > 0:
+            prop = torch.zeros(n_nodes, self.n_prop_out, dtype=positions.dtype, device=positions.device)
+            for i, head in enumerate(self.property_readouts):
+                prop = prop + head(node_feats_list[i])
+            ns = self.n_prop_scalars
+            vec = prop[:, ns:].reshape(n_nodes, -1, 3)  # Cartesian (e3nn 1o basis is x, y, z)
+            if self.compute_socs:
+                socs = scatter_sum(prop[:, :ns], batch, dim=0, dim_size=num_graphs).reshape(num_graphs, -1, 2)
+            if self.compute_nacs:
+                nacs = vec[:, : self.n_nac_vectors]
+            if self.compute_dipoles:
+                dipoles = scatter_sum(vec[:, self.n_nac_vectors:], batch, dim=0, dim_size=num_graphs)
 
         forces: Optional[torch.Tensor] = None
         mm_forces: Optional[torch.Tensor] = None
@@ -548,8 +529,9 @@ class _FieldMACEBase(torch.nn.Module):
             "energy": total_energy,
             "node_energy": node_energy,
             "contributions": contributions,
-            "nacs": None,
-            "dipoles": None,
+            "nacs": nacs,
+            "dipoles": dipoles,
+            "socs": socs,
             "forces": forces,
             "mm_forces": mm_forces,
             "virials": None,
@@ -565,7 +547,6 @@ class FieldEMACE(_FieldMACEBase):
     """MM potential expanded in multipoles about the QM centroid of each configuration."""
 
     _expansion = "global"
-    _attention = False
 
 
 @compile_mode("script")
@@ -573,22 +554,3 @@ class PerAtomFieldEMACE(_FieldMACEBase):
     """MM potential expanded about every QM atom (translation invariant, the default choice)."""
 
     _expansion = "per_atom"
-    _attention = False
-
-
-@compile_mode("script")
-class AttentionPerAtomFieldEMACE(_FieldMACEBase):
-    """Per-atom expansion where each QM atom attends over its MM charges in every layer."""
-
-    _expansion = "per_atom"
-    _attention = True
-
-
-class AttentionFieldEMACE(torch.nn.Module):
-    """Removed: the original class could not be constructed (NameError on 'lmax')."""
-
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError(
-            "AttentionFieldEMACE was never functional in FieldMACE and has been removed. "
-            "Use AttentionPerAtomFieldEMACE, PerAtomFieldEMACE or FieldEMACE."
-        )

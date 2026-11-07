@@ -145,14 +145,6 @@ def test_zero_charges_are_inert(cls):
     assert np.allclose(o2["mm_forces"][15:].detach().numpy(), 0.0)
 
 
-def test_attention_ignores_zero_charge_padding():
-    m = build_field_model("AttentionPerAtomFieldEMACE")
-    sym, qm, mm, q = methane_in_charges(15, seed=9)
-    e1 = energy(m, (sym, qm, mm, q))
-    e2 = energy(m, (sym, qm, np.vstack([mm, np.full((7, 3), 50.0)]), np.concatenate([q, np.zeros(7)])))
-    assert np.allclose(e1, e2, atol=1e-12)
-
-
 @pytest.mark.parametrize("cls", FIELD_MODELS)
 def test_charge_on_top_of_atom_or_centre_is_finite(cls):
     m = build_field_model(cls)
@@ -263,16 +255,19 @@ def test_save_load_roundtrip(tmp_path):
     m = build_field_model("FieldEMACE")
     torch.save(m, tmp_path / "m.model")
     m2 = torch.load(tmp_path / "m.model", weights_only=False)
-    assert m2.legacy is False and m2.field_model_version == 2 and m2.centre_on_qm
+    from mace.modules.field import FIELD_MODEL_VERSION
+
+    assert m2.legacy is False and m2.field_model_version == FIELD_MODEL_VERSION and m2.centre_on_qm
     cfg = methane_in_charges(10)
     assert np.allclose(energy(m, cfg), energy(m2, cfg), atol=1e-12)
 
 
 def test_unsupported_options_fail_clearly():
-    with pytest.raises(NotImplementedError):
-        build_field_model("PerAtomFieldEMACE", compute_nacs=True)
-    with pytest.raises(NotImplementedError):
-        modules.AttentionFieldEMACE()
+    with pytest.raises(ValueError):
+        build_field_model("PerAtomFieldEMACE", compute_nacs=True, n_energies=1)
+    with pytest.raises(ValueError):
+        build_field_model("PerAtomFieldEMACE", compute_socs=True, n_energies=1)
+    assert not hasattr(modules, "AttentionFieldEMACE") and not hasattr(modules, "AttentionPerAtomFieldEMACE")
     with pytest.raises(ValueError):
         build_field_model("PerAtomFieldEMACE", multipole_embedding="nonsense")
 
@@ -326,7 +321,7 @@ def test_original_pickles_reproduce_original_numbers():
     r = np.load(os.path.join(d, "legacy_ref.npz"))
     atoms = ase.Atoms("CHHHH", positions=r["qm"])
     atoms.info = {"mm_positions": r["mm"], "mm_charges": r["q"]}
-    for key in ["FieldEMACE_1", "PerAtomFieldEMACE_1", "AttentionPerAtomFieldEMACE_1", "PerAtomFieldEMACE_3"]:
+    for key in ["FieldEMACE_1", "PerAtomFieldEMACE_1", "PerAtomFieldEMACE_3"]:
         m = torch.load(os.path.join(d, f"{key}.model"), weights_only=False)
         assert m.legacy
         z = utils.AtomicNumberTable([int(x) for x in m.atomic_numbers])

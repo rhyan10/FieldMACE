@@ -31,6 +31,17 @@ def get_model_dtype(model: torch.nn.Module) -> torch.dtype:
     raise ValueError(f"Unknown dtype {mode_dtype}")
 
 
+def _phase_aligned_mean(values, pair_axis: int) -> torch.Tensor:
+    """Average committee predictions of state couplings after aligning each pair's sign to the first."""
+    ref = values[0]
+    aligned = [ref]
+    for v in values[1:]:
+        dims = [d for d in range(v.dim()) if d != pair_axis]
+        dot = torch.sum(v * ref, dim=dims, keepdim=True)
+        aligned.append(torch.where(dot < 0, -v, v))
+    return torch.stack(aligned).mean(0)
+
+
 class MACECalculator(Calculator):
     """MACE ASE Calculator
     args:
@@ -78,6 +89,10 @@ class MACECalculator(Calculator):
                 "energies",
                 "forces_all",
                 "mm_forces",
+                "nacs",
+                "dipoles",
+                "dipole",
+                "socs",
             ]
         elif model_type == "DipoleMACE":
             self.implemented_properties = ["dipole"]
@@ -233,12 +248,17 @@ class MACECalculator(Calculator):
           forces               : forces of ``self.state`` [n_atoms, 3] (eV/A)
           forces_all           : [n_atoms, n_states, 3]
           mm_forces            : forces on the point charges [M, n_states, 3]
+          nacs                 : [n_atoms, n_pairs, 3]   (if the model predicts NACs)
+          dipoles / dipole     : [n_states + n_pairs, 3] / permanent dipole of ``self.state``
+          socs                 : complex [n_pairs]       (if the model predicts SOCs)
           energy_var / forces_var : committee variances (several models)
+        Pairs are ordered (0,1), (0,2), ..., (1,2), ... (see mace.modules.state_pairs).
         """
         Calculator.calculate(self, atoms)
         batch_base = self._atoms_to_batch(atoms)
         state = int(getattr(self, "state", 0))
         energies, forces, mm_forces = [], [], []
+        props = {"nacs": [], "dipoles": [], "socs": []}
         for model in self.models:
             batch = self._clone_batch(batch_base)
             out = model(batch.to_dict(), compute_hessian=False, training=False)
@@ -246,27 +266,46 @@ class MACECalculator(Calculator):
             forces.append(out["forces"].detach().reshape(len(atoms), -1, 3))
             if out.get("mm_forces") is not None:
                 mm_forces.append(out["mm_forces"].detach().reshape(-1, energies[-1].shape[0], 3))
+            for key in props:
+                if out.get(key) is not None:
+                    props[key].append(out[key].detach())
         e = torch.stack(energies)  # [n_models, n_states]
         f = torch.stack(forces)  # [n_models, n_atoms, n_states, 3]
         n_states = e.shape[1]
         if not 0 <= state < n_states:
             raise ValueError(f"state={state} but the model predicts {n_states} state(s)")
+        e_conv = self.energy_units_to_eV
+        f_conv = self.energy_units_to_eV / self.length_units_to_A
         self.results = {}
-        e_mean = (e.mean(0) * self.energy_units_to_eV).cpu().numpy()
-        f_mean = (f.mean(0) * self.energy_units_to_eV / self.length_units_to_A).cpu().numpy()
+        e_mean = (e.mean(0) * e_conv).cpu().numpy()
+        f_mean = (f.mean(0) * f_conv).cpu().numpy()
         self.results["energies"] = e_mean
         self.results["energy"] = float(e_mean[state])
         self.results["free_energy"] = self.results["energy"]
         self.results["forces_all"] = f_mean
         self.results["forces"] = f_mean[:, state, :]
         if mm_forces:
-            fm = torch.stack(mm_forces).mean(0) * self.energy_units_to_eV / self.length_units_to_A
+            fm = torch.stack(mm_forces).mean(0) * f_conv
             self.results["mm_forces"] = fm.cpu().numpy()
+        # excited-state properties; committee members are phase-aligned to the first model
+        # (couplings between two states are only defined up to a sign)
+        if props["nacs"]:
+            n = _phase_aligned_mean([x.reshape(len(atoms), -1, 3) for x in props["nacs"]], pair_axis=1)
+            self.results["nacs"] = n.cpu().numpy()  # [n_atoms, n_pairs, 3]
+        if props["dipoles"]:
+            d = [x.reshape(-1, 3) for x in props["dipoles"]]  # [S + P, 3]
+            perm = torch.stack([x[:n_states] for x in d]).mean(0)
+            trans = _phase_aligned_mean([x[n_states:] for x in d], pair_axis=0)
+            dip = torch.cat([perm, trans], 0).cpu().numpy()
+            self.results["dipoles"] = dip
+            self.results["dipole"] = dip[state]  # ASE: permanent dipole of the selected state
+        if props["socs"]:
+            sc = _phase_aligned_mean([x.reshape(-1, 2) for x in props["socs"]], pair_axis=0) * e_conv
+            sc = sc.cpu().numpy()
+            self.results["socs"] = sc[:, 0] + 1j * sc[:, 1]  # complex [n_pairs]
         if self.num_models > 1:
-            self.results["energy_var"] = (e.var(0, unbiased=False) * self.energy_units_to_eV**2).cpu().numpy()
-            self.results["forces_var"] = (
-                f.var(0, unbiased=False) * (self.energy_units_to_eV / self.length_units_to_A) ** 2
-            ).cpu().numpy()
+            self.results["energy_var"] = (e.var(0, unbiased=False) * e_conv**2).cpu().numpy()
+            self.results["forces_var"] = (f.var(0, unbiased=False) * f_conv**2).cpu().numpy()
         return self.results
 
     def get_hessian(self, atoms=None):

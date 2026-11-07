@@ -21,14 +21,11 @@ from .blocks import (
     ScaleShiftBlock,
     ElectrostaticFieldInteractionBlock,
     MultipoleRadialEmbeddingBlock,
-    RotInvariantAttention,
 )
 from .models import (
     ExcitedMACE,
     FieldEMACE,
-    AttentionFieldEMACE,
     PerAtomFieldEMACE,
-    AttentionPerAtomFieldEMACE,
 )
 from .loss import (
     DipoleSingleLoss,
@@ -53,7 +50,7 @@ from .utils import (
     compute_multipole_expansion,
     _calc_multipole_moments,
 )
-from .field import EquivariantMultipoleEmbedding, multipole_terms, qm_mm_pairs
+from .field import EquivariantMultipoleEmbedding, multipole_terms, qm_mm_pairs, state_pairs
 
 interaction_classes: Dict[str, Type[InteractionBlock]] = {
     "AgnosticNonlinearInteractionBlock": AgnosticNonlinearInteractionBlock,

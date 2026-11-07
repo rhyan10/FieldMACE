@@ -1,6 +1,6 @@
 """
-OpenMM force that evaluates a trained FieldMACE model (FieldEMACE, PerAtomFieldEMACE,
-AttentionPerAtomFieldEMACE) on the QM region, embedded in the point charges of the MM region.
+OpenMM force that evaluates a trained FieldMACE model (FieldEMACE or PerAtomFieldEMACE)
+on the QM region, embedded in the point charges of the MM region.
 
 Implemented with ``openmm.PythonForce`` (OpenMM >= 8.3): the model runs in PyTorch, needs no
 TorchScript export, and forces on QM atoms, on MM point charges and through link atoms /
@@ -9,6 +9,9 @@ periodic imaging / charge switching come from one backward pass.
 Speed: the QM graph is built once with all atom pairs ("static graph"). MACE's radial cutoff
 makes pairs beyond r_max contribute exactly zero, so this gives identical results while
 avoiding a neighbour-list rebuild (and a GPU->CPU synchronisation) every step.
+
+Properties: if the model predicts them, ``computation.last`` also holds "dipoles" [S+P, 3]
+(e*Angstrom), "socs" [P, 2] and "nacs" [N_model_atoms, P, 3] of the last evaluation.
 
 Multi-state: the electronic state that drives the dynamics is the global context parameter
 ``fieldmace_state`` and can be changed during a run with
@@ -158,6 +161,10 @@ class FieldMACEComputation:
         (grad,) = torch.autograd.grad(energies[s], pos)
         e_all = energies.detach().cpu().numpy() - self.e0
         self.last = {"energies": e_all, "state": s, "n_mm_charges": int(mm_q.shape[0])}
+        for key in ("dipoles", "socs", "nacs"):  # excited-state properties, if the model has them
+            if out.get(key) is not None:
+                v = out[key].detach().cpu().numpy()
+                self.last[key] = v[0] if key != "nacs" else v
         return float(e_all[s]), grad.detach().cpu().numpy()
 
     def __call__(self, state: mm.State):

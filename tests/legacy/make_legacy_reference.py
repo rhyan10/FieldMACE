@@ -37,7 +37,7 @@ z=utils.AtomicNumberTable(ZS)
 ad=data.AtomicData.from_config(data.config_from_atoms(a), z_table=z, cutoff=5.0)
 b=next(iter(torch_geometric.dataloader.DataLoader([ad],batch_size=1)))
 res={"qm":qm,"mm":mm,"q":q}
-for cls,n_e in [("FieldEMACE",1),("PerAtomFieldEMACE",1),("AttentionPerAtomFieldEMACE",1),("PerAtomFieldEMACE",3)]:
+for cls,n_e in [("FieldEMACE",1),("PerAtomFieldEMACE",1),("PerAtomFieldEMACE",3)]:
     m=build(cls,n_e); key=f"{cls}_{n_e}"
     out=m(b.to_dict(), training=False)
     res[key+"_E"]=out["energy"].detach().numpy(); res[key+"_F"]=out["forces"].detach().numpy(); res[key+"_Fmm"]=out["mm_forces"].detach().numpy() if out.get("mm_forces") is not None else np.zeros(0)

@@ -114,7 +114,6 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
             "ExcitedMACE",
             "FieldEMACE",
             "PerAtomFieldEMACE",
-            "AttentionPerAtomFieldEMACE"
         ],
     )
     parser.add_argument(
@@ -300,6 +299,12 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     )
     # Dataset
     parser.add_argument(
+        "--compute_socs",
+        help="predict spin-orbit couplings for every pair of states (needs --n_energies >= 2)",
+        type=str2bool,
+        default=False,
+    )
+    parser.add_argument(
         "--train_file",
         help="Training set file, format is .xyz or .h5",
         type=str,
@@ -451,6 +456,12 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     
     parser.add_argument(
         "--nacs_weight", help="weight of nacs loss", type=float, default=100.0
+    )
+    parser.add_argument(
+        "--socs_weight", help="weight of the spin-orbit coupling loss", type=float, default=1.0
+    )
+    parser.add_argument(
+        "--socs_key", help="key of the spin-orbit couplings in atoms.info", type=str, default="REF_socs"
     )
     
     parser.add_argument(
@@ -789,7 +800,10 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         "--dipoles_key",
         help="Key of reference dipoles in training xyz",
         type=str,
-        default="REF_dipole",
+        default="REF_dipoles",
+    )
+    parser.add_argument(
+        "--socs_key", help="key of the spin-orbit couplings in atoms.info", type=str, default="REF_socs"
     )
     parser.add_argument(
         "--charges_key",

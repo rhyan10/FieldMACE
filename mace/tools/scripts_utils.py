@@ -45,6 +45,7 @@ def get_dataset_from_xyz(
     nacs_key: str = "nacs",
     charges_key: str = "charges",
     pc_key: str = "REF_mm_forces",
+    socs_key: str = "REF_socs",
 ) -> Tuple[SubsetCollection, Optional[Dict[int, float]]]:
     """Load training and test dataset from xyz file"""
     atomic_energies_dict, all_train_configs = data.load_from_xyz(
@@ -57,6 +58,7 @@ def get_dataset_from_xyz(
         dipoles_key=dipoles_key,
         charges_key=charges_key,
         nacs_key = nacs_key,
+        socs_key=socs_key,
         pc_key=pc_key,
         extract_atomic_energies=True,
         keep_isolated_atoms=keep_isolated_atoms,
@@ -71,6 +73,7 @@ def get_dataset_from_xyz(
             virials_key=virials_key,
             dipoles_key=dipoles_key,
             nacs_key = nacs_key,
+            socs_key=socs_key,
             charges_key=charges_key,
             pc_key=pc_key,
             extract_atomic_energies=False,
@@ -91,6 +94,7 @@ def get_dataset_from_xyz(
             dipoles_key=dipoles_key,
             stress_key=stress_key,
             nacs_key = nacs_key,
+            socs_key=socs_key,
             virials_key=virials_key,
             charges_key=charges_key,
             pc_key=pc_key,
@@ -530,17 +534,15 @@ def create_error_table(
             "rel nacs RMSE %",
         ]
     elif table_type == "EnergyNacsDipoleMAE":
-        print(table.field_names)
         table.field_names = [
             "config_type",
             "MAE E / meV / atom",
             "MAE F / meV / A",
             "rel F MAE %",
-            # "MAE MU / mDebye / atom",
-            # "rel MU MAE %",
-            # "rel nacs MAE %",
-            # "MAE nacs / mDebye / atom",
-            # "rel nacs MAE %",
+            "MAE F_mm / meV / A",
+            "MAE NACs",
+            "MAE dipoles",
+            "MAE SOCs",
         ]
 
     for name in sorted(all_data_loaders, key=custom_key):
@@ -696,16 +698,19 @@ def create_error_table(
                 ]
             )
         elif table_type == "EnergyNacsDipoleMAE":
+            def fmt(key, scale=1.0, f="8.1f"):
+                return format(metrics[key] * scale, f) if key in metrics else "-"
+
             table.add_row(
                 [
                     name,
-                    f"{metrics['mae_e_per_atom'] * 1000:8.1f}",
-                    f"{metrics['mae_f'] * 1000:8.1f}",
-                    f"{metrics['rel_mae_f']:8.1f}",
-                    # f"{metrics['mae_mu_per_atom'] * 1000:8.1f}",
-                    # f"{metrics['rel_mae_mu']:8.1f}",
-                    # f"{metrics['mae_nacs_per_atom'] * 1000:8.1f}",
-                    # f"{metrics['rel_mae_nacs']:8.1f}",
+                    fmt("mae_e_per_atom", 1000),
+                    fmt("mae_f", 1000),
+                    fmt("rel_mae_f"),
+                    fmt("mae_mm_f", 1000),
+                    fmt("mae_nacs", 1.0, ".4f"),
+                    fmt("mae_mu", 1.0, ".4f"),
+                    fmt("mae_socs", 1.0, ".4g"),
                 ]
             )
     return table

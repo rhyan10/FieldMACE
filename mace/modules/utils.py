@@ -194,28 +194,6 @@ def compute_ewald_sum_loop(
     return total.view(-1,1)#.detach()          # [B*P,1] 
 
 
-def compute_multipole_expansion_attention(
-    positions_internal : torch.Tensor,
-    multipoles: torch.Tensor,
-    batch: torch.Tensor,
-    lmax: float = 3,
-    rep_size: float = 16,
-):
-    R = torch.linalg.vector_norm(positions_internal, dim=-1).unsqueeze(-1)
-    all_mp_contribs = []
-    for i in range(0, multipoles.shape[0]):
-        range_ = torch.where(batch == i)[0]
-        R_mol = R[range_[0]:range_[-1]+1]
-        mp_contribs = []
-        for l in range(lmax + 1):
-            q_l = multipoles[i][rep_size*(l**2): rep_size*((l+1)**2)].unsqueeze(0)
-            phi_l = np.sqrt(4 * np.pi / (2 * l + 1)) * q_l * R_mol ** l
-            mp_contribs.append(phi_l)
-        mp_contribs = torch.cat(mp_contribs, dim=-1)
-        all_mp_contribs.append(mp_contribs)
-    all_mp_contribs = torch.cat(all_mp_contribs, dim=0)
-    return all_mp_contribs
-
 def compute_forces_virials(
     energy: torch.Tensor,
     positions: torch.Tensor,

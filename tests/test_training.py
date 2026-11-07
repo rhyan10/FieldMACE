@@ -58,7 +58,6 @@ def train(tmp_path, model, extra=(), n_states=1, epochs=3):
 @pytest.mark.parametrize("model,n_states,extra", [
     ("PerAtomFieldEMACE", 1, []),
     ("FieldEMACE", 2, []),
-    ("AttentionPerAtomFieldEMACE", 1, []),
     ("PerAtomFieldEMACE", 1, ["--multipole_embedding=legacy", "--mm_forces_weight=0"]),
     ("FieldEMACE", 1, ["--expansion_centre=origin", "--multipole_embedding=legacy"]),
 ])
