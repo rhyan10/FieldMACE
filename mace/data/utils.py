@@ -110,6 +110,7 @@ def config_from_atoms_list(
     charges_key="REF_charges",
     pc_key = "REF_mm_forces",
     config_type_weights: Dict[str, float] = None,
+    soc_num: Optional[int] = None,
 ) -> Configurations:
     """Convert list of ase.Atoms into Configurations"""
     if config_type_weights is None:
@@ -130,6 +131,7 @@ def config_from_atoms_list(
                 charges_key=charges_key,
                 pc_key=pc_key,
                 config_type_weights=config_type_weights,
+                soc_num=soc_num,
             )
         )
     return all_configs
@@ -155,6 +157,7 @@ def config_from_atoms(
     pc_key="REF_mm_forces",
     config_type_weights: Dict[str, float] = None,
     socs_key="REF_socs",
+    soc_num: Optional[int] = None,
 ) -> Configuration:
     """Convert ase.Atoms to Configuration.
 
@@ -165,7 +168,8 @@ def config_from_atoms(
     Excited-state labels (optional; S states, P = S(S-1)/2 pairs ordered (0,1), (0,2), ..., (1,2), ...):
       nacs    [n_atoms, P, 3] (or [P, n_atoms, 3])   non-adiabatic couplings
       dipoles [S + P, 3]                             S permanent, then P transition dipoles
-      socs    [P] real, [P, 2] (re, im) or complex   spin-orbit couplings
+      socs    [P] real, [P, 2] (re, im) or complex   spin-orbit couplings (per pair of states)
+              any shape with soc_num values           free-form SOC vector (soc_num given, X-MACE style)
     """
     if config_type_weights is None:
         config_type_weights = DEFAULT_CONFIG_TYPE_WEIGHTS
@@ -270,7 +274,18 @@ def config_from_atoms(
             raise ValueError(f"'{dipoles_key}' has shape {dipoles.shape}; expected ({n_s + n_p}, 3): "
                              f"{n_s} permanent then {n_p} transition dipoles")
         dipoles = dipoles.reshape(n_s + n_p, 3)
-    if socs is None:
+    if soc_num is not None:  # free-form SOC vector of soc_num real values
+        if socs is None:
+            socs = np.zeros(soc_num)
+            socs_weight = 0.0
+        else:
+            socs = np.asarray(socs)
+            if np.iscomplexobj(socs):
+                socs = np.stack([socs.real, socs.imag], axis=-1)
+            socs = socs.astype(float).reshape(-1)
+            if socs.size != soc_num:
+                raise ValueError(f"'{socs_key}' has {socs.size} values but soc_num={soc_num}")
+    elif socs is None:
         socs = np.zeros((n_p, 2))
         socs_weight = 0.0
     else:
@@ -281,7 +296,8 @@ def config_from_atoms(
         if socs.size == n_p:
             socs = np.stack([socs.reshape(n_p), np.zeros(n_p)], axis=-1)
         if socs.size != 2 * n_p:
-            raise ValueError(f"'{socs_key}' has shape {socs.shape}; expected ({n_p},) or ({n_p}, 2)")
+            raise ValueError(f"'{socs_key}' has shape {socs.shape}; expected ({n_p},) or ({n_p}, 2) "
+                             "(or pass --soc_num for a free-form SOC vector)")
         socs = socs.reshape(n_p, 2)
 
     return Configuration(
@@ -340,6 +356,7 @@ def load_from_xyz(
     charges_key: str = "REF_charges",
     nacs_key: str = 'REF_nacs',
     socs_key: str = "REF_socs",
+    soc_num: Optional[int] = None,
     pc_key = "REF_mm_forces",
     extract_atomic_energies: bool = False,
     keep_isolated_atoms: bool = False,
@@ -417,6 +434,7 @@ def load_from_xyz(
         dipoles_key=dipoles_key,
         nacs_key=nacs_key,
         socs_key=socs_key,
+        soc_num=soc_num,
         charges_key=charges_key,
         pc_key = pc_key,
     )

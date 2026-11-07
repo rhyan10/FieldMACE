@@ -46,6 +46,7 @@ def get_dataset_from_xyz(
     charges_key: str = "charges",
     pc_key: str = "REF_mm_forces",
     socs_key: str = "REF_socs",
+    soc_num: Optional[int] = None,
 ) -> Tuple[SubsetCollection, Optional[Dict[int, float]]]:
     """Load training and test dataset from xyz file"""
     atomic_energies_dict, all_train_configs = data.load_from_xyz(
@@ -59,6 +60,7 @@ def get_dataset_from_xyz(
         charges_key=charges_key,
         nacs_key = nacs_key,
         socs_key=socs_key,
+        soc_num=soc_num,
         pc_key=pc_key,
         extract_atomic_energies=True,
         keep_isolated_atoms=keep_isolated_atoms,
@@ -74,6 +76,7 @@ def get_dataset_from_xyz(
             dipoles_key=dipoles_key,
             nacs_key = nacs_key,
             socs_key=socs_key,
+        soc_num=soc_num,
             charges_key=charges_key,
             pc_key=pc_key,
             extract_atomic_energies=False,
@@ -95,6 +98,7 @@ def get_dataset_from_xyz(
             stress_key=stress_key,
             nacs_key = nacs_key,
             socs_key=socs_key,
+        soc_num=soc_num,
             virials_key=virials_key,
             charges_key=charges_key,
             pc_key=pc_key,

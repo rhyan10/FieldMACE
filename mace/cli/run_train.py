@@ -161,6 +161,7 @@ def run(args: argparse.Namespace) -> None:
             charges_key=args.charges_key,
             nacs_key=args.nacs_key,
             socs_key=args.socs_key,
+            soc_num=args.soc_num if args.compute_socs else None,
             keep_isolated_atoms=args.keep_isolated_atoms,
         )
         if len(collections.train) < args.batch_size:
@@ -500,6 +501,7 @@ def run(args: argparse.Namespace) -> None:
             compute_nacs=args.compute_nacs,
             compute_dipoles=args.compute_dipoles,
             compute_socs=args.compute_socs,
+            soc_num=args.soc_num,
             multipole_embedding=args.multipole_embedding,
             num_multipole_basis=args.num_multipole_basis,
             expansion_centre=args.expansion_centre,

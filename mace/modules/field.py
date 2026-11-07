@@ -177,6 +177,8 @@ class _FieldMACEBase(torch.nn.Module):
       nacs     [N, P, 3]       if compute_nacs     (per-atom couplings for every state pair)
       dipoles  [B, S + P, 3]   if compute_dipoles  (S permanent dipoles, then P transition dipoles)
       socs     [B, P, 2]       if compute_socs     (real and imaginary part for every state pair)
+               [B, 1, soc_num] if compute_socs and soc_num is given (free-form SOC vector, e.g. the
+                               upper triangle of SHARC's spin-orbit matrix as in X-MACE; one phase)
     """
 
     # set by subclasses
@@ -212,6 +214,7 @@ class _FieldMACEBase(torch.nn.Module):
         num_multipole_basis: int = 8,
         expansion_centre: str = "centroid",
         compute_socs: bool = False,
+        soc_num: Optional[int] = None,
     ):
         super().__init__()
         if multipole_embedding not in ("equivariant", "legacy"):
@@ -222,7 +225,9 @@ class _FieldMACEBase(torch.nn.Module):
             raise ValueError("multipole_max_ell must be >= 0")
         if n_energies < 1:
             raise ValueError("n_energies must be >= 1")
-        if (compute_nacs or compute_socs) and n_energies < 2:
+        if compute_socs and soc_num is not None and int(soc_num) < 1:
+            raise ValueError("soc_num must be >= 1")
+        if (compute_nacs or (compute_socs and soc_num is None)) and n_energies < 2:
             raise ValueError("NACs and SOCs couple pairs of states: they need n_energies >= 2")
         self.register_buffer("atomic_numbers", torch.tensor(atomic_numbers, dtype=torch.int64))
         self.register_buffer("r_max", torch.tensor(r_max, dtype=torch.get_default_dtype()))
@@ -241,7 +246,13 @@ class _FieldMACEBase(torch.nn.Module):
         self.pair_repulsion = pair_repulsion
 
         # property readout layout: [2*P SOC scalars | P NAC vectors | S+P dipole vectors]
-        self.n_prop_scalars = 2 * self.n_nacs if self.compute_socs else 0
+        if self.compute_socs and soc_num is not None:  # free-form vector, one phase per configuration
+            self.soc_layout = "vector"
+            self.soc_groups, self.soc_group_size = 1, int(soc_num)
+        else:  # (re, im) for every pair of states, one phase per pair
+            self.soc_layout = "pairs"
+            self.soc_groups, self.soc_group_size = self.n_nacs, 2
+        self.n_prop_scalars = self.soc_groups * self.soc_group_size if self.compute_socs else 0
         self.n_nac_vectors = self.n_nacs if self.compute_nacs else 0
         self.n_dipole_vectors = self.n_dipoles if self.compute_dipoles else 0
         n_vectors = self.n_nac_vectors + self.n_dipole_vectors
@@ -357,6 +368,8 @@ class _FieldMACEBase(torch.nn.Module):
             self.compute_nacs = False
             self.compute_dipoles = False
             self.compute_socs = False
+            self.soc_layout = "pairs"
+            self.soc_groups, self.soc_group_size = 0, 2
             self.n_prop_scalars = 0
             self.n_nac_vectors = 0
             self.n_dipole_vectors = 0
@@ -486,7 +499,9 @@ class _FieldMACEBase(torch.nn.Module):
             ns = self.n_prop_scalars
             vec = prop[:, ns:].reshape(n_nodes, -1, 3)  # Cartesian (e3nn 1o basis is x, y, z)
             if self.compute_socs:
-                socs = scatter_sum(prop[:, :ns], batch, dim=0, dim_size=num_graphs).reshape(num_graphs, -1, 2)
+                socs = scatter_sum(prop[:, :ns], batch, dim=0, dim_size=num_graphs).reshape(
+                    num_graphs, self.soc_groups, self.soc_group_size
+                )
             if self.compute_nacs:
                 nacs = vec[:, : self.n_nac_vectors]
             if self.compute_dipoles:

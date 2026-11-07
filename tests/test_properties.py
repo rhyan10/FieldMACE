@@ -165,7 +165,7 @@ def test_missing_property_labels_have_zero_weight():
     c = cfg(a)
     assert (c.nacs_weight, c.dipoles_weight, c.socs_weight) == (0.0, 0.0, 0.0)
     ad = data.AtomicData.from_config(c, z_table=Z, cutoff=5.0)
-    assert ad.nacs.shape == (5, 3, 3) and ad.dipoles.shape == (1, 6, 3) and ad.socs.shape == (1, 3, 2)
+    assert ad.nacs.shape == (5, 3, 3) and ad.dipoles.shape == (1, 6, 3) and ad.socs.shape == (1, 6)  # SOCs stored flat (P pairs x re/im)
 
 
 @pytest.mark.parametrize("bad", ["nacs", "dipoles", "socs"])
@@ -183,7 +183,7 @@ def test_property_batching_and_hdf5(tmp_path):
     configs.append(cfg(labelled_atoms(seed=9, nacs=1, socs=1)[0]))  # partly labelled
     ds = [data.AtomicData.from_config(c, z_table=Z, cutoff=5.0) for c in configs]
     b = next(iter(torch_geometric.dataloader.DataLoader(ds, batch_size=4, shuffle=False)))
-    assert b["nacs"].shape == (20, 3, 3) and b["dipoles"].shape == (4, 6, 3) and b["socs"].shape == (4, 3, 2)
+    assert b["nacs"].shape == (20, 3, 3) and b["dipoles"].shape == (4, 6, 3) and b["socs"].shape == (4, 6)  # flat SOCs
     assert b["socs_weight"].tolist() == [1.0, 1.0, 1.0, 0.0] and b["nacs_weight"].tolist() == [1.0, 1.0, 1.0, 0.0]
     with h5py.File(tmp_path / "d.h5", "w") as f:
         data.utils.save_configurations_as_HDF5(configs, 0, f)
@@ -228,7 +228,7 @@ def test_loss_invariant_to_coupling_phase(key, weight):
     if key == "nacs":  # flip pair 1 of configuration 0 only
         b2["nacs"][:5, 1] *= -1
     elif key == "socs":
-        b2["socs"][0, 2] *= -1
+        b2["socs"][0, 2:4] *= -1  # flat (re, im) per pair: pair 1 of configuration 0
     else:  # transition dipole of pair 0 in configuration 1
         b2["dipoles"][1, 3] *= -1
     assert loss_fn(b2, out).item() == pytest.approx(l0, rel=1e-12)

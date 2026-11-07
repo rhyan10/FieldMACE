@@ -169,6 +169,7 @@ def run(args: argparse.Namespace):
         dipoles_key=getattr(args, "dipole_key", getattr(args, "dipoles_key", "dipoles")),
         nacs_key=getattr(args, "nacs_key", "nacs"),
         socs_key=getattr(args, "socs_key", "REF_socs"),
+        soc_num=getattr(args, "soc_num", None),
         charges_key=args.charges_key,
     )
 

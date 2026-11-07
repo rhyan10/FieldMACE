@@ -300,9 +300,14 @@ class MACECalculator(Calculator):
             self.results["dipoles"] = dip
             self.results["dipole"] = dip[state]  # ASE: permanent dipole of the selected state
         if props["socs"]:
-            sc = _phase_aligned_mean([x.reshape(-1, 2) for x in props["socs"]], pair_axis=0) * e_conv
+            m0 = self.models[0]
+            groups = int(getattr(m0, "soc_groups", 1))
+            sc = _phase_aligned_mean([x.reshape(groups, -1) for x in props["socs"]], pair_axis=0) * e_conv
             sc = sc.cpu().numpy()
-            self.results["socs"] = sc[:, 0] + 1j * sc[:, 1]  # complex [n_pairs]
+            if getattr(m0, "soc_layout", "pairs") == "pairs":
+                self.results["socs"] = sc[:, 0] + 1j * sc[:, 1]  # complex [n_pairs]
+            else:
+                self.results["socs"] = sc.reshape(-1)  # free-form real vector [soc_num]
         if self.num_models > 1:
             self.results["energy_var"] = (e.var(0, unbiased=False) * e_conv**2).cpu().numpy()
             self.results["forces_var"] = (f.var(0, unbiased=False) * f_conv**2).cpu().numpy()

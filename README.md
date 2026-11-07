@@ -89,6 +89,9 @@ With S = `--n_energies` states and P = S(S−1)/2 state pairs, ordered (0,1), (0
 | NACs | `[N, P, 3]` (or `[P, N, 3]`) | `nacs [N, P, 3]` | per-atom equivariant vectors (l = 1), one per pair |
 | dipoles | `[S + P, 3]`: S permanent, then P transition | `dipoles [B, S+P, 3]` | sum of per-atom equivariant vectors |
 | SOCs | `[P]` real, `[P, 2]` (re, im) or complex `[P]` | `socs [B, P, 2]` | sum of per-atom invariant scalars |
+| SOCs, `--soc_num=L` | any `L` real numbers per frame | `socs [B, 1, L]` | as above, one phase per frame |
+
+`--soc_num` takes SOCs in a free layout, as in X-MACE: for SHARC, the upper triangle of the M_S-resolved SOC matrix, either real or as (re, im) pairs. See [SHARC 4](#surface-hopping-with-sharc-4).
 
 * **Arbitrary phases.** The sign of every coupling between two states (NACs, transition dipoles, SOCs) is arbitrary in QM data. The losses and error metrics therefore use the better of the two signs, chosen separately for each configuration and pair. Labels do not need consistent phases.
 * **Units.** Use whatever units your data has. For "smooth" NACs (NAC × ΔE), just store them under the NAC key.
@@ -131,11 +134,11 @@ calc.results["nacs"], calc.results["dipoles"], calc.results["socs"]   # if the m
 
 For a committee, each member's couplings are sign-aligned to the first model before averaging.
 
-**SHARC** (surface hopping; QM.out layout in atomic units):
+**SHARC** (QM.out layout in atomic units; see [SHARC 4](#surface-hopping-with-sharc-4) for running dynamics):
 
 ```python
 from mace.calculators.sharc_calculator import SharcCalculator
-sc = SharcCalculator("CH2O", "model.model", device="cuda",
+sc = SharcCalculator("CH2O", "model.model", device="cuda", states=[2, 0, 2],
                      properties=["energy", "forces", "nacs", "dipoles", "socs"])
 qm_out = sc.calculate(coords_bohr, mm_positions_angstrom, mm_charges)
 # h (energies + SOCs, Hermitian), grad, grad_pc, nacdr (antisymmetric), dm
@@ -143,6 +146,65 @@ qm_out = sc.calculate(coords_bohr, mm_positions_angstrom, mm_charges)
 
 * **Phase continuity.** Couplings are sign-aligned with the previous step, so they change smoothly along a trajectory.
 * **Unit conversions.** `nac_to_au`, `dipole_to_au` and `soc_to_au` set them; the defaults assume eV and Å.
+
+---
+
+## Surface hopping with SHARC 4
+
+`sharc/SHARC_FIELDMACE.py` is a SHARC 4 interface (`SHARC_FAST`, like SPaiNN's). It works with every way SHARC 4 calls an interface:
+
+| how | command | notes |
+|---|---|---|
+| `sharc.x`, one interface call per step | `QM/runQM.sh`: `$SHARC/SHARC_FIELDMACE.py QM.in` | Python and the model reload every step |
+| pysharc, in-process | `$SHARC/driver.py -i FIELDMACE input` | model stays loaded; same trajectory as `sharc.x`, ~50× faster here |
+| QM/MM with `SHARC_QMMM` | `qm-program FIELDMACE` in `QMMM.template`, e.g. with `mm-program openmm` | MM charges enter FieldMACE as point charges; `grad_pc` goes back to the MM atoms |
+| point charges in `QM.in` | `point_charges pc.txt` | |
+
+Install it by linking it into SHARC's `bin` directory, with FieldMACE in the same Python environment:
+
+```bash
+ln -s /path/to/FieldMACE/sharc/SHARC_FIELDMACE.py $SHARC/
+cp /path/to/FieldMACE/sharc/FIELDMACE.template QM/        # then edit model_file and properties
+```
+
+`FIELDMACE.template`:
+
+```
+model_file     /path/to/model.model      # or "modelpath" in FIELDMACE.resources
+properties     energy forces nacs dipoles socs
+device         cuda
+energy_unit    eV                        # units the model was trained in
+distance_unit  Angstrom
+```
+
+**States.** The SHARC `states` line (e.g. `states 2 0 2`, 8 states with M_S) is matched to the model:
+
+* **Spatial model.** `n_energies` = number of spatial states (here 4: S0, S1, T1, T2). Every M_S component of a triplet gets the triplet's energy and gradient. NACs couple states of the same multiplicity and M_S; all other NACs are zero. SOCs need a model trained with `--soc_num`: the upper triangle of the nmstates × nmstates SOC matrix, X-MACE layout. Use nmstates(nmstates−1)/2 real values (here 28), or nmstates(nmstates−1) values as (re, im) pairs (here 56).
+* **M_S-resolved model.** `n_energies` = nmstates (here 8). NACs, dipoles and SOCs are taken pair by pair.
+* **Other combinations.** These raise an error that says what does not match. With singlets only, SOC requests return zeros.
+
+**What the interface answers.** `h` (with SOCs if `soc` is requested), `grad`, `grad_pc`, `nacdr`, `dm` (zeros and a warning without a dipole model) and `phases`. Requests the model cannot answer (`nacdr` without NACs, SOCs between multiplicities without a SOC model) fail with a clear error.
+
+**Phases.** FieldMACE aligns the signs of NACs, transition dipoles and SOCs with the previous step itself, so it reports all phases as +1. The reference is kept in memory and in `SAVE/FIELDMACE_previous.npz`, so file-based runs and restarts continue with consistent signs.
+
+**QM/MM.** `SHARC_QMMM` in SHARC 4.0 does not pass the QM program's phases on. Put `nophases_from_interface` in the SHARC `input` file for `sharc.x` QM/MM runs, or `sharc.x` stops with `'QMout' object has no attribute 'phases'`. Nothing is lost, because FieldMACE keeps the signs consistent itself.
+
+**Tests.** `tests/sharc` runs against a real SHARC 4 installation and is skipped without one:
+
+```bash
+export SHARC=/path/to/sharc4/bin PYTHONPATH=$SHARC/../lib:$SHARC:$SHARC/../pysharc LD_LIBRARY_PATH=$SHARC/../lib
+pytest tests/sharc
+```
+
+They cover:
+
+* `QM.in` → `QM.out` against the ASE calculator, with and without point charges;
+* spatial, M_S-resolved and singlet-only models;
+* error messages;
+* finite-difference checks of `grad` and `grad_pc`, and of the full `SHARC_QMMM` (FieldMACE + OpenMM) gradient;
+* phase continuity between calls;
+* `setup_traj.py` hooks;
+* surface hopping with `sharc.x` and pysharc, gas phase and QM/MM.
 
 ---
 
@@ -201,8 +263,9 @@ sim.context.setParameter("fieldmace_state", 1)        # switch the driving elect
 * **Variable charge counts.** Frames in a batch may have different numbers of point charges, or none (flat MM layout with `num_mm`). The old padded `[B, M, 3]` input is still accepted.
 * **Faster maths.** The multipole maths is vectorised (no Python loops over graphs or (l, m)). A dense path handles single configurations in MD. Forces on QM atoms and point charges come from one backward pass per state.
 * **TorchScript.** Field models compile with TorchScript.
-* **Repository cleanup.** Removed `build/`, `*.pyc`, editor swap files and the egg-info. Added `.gitignore`. Declared every dependency (tqdm, python-hostlist, torchmetrics, configargparse, h5py, …). The package is now `fieldmace` (2.1.0); the import name is still `mace`.
-* **Tests.** 120+ tests: invariances and equivariances (including NACs and dipoles), finite-difference forces, batching, padding, gas phase, coincident charges, single atoms, float32, TorchScript, every loss term including the phase-free ones, CLI training (xyz, HDF5, transfer learning, all properties), the ASE and SHARC calculators and OpenMM ML/MM.
+* **SHARC 4.** The new interface `sharc/SHARC_FIELDMACE.py` replaces the unfinished `mace/calculators/sharcinterface.py`. It works with `sharc.x`, pysharc and `SHARC_QMMM` (e.g. with OpenMM), and handles multiplicities and point-charge gradients. SOCs can also be learned as a free-form vector (`--soc_num`, X-MACE layout).
+* **Repository cleanup.** Removed `build/`, `*.pyc`, editor swap files and the egg-info. Added `.gitignore`. Declared every dependency (tqdm, python-hostlist, torchmetrics, configargparse, h5py, …). The package is now `fieldmace` (2.2.0); the import name is still `mace`.
+* **Tests.** 120+ tests: invariances and equivariances (including NACs and dipoles), finite-difference forces, batching, padding, gas phase, coincident charges, single atoms, float32, TorchScript, every loss term including the phase-free ones, CLI training (xyz, HDF5, transfer learning, all properties), the ASE and SHARC calculators, SHARC 4 (`sharc.x`, pysharc, `SHARC_QMMM` with OpenMM) and OpenMM ML/MM.
 
 **Old models and data**
 

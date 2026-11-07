@@ -461,6 +461,14 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         "--socs_weight", help="weight of the spin-orbit coupling loss", type=float, default=1.0
     )
     parser.add_argument(
+        "--soc_num",
+        help="free-form SOC vector with this many real values per configuration (X-MACE convention, e.g. the "
+        "upper triangle of SHARC's spin-orbit matrix; one phase per configuration). Default: (re, im) for every "
+        "pair of states with one phase per pair",
+        type=int,
+        default=None,
+    )
+    parser.add_argument(
         "--socs_key", help="key of the spin-orbit couplings in atoms.info", type=str, default="REF_socs"
     )
     
@@ -805,6 +813,7 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--socs_key", help="key of the spin-orbit couplings in atoms.info", type=str, default="REF_socs"
     )
+    parser.add_argument("--soc_num", help="free-form SOC vector length (see mace_run_train)", type=int, default=None)
     parser.add_argument(
         "--charges_key",
         help="Key of atomic charges in training xyz",

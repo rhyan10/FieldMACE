@@ -2,17 +2,32 @@
 SHARC interface for FieldMACE: energies, gradients, NACs, dipoles and SOCs of a QM region
 embedded in MM point charges, returned in SHARC's QM.out layout (atomic units).
 
-    calc = SharcCalculator("CH2O", "model.model", device="cuda",
+Used by the SHARC 4 interface sharc/SHARC_FIELDMACE.py, but works on its own as well:
+
+    calc = SharcCalculator("CH2S", "model.model", device="cuda", states=[2, 0, 2],
                            properties=["energy", "forces", "nacs", "dipoles", "socs"])
     qm_out = calc.calculate(coords_bohr, mm_positions, mm_charges)
-    # qm_out["h"]       [S][S]        complex  energies on the diagonal, SOCs off-diagonal (Hartree)
-    # qm_out["grad"]    [S][N][3]              gradients (Hartree / bohr)
-    # qm_out["grad_pc"] [S][M][3]              gradients on the point charges (Hartree / bohr)
-    # qm_out["nacdr"]   [S][S][N][3]           NACs (antisymmetric; 1/bohr unless nac_to_au is changed)
-    # qm_out["dm"]      [3][S][S]              permanent (diagonal) and transition dipoles (e bohr)
+    # h       [M][M]        complex  energies on the diagonal, SOCs off-diagonal (Hartree)
+    # grad    [M][N][3]              gradients (Hartree / bohr)
+    # grad_pc [M][Npc][3]            gradients on the point charges (Hartree / bohr)
+    # nacdr   [M][M][N][3]           NACs (antisymmetric; 1/bohr unless nac_to_au is changed)
+    # dm      [3][M][M]              permanent (diagonal) and transition dipoles (e bohr)
+  with M = SHARC's number of states including the M_S components (nmstates).
+
+States. ``states`` is SHARC's list [n_singlets, n_doublets, n_triplets, ...]. The model's
+states are read in the same order (all singlets, then doublets, then triplets):
+  * spatial model  (n_energies == sum(states)): energies, gradients, NACs and dipoles are
+    copied to every M_S component; couplings only connect states of the same multiplicity
+    and M_S. Pair-wise SOCs (default SOC layout) need an M_S-resolved model, see next point.
+  * M_S-resolved model (n_energies == nmstates): model state k is SHARC state k.
+  * one multiplicity only and n_energies > sum(states): the first sum(states) model states.
+SOCs with a free-form vector (model trained with --soc_num, X-MACE convention) fill the upper
+triangle of the M x M spin-orbit matrix: soc_num = M(M-1)/2 real values, or M(M-1) values
+as (re, im) pairs.
 
 Couplings between two states have an arbitrary sign. Between steps, every NAC, transition
-dipole and SOC is aligned with the previous step's prediction so that it changes smoothly.
+dipole and SOC is aligned with the previous step's prediction so that it changes smoothly
+(``last_prediction``; SHARC_FIELDMACE stores it in the save directory between calls).
 """
 import os
 from typing import Dict, List, Optional, Union
@@ -25,10 +40,22 @@ from mace.calculators.mace import MACECalculator
 
 HARTREE_PER_EV = 1.0 / 27.211386245988
 BOHR_PER_ANGSTROM = 1.0 / 0.529177210903
+PROPERTIES = ("energy", "forces", "nacs", "dipoles", "socs")
 
 
 def _pairs(n: int):
     return [(i, j) for i in range(n) for j in range(i + 1, n)]
+
+
+def sharc_mstates(states: List[int]):
+    """SHARC's state list: (multiplicity, index within multiplicity (0-based), M_S) per M_S state."""
+    out = []
+    for i, n in enumerate(states):
+        mult = i + 1
+        for k in range(mult):
+            for j in range(n):
+                out.append((mult, j, k - i / 2.0))
+    return out
 
 
 class SharcCalculator:
@@ -36,7 +63,7 @@ class SharcCalculator:
         self,
         atom_types,
         modelpath: Union[str, List[str]],
-        device: str,
+        device: str = "cpu",
         cutoff: float = 10.0,
         n_states: Optional[Union[int, Dict[str, int]]] = None,
         properties: Optional[List[str]] = None,
@@ -47,18 +74,24 @@ class SharcCalculator:
         dipole_to_au: Optional[float] = None,
         soc_to_au: Optional[float] = None,
         mm_positions_in_angstrom: bool = True,
+        states: Optional[List[int]] = None,
     ):
         """
-        atom_types : chemical formula ("CH2O"), list of symbols, or atomic numbers of the QM atoms
+        atom_types : chemical formula ("CH2S"), list of symbols, or atomic numbers of the QM atoms
         modelpath  : FieldMACE model file(s); several files -> committee average
-        n_states   : number of states passed to SHARC (default: all states of the model)
+        states     : SHARC states [n_singlets, n_doublets, n_triplets, ...] (default: all model
+                     states as singlets). ``n_states`` (int or {"n_singlets", "n_triplets"}) is the
+                     older way of saying the same.
         properties : subset of ["energy", "forces", "nacs", "dipoles", "socs"]
         energy_unit / distance_unit : units the model was trained in ("eV"/"Hartree", "Angstrom"/"Bohr")
-        nac_to_au, dipole_to_au, soc_to_au : conversion of the model's NACs, dipoles and SOCs to atomic
-            units. Defaults assume NACs in 1/length, dipoles in e*length (model length unit) and SOCs
-            in the model energy unit. Set nac_to_au yourself for smooth NACs (NAC * dE).
+        nac_to_au, dipole_to_au, soc_to_au : conversion of the model's NACs, dipoles and SOCs to
+            atomic units. Defaults assume NACs in 1/length, dipoles in e*length (model length unit)
+            and SOCs in the model energy unit. Set nac_to_au yourself for smooth NACs (NAC * dE).
         mm_positions_in_angstrom : MM positions given to calculate() are in Angstrom (default) or bohr.
         """
+        energy_unit = {"ev": "eV", "hartree": "Hartree"}.get(str(energy_unit).lower(), energy_unit)
+        distance_unit = {"ang": "Angstrom", "angstrom": "Angstrom", "bohr": "Bohr"}.get(
+            str(distance_unit).lower(), distance_unit)
         energy_to_hartree = {"eV": HARTREE_PER_EV, "Hartree": 1.0}[energy_unit]
         bohr_to_model = {"Angstrom": 1.0 / BOHR_PER_ANGSTROM, "Bohr": 1.0}[distance_unit]
         self.energy_unit_conversion = energy_to_hartree
@@ -70,12 +103,19 @@ class SharcCalculator:
         self.mm_positions_in_angstrom = mm_positions_in_angstrom
 
         self.modelpath = modelpath
-        self.properties = list(properties) if properties is not None else ["energy", "forces"]
+        if properties and isinstance(properties[0], (list, tuple)):  # SHARC template parser nests lists
+            properties = list(properties[0])
+        self.properties = [p.lower() for p in (properties or ["energy", "forces"])]
+        self.properties = ["nacs" if "nac" in p else p for p in self.properties]
+        unknown = set(self.properties) - set(PROPERTIES)
+        if unknown:
+            raise ValueError(f"unknown properties {sorted(unknown)}; choose from {PROPERTIES}")
         if isinstance(atom_types, str):
             numbers = ase.Atoms(atom_types).get_atomic_numbers()
+        elif len(atom_types) and isinstance(atom_types[0], str):
+            numbers = ase.Atoms(symbols=[s.capitalize() for s in atom_types]).get_atomic_numbers()
         else:
-            numbers = ase.Atoms(symbols=list(atom_types)).get_atomic_numbers() if len(atom_types) and \
-                isinstance(atom_types[0], str) else np.asarray(atom_types, dtype=int)
+            numbers = np.asarray(atom_types, dtype=int)
         self.atom_types = np.asarray(numbers)
         self.molecule = ase.Atoms(numbers=self.atom_types)
         self.n_atoms = len(self.atom_types)
@@ -83,21 +123,69 @@ class SharcCalculator:
 
         self.calc = MACECalculator(model_paths=modelpath, device=device)
         model = self.calc.models[0]
-        self.n_total_states = int(getattr(model, "n_energies", 1))
-        if isinstance(n_states, dict):
-            n_states = n_states.get("n_singlets", self.n_total_states)
-        self.n_states = self.n_total_states if n_states is None else int(n_states)
-        if not 1 <= self.n_states <= self.n_total_states:
-            raise ValueError(f"n_states={self.n_states} but the model predicts {self.n_total_states}")
-        flags = {"nacs": "compute_nacs", "dipoles": "compute_dipoles", "socs": "compute_socs"}
-        for prop, flag in flags.items():
+        self.model = model
+        self.n_model_states = int(getattr(model, "n_energies", 1))
+        for prop, flag in {"nacs": "compute_nacs", "dipoles": "compute_dipoles", "socs": "compute_socs"}.items():
             if prop in self.properties and not getattr(model, flag, False):
                 raise ValueError(f"'{prop}' requested but the model was trained without {flag}")
+
+        if states is None:
+            if isinstance(n_states, dict):
+                states = [n_states.get("n_singlets", self.n_model_states), 0, n_states.get("n_triplets", 0)]
+            elif n_states is not None:
+                states = [int(n_states)]
+            else:
+                states = [self.n_model_states]
+        while len(states) > 1 and states[-1] == 0:
+            states = list(states[:-1])
+        self.states = [int(n) for n in states]
+        self.mstates = sharc_mstates(self.states)
+        self.nmstates = len(self.mstates)
+        self.nstates = sum(self.states)
+        self._setup_state_map()
         self.last_prediction: Optional[Dict[str, np.ndarray]] = None
 
     # ------------------------------------------------------------------ #
+    def _setup_state_map(self):
+        n_mod, n_sp, n_ms = self.n_model_states, self.nstates, self.nmstates
+        one_mult = sum(1 for n in self.states if n > 0) == 1
+        offsets = np.concatenate([[0], np.cumsum(self.states)])[:-1]
+        if n_mod == n_ms and n_ms != n_sp:
+            self.mode = "ms"
+            self.model_index = list(range(n_ms))
+        elif n_mod == n_sp or (one_mult and n_mod > n_sp):
+            self.mode = "spatial"
+            self.model_index = [int(offsets[m - 1] + j) for m, j, _ in self.mstates]
+        else:
+            raise ValueError(
+                f"SHARC states {self.states} ({n_sp} spatial, {n_ms} with M_S components) do not match "
+                f"the model's {n_mod} states. Train with n_energies = {n_sp} (spatial) or {n_ms} (M_S resolved)."
+            )
+        if "socs" in self.properties and getattr(self.model, "soc_layout", "pairs") == "pairs":
+            if self.mode == "spatial" and n_ms != n_sp:
+                raise ValueError(
+                    "Pair-wise SOCs of a spatial model cannot be distributed over M_S components. "
+                    f"Train an M_S-resolved model (n_energies={n_ms}) or a free-form SOC vector (--soc_num)."
+                )
+        if "socs" in self.properties and getattr(self.model, "soc_layout", "pairs") == "vector":
+            n = int(self.model.soc_group_size)
+            if n not in (n_ms * (n_ms - 1) // 2, n_ms * (n_ms - 1)):
+                raise ValueError(
+                    f"The model's SOC vector has {n} values; for {n_ms} SHARC states it needs "
+                    f"{n_ms * (n_ms - 1) // 2} (real upper triangle) or {n_ms * (n_ms - 1)} ((re, im) pairs)."
+                )
+        self._pair_index = {p: k for k, p in enumerate(_pairs(n_mod))}
+
+    def _coupled(self, a: int, b: int) -> bool:
+        """Do SHARC states a and b couple through NACs / transition dipoles?"""
+        if self.mode == "ms":
+            return True
+        (ma, _, sa), (mb, _, sb) = self.mstates[a], self.mstates[b]
+        return ma == mb and sa == sb
+
+    # ------------------------------------------------------------------ #
     def predict(self, sharc_coords, mm_positions=None, mm_charges=None) -> Dict[str, np.ndarray]:
-        """Predictions for the first n_states states (model units, phase-aligned to the last step)."""
+        """Model predictions (model units, model state order, phase-aligned to the last step)."""
         self.molecule.set_positions(np.asarray(sharc_coords, dtype=float).reshape(-1, 3) * self.distance_unit_conversion)
         info = {}
         if mm_positions is not None and mm_charges is not None and len(mm_charges) > 0:
@@ -108,21 +196,13 @@ class SharcCalculator:
         self.molecule.info = info
         self.calc.calculate(self.molecule)
         res = self.calc.results
-        k = self.n_states
-        keep = [n for n, (i, j) in enumerate(_pairs(self.n_total_states)) if j < k]
-        out = {"energy": res["energies"][:k], "forces": res["forces_all"][:, :k, :]}
-        if "mm_forces" in res:
-            out["mm_forces"] = res["mm_forces"][:, :k, :]
-        if "nacs" in res:
-            out["nacs"] = res["nacs"][:, keep, :]
-        if "dipoles" in res:
-            n_tot = self.n_total_states
-            out["dipoles"] = np.concatenate([res["dipoles"][:k], res["dipoles"][n_tot:][keep]], axis=0)
-        if "socs" in res:
-            out["socs"] = res["socs"][keep]
+        out = {"energy": np.asarray(res["energies"]), "forces": np.asarray(res["forces_all"])}
+        for key in ("mm_forces", "nacs", "dipoles", "socs"):
+            if key in res:
+                out[key] = np.asarray(res[key])
         if self.last_prediction is not None:
             for key in ("nacs", "dipoles", "socs"):
-                if key in out and key in self.last_prediction:
+                if key in out and key in self.last_prediction and np.shape(out[key]) == np.shape(self.last_prediction[key]):
                     out[key] = self._adjust_phase(key, self.last_prediction[key], out[key])
         self.last_prediction = out
         return out
@@ -132,51 +212,90 @@ class SharcCalculator:
         return self.get_qm(self.predict(sharc_coords, mm_positions, mm_charges))
 
     # ------------------------------------------------------------------ #
-    def get_qm(self, pred: Dict[str, np.ndarray]) -> Dict[str, list]:
-        S = self.n_states
-        h = np.diag(np.asarray(pred["energy"], dtype=complex) * self.energy_unit_conversion)
+    def get_qm(self, pred: Dict[str, np.ndarray], as_arrays: bool = False) -> Dict[str, list]:
+        M, idx = self.nmstates, self.model_index
+        h = np.diag(np.asarray(pred["energy"], dtype=complex)[idx] * self.energy_unit_conversion)
         if "socs" in self.properties and "socs" in pred:
-            for n, (i, j) in enumerate(_pairs(S)):
-                h[i, j] = pred["socs"][n] * self.soc_to_au
-                h[j, i] = np.conj(h[i, j])
-        qm_out = {"h": h.tolist()}
+            h = h + self._soc_matrix(pred["socs"])
+        out = {"h": h}
         if "forces" in self.properties:
-            qm_out["grad"] = (-np.transpose(pred["forces"], (1, 0, 2)) * self.gradient_conversion).tolist()
+            f = np.asarray(pred["forces"])  # [N, S_model, 3]
+            out["grad"] = -np.transpose(f[:, idx, :], (1, 0, 2)) * self.gradient_conversion
             if "mm_forces" in pred:
-                qm_out["grad_pc"] = (-np.transpose(pred["mm_forces"], (1, 0, 2)) * self.gradient_conversion).tolist()
+                fm = np.asarray(pred["mm_forces"])  # [Npc, S_model, 3]
+                out["grad_pc"] = -np.transpose(fm[:, idx, :], (1, 0, 2)) * self.gradient_conversion
         if "nacs" in self.properties and "nacs" in pred:
-            nac = np.zeros((S, S, self.n_atoms, 3))
-            for n, (i, j) in enumerate(_pairs(S)):
-                nac[i, j] = pred["nacs"][:, n] * self.nac_to_au
-                nac[j, i] = -nac[i, j]
-            qm_out["nacdr"] = nac.tolist()
+            nac = np.zeros((M, M, self.n_atoms, 3))
+            for a in range(M):
+                for b in range(a + 1, M):
+                    i, j = idx[a], idx[b]
+                    if i == j or not self._coupled(a, b):
+                        continue
+                    v = pred["nacs"][:, self._pair_index[(min(i, j), max(i, j))]] * self.nac_to_au
+                    nac[a, b] = v if i < j else -v
+                    nac[b, a] = -nac[a, b]
+            out["nacdr"] = nac
         if "dipoles" in self.properties and "dipoles" in pred:
-            dm = np.zeros((3, S, S))
-            for i in range(S):
-                dm[:, i, i] = pred["dipoles"][i] * self.dipole_to_au
-            for n, (i, j) in enumerate(_pairs(S)):
-                dm[:, i, j] = dm[:, j, i] = pred["dipoles"][S + n] * self.dipole_to_au
-            qm_out["dm"] = dm.tolist()
-        return qm_out
+            S = self.n_model_states
+            dm = np.zeros((3, M, M))
+            for a in range(M):
+                dm[:, a, a] = pred["dipoles"][idx[a]] * self.dipole_to_au
+                for b in range(a + 1, M):
+                    i, j = idx[a], idx[b]
+                    if i == j or not self._coupled(a, b):
+                        continue
+                    dm[:, a, b] = dm[:, b, a] = pred["dipoles"][S + self._pair_index[(min(i, j), max(i, j))]] * self.dipole_to_au
+            out["dm"] = dm
+        if as_arrays:
+            return out
+        return {k: v.tolist() for k, v in out.items()}
+
+    def _soc_matrix(self, socs: np.ndarray) -> np.ndarray:
+        M = self.nmstates
+        soc = np.zeros((M, M), dtype=complex)
+        iu = np.triu_indices(M, 1)
+        if getattr(self.model, "soc_layout", "pairs") == "vector":
+            v = np.asarray(socs, dtype=float).reshape(-1) * self.soc_to_au
+            soc[iu] = v if v.size == len(iu[0]) else v[0::2] + 1j * v[1::2]
+        else:  # one complex value per pair of (M_S-resolved) model states
+            v = np.asarray(socs).reshape(-1)
+            for a, b in zip(*iu):
+                i, j = self.model_index[a], self.model_index[b]
+                if i != j:
+                    val = v[self._pair_index[(min(i, j), max(i, j))]] * self.soc_to_au
+                    soc[a, b] = val if i < j else np.conj(val)
+        return soc + soc.conj().T
 
     # ------------------------------------------------------------------ #
     def _adjust_phase(self, key: str, previous: np.ndarray, current: np.ndarray) -> np.ndarray:
         """Flip the sign of every coupling whose overlap with the previous step is negative."""
         current = np.array(current, copy=True)
-        S = self.n_states
         if key == "nacs":  # [N, P, 3]
             for p in range(current.shape[1]):
                 if np.sum(previous[:, p] * current[:, p]) < 0:
                     current[:, p] *= -1
         elif key == "dipoles":  # [S + P, 3]; permanent dipoles have no phase
-            for p in range(S, current.shape[0]):
+            for p in range(self.n_model_states, current.shape[0]):
                 if np.dot(previous[p], current[p]) < 0:
                     current[p] *= -1
-        elif key == "socs":  # complex [P]
-            for p in range(current.shape[0]):
-                if np.real(np.conj(previous[p]) * current[p]) < 0:
-                    current[p] *= -1
+        elif key == "socs":
+            if np.iscomplexobj(current):  # pairs: complex [P]
+                for p in range(current.shape[0]):
+                    if np.real(np.conj(previous[p]) * current[p]) < 0:
+                        current[p] *= -1
+            elif np.dot(previous.reshape(-1), current.reshape(-1)) < 0:  # vector: one phase
+                current *= -1
         return current
+
+    def save_state(self, path: str) -> None:
+        """Store the last prediction (phase reference for the next step)."""
+        if self.last_prediction is not None:
+            np.savez(path, **self.last_prediction)
+
+    def load_state(self, path: str) -> None:
+        if os.path.isfile(path):
+            with np.load(path) as f:
+                self.last_prediction = {k: f[k] for k in f.files}
 
     def _check_modelpath(self) -> None:
         paths = [self.modelpath] if isinstance(self.modelpath, str) else self.modelpath

@@ -74,7 +74,7 @@ class AtomicData(torch_geometric.data.Data):
         nacs: Optional[torch.Tensor],
         num_mm: Optional[torch.Tensor] = None,  # [] number of MM charges
         mm_forces_weight: Optional[torch.Tensor] = None,  # []
-        socs: Optional[torch.Tensor] = None,  # [1, n_pairs, 2]
+        socs: Optional[torch.Tensor] = None,  # [1, n_soc_values] (2 per state pair by default)
         socs_weight: Optional[torch.Tensor] = None,  # []
     ):
         # Check shapes
@@ -237,9 +237,9 @@ class AtomicData(torch_geometric.data.Data):
         )
         socs_arr = getattr(config, "socs", None)
         socs = (
-            torch.tensor(np.asarray(socs_arr), dtype=dt).reshape(1, -1, 2)  # [1, P, 2]
+            torch.tensor(np.asarray(socs_arr), dtype=dt).reshape(1, -1)  # [1, n_soc_values]
             if socs_arr is not None and np.asarray(socs_arr).size > 0
-            else torch.zeros(1, n_pairs, 2, dtype=dt)
+            else torch.zeros(1, 2 * n_pairs, dtype=dt)
         )
         socs_weight = torch.tensor(
             float(getattr(config, "socs_weight", 1.0)) if socs_arr is not None else 0.0, dtype=dt

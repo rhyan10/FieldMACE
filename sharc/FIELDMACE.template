@@ -1,0 +1,11 @@
+# FieldMACE interface for SHARC 4 (see SHARC_FIELDMACE.py)
+model_file     /path/to/model.model
+# what the model predicts and SHARC should use (energy and forces are always needed)
+properties     energy forces nacs dipoles socs
+device         cpu
+# units the model was trained in
+energy_unit    eV
+distance_unit  Angstrom
+# optional conversions of the model's NACs / dipoles / SOCs to atomic units
+# (defaults: 1/Angstrom, e*Angstrom, eV; set nac_to_au for smooth NACs = NAC * dE)
+# nac_to_au     0.529177210903
