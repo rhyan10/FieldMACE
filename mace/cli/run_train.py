@@ -195,7 +195,7 @@ def run(args: argparse.Namespace) -> None:
         z_table = tools.get_atomic_number_table_from_zs(zs_list)
     # yapf: enable
     logging.info(f"Atomic Numbers used: {z_table.zs}")
-    print("Model:"+args.model)
+    logging.info(f"Model: {args.model}")
     if atomic_energies_dict is None or len(atomic_energies_dict) == 0:
         if args.E0s.lower() == "foundation":
             assert args.foundation_model is not None
@@ -353,7 +353,8 @@ def run(args: argparse.Namespace) -> None:
         energy_weight=args.energy_weight,
         forces_weight=args.forces_weight,
         dipoles_weight=args.dipoles_weight,
-        nacs_weight = args.nacs_weight,
+        nacs_weight=args.nacs_weight,
+        mm_forces_weight=args.mm_forces_weight,
     )
     
     if args.compute_avg_num_neighbors:
@@ -391,7 +392,8 @@ def run(args: argparse.Namespace) -> None:
         "virials": compute_virials,
         "stress": args.compute_stress,
         "dipoles": compute_dipole,
-        "nacs": compute_nacs
+        "nacs": compute_nacs,
+        "mm_forces": bool(float(loss_fn.mm_forces_weight) > 0),
     }
 
     logging.info(
@@ -437,6 +439,30 @@ def run(args: argparse.Namespace) -> None:
         )
     else:
         logging.info("Building model")
+        if args.foundation_model is not None:
+            # field models reuse the foundation's MACE layers: their shapes must match
+            fcfg = extract_config_mace_model(model_foundation)
+            if "error" not in fcfg:
+                matched = {
+                    "num_radial_basis": fcfg["num_bessel"],
+                    "num_cutoff_basis": int(fcfg["num_polynomial_cutoff"]),
+                    "max_ell": fcfg["max_ell"],
+                    "hidden_irreps": str(fcfg["hidden_irreps"]),
+                    "radial_type": fcfg["radial_type"],
+                    "radial_MLP": str(list(fcfg["radial_MLP"])),
+                    "num_interactions": fcfg["num_interactions"],
+                    "correlation": fcfg["correlation"],
+                }
+                for key, value in matched.items():
+                    current = getattr(args, key)
+                    if key == "hidden_irreps":
+                        same = o3.Irreps(str(current)) == o3.Irreps(value)
+                    else:
+                        same = str(current).replace(" ", "") == str(value).replace(" ", "")
+                    if not same:
+                        logging.warning(f"--{key}={getattr(args, key)} replaced by {value} to match the foundation model")
+                        setattr(args, key, value)
+                args.hidden_irreps = o3.Irreps(args.hidden_irreps)
         logging.info(
             f"Message passing with {args.num_channels} channels and max_L={args.max_L} ({args.hidden_irreps})"
         )
@@ -469,7 +495,6 @@ def run(args: argparse.Namespace) -> None:
     model: torch.nn.Module
 
     if args.model == "ExcitedMACE":
-        print(args)
         model = modules.ExcitedMACE(
             **model_config,
             pair_repulsion=args.pair_repulsion,
@@ -486,13 +511,13 @@ def run(args: argparse.Namespace) -> None:
             compute_nacs=args.compute_nacs,
             compute_dipoles=args.compute_dipoles,
         )
-    elif args.model == "FieldEMACE":
-        model = modules.FieldEMACE(
+    elif args.model in ("FieldEMACE", "PerAtomFieldEMACE", "AttentionPerAtomFieldEMACE"):
+        model = getattr(modules, args.model)(
             **model_config,
             pair_repulsion=args.pair_repulsion,
             n_energies=args.n_energies,
             distance_transform=args.distance_transform,
-            multipole_max_ell = args.multipole_max_ell,
+            multipole_max_ell=args.multipole_max_ell,
             correlation=args.correlation,
             gate=modules.gate_dict[args.gate],
             interaction_cls_first=modules.interaction_classes[
@@ -504,63 +529,9 @@ def run(args: argparse.Namespace) -> None:
             radial_type=args.radial_type,
             compute_nacs=args.compute_nacs,
             compute_dipoles=args.compute_dipoles,
-        )
-    elif args.model == "PerAtomFieldEMACE":
-        model = modules.PerAtomFieldEMACE(
-            **model_config,
-            pair_repulsion=args.pair_repulsion,
-            n_energies=args.n_energies,
-            distance_transform=args.distance_transform,
-            multipole_max_ell = args.multipole_max_ell,
-            correlation=args.correlation,
-            gate=modules.gate_dict[args.gate],
-            interaction_cls_first=modules.interaction_classes[
-                "RealAgnosticInteractionBlock"
-            ],
-            MLP_irreps=o3.Irreps(args.MLP_irreps),
-            field_irreps=o3.Irreps(args.field_irreps),
-            radial_MLP=ast.literal_eval(args.radial_MLP),
-            radial_type=args.radial_type,
-            compute_nacs=args.compute_nacs,
-            compute_dipoles=args.compute_dipoles,
-        )
-    elif args.model == "AttentionPerAtomFieldEMACE":
-        model = modules.AttentionPerAtomFieldEMACE(
-            **model_config,
-            pair_repulsion=args.pair_repulsion,
-            n_energies=args.n_energies,
-            distance_transform=args.distance_transform,
-            multipole_max_ell = args.multipole_max_ell,
-            correlation=args.correlation,
-            gate=modules.gate_dict[args.gate],
-            interaction_cls_first=modules.interaction_classes[
-                "RealAgnosticInteractionBlock"
-            ],
-            MLP_irreps=o3.Irreps(args.MLP_irreps),
-            field_irreps=o3.Irreps(args.field_irreps),
-            radial_MLP=ast.literal_eval(args.radial_MLP),
-            radial_type=args.radial_type,
-            compute_nacs=args.compute_nacs,
-            compute_dipoles=args.compute_dipoles,
-        )
-    elif args.model == "AttentionFieldEMACE":
-        model = modules.AttentionFieldEMACE(
-            **model_config,
-            pair_repulsion=args.pair_repulsion,
-            n_energies=args.n_energies,
-            distance_transform=args.distance_transform,
-            multipole_max_ell = args.multipole_max_ell,
-            correlation=args.correlation,
-            gate=modules.gate_dict[args.gate],
-            interaction_cls_first=modules.interaction_classes[
-                "RealAgnosticInteractionBlock"
-            ],
-            MLP_irreps=o3.Irreps(args.MLP_irreps),
-            field_irreps=o3.Irreps(args.field_irreps),
-            radial_MLP=ast.literal_eval(args.radial_MLP),
-            radial_type=args.radial_type,
-            compute_nacs=args.compute_nacs,
-            compute_dipoles=args.compute_dipoles,
+            multipole_embedding=args.multipole_embedding,
+            num_multipole_basis=args.num_multipole_basis,
+            expansion_centre=args.expansion_centre,
         )
     else:
         raise RuntimeError(f"Unknown model: '{args.model}'")
@@ -582,75 +553,37 @@ def run(args: argparse.Namespace) -> None:
     if args.ema:
         logging.info(f"Using Exponential Moving Average with decay: {args.ema_decay}")
     logging.info(
-        f"Number of gradient updates: {int(args.max_num_epochs*len(collections.train)/args.batch_size)}"
+        f"Number of gradient updates: {int(args.max_num_epochs*len(train_set)/args.batch_size)}"
     )
     logging.info(f"Learning rate: {args.lr}, weight decay: {args.weight_decay}")
     logging.info(loss_fn)
 
-    # Optimizer
-    decay_interactions = {}
-    no_decay_interactions = {}
-    for name, param in model.interactions.named_parameters():
-        if "linear.weight" in name or "skip_tp_full.weight" in name:
-            decay_interactions[name] = param
-        else:
-            no_decay_interactions[name] = param
-
-    field_decay_interactions = {}
-    field_no_decay_interactions = {}
-    if args.model != "ExcitedMACE":
-        for name, param in model.field_interactions.named_parameters():
-            if "linear.weight" in name:
-                field_decay_interactions[name] = param
-            else:
-                field_no_decay_interactions[name] = param
-        radial_params = model.multipole_radial_embedding.parameters()
-        for j, params in enumerate(radial_params):
-            field_no_decay_interactions["radial"+str(j)] = params
-
+    # Optimizer: weight decay on the linear weights of interactions, field interactions and
+    # products (as in MACE); every other parameter (embeddings, multipole embedding,
+    # multipole linear_up, attention, readouts, ...) is trained without decay.
+    # The original FieldMACE left linear_up and the attention blocks out of the optimizer,
+    # so they were never trained.
+    decay_params, no_decay_params = [], []
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+        decayed = (
+            (name.startswith("interactions.") and ("linear.weight" in name or "skip_tp_full.weight" in name))
+            or (name.startswith("field_interactions.") and "linear.weight" in name)
+            or name.startswith("products.")
+        )
+        (decay_params if decayed else no_decay_params).append(param)
+    n_grouped = len(decay_params) + len(no_decay_params)
+    assert n_grouped == sum(1 for p in model.parameters() if p.requires_grad), "parameter missing from optimizer"
     param_options = dict(
         params=[
-            {
-                "name": "embedding",
-                "params": model.node_embedding.parameters(),
-                "weight_decay": 0.0,
-            },
-            {
-                "name": "interactions_decay",
-                "params": list(decay_interactions.values()),
-                "weight_decay": args.weight_decay,
-            },
-            {
-                "name": "interactions_no_decay",
-                "params": list(no_decay_interactions.values()),
-                "weight_decay": 0.0,
-            },
-            {
-                "name": "field_interactions_decay",
-                "params": list(field_decay_interactions.values()),
-                "weight_decay": args.weight_decay,
-            },
-            {
-                "name": "field_interactions_no_decay",
-                "params": list(field_no_decay_interactions.values()),
-                "weight_decay": 0.0,
-            },
-            {
-                "name": "products",
-                "params": model.products.parameters(),
-                "weight_decay": args.weight_decay,
-            },
-            {
-                "name": "readouts",
-                "params": model.readouts.parameters(),
-                "weight_decay": 0.0,
-            },
+            {"name": "decay", "params": decay_params, "weight_decay": args.weight_decay},
+            {"name": "no_decay", "params": no_decay_params, "weight_decay": 0.0},
         ],
         lr=args.lr,
         amsgrad=args.amsgrad,
         betas=(args.beta, 0.999),
     )
-    print(model)
     optimizer: torch.optim.Optimizer
     if args.optimizer == "adamw":
         optimizer = torch.optim.AdamW(**param_options)
@@ -938,7 +871,7 @@ def run(args: argparse.Namespace) -> None:
                         _extra_files=extra_files,
                     )
                 except Exception as e:  # pylint: disable=W0703
-                    pass
+                    logging.warning(f"Could not save a TorchScript-compiled model: {e}")
             else:
                 torch.save(model, Path(args.model_dir) / (args.name + ".model"))
                 try:
@@ -953,7 +886,7 @@ def run(args: argparse.Namespace) -> None:
                         _extra_files=extra_files,
                     )
                 except Exception as e:  # pylint: disable=W0703
-                    pass
+                    logging.warning(f"Could not save a TorchScript-compiled model: {e}")
 
         if args.distributed:
             torch.distributed.barrier()

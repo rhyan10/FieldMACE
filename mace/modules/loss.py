@@ -424,44 +424,67 @@ class WeightedEnergyForcesDipoleLoss(torch.nn.Module):
             f"forces_weight={self.forces_weight:.3f}, dipole_weight={self.dipole_weight:.3f})"
         )
 
+def _match(ref_t: torch.Tensor, pred_t: torch.Tensor, name: str) -> torch.Tensor:
+    """Bring labels to the prediction shape; fail loudly on a real mismatch (e.g. number of states)."""
+    if ref_t.shape == pred_t.shape:
+        return ref_t
+    if ref_t.numel() == pred_t.numel():
+        return ref_t.reshape(pred_t.shape)
+    raise ValueError(
+        f"{name}: labels have shape {tuple(ref_t.shape)} but the model predicts {tuple(pred_t.shape)}. "
+        "Does the number of states in the data match --n_energies?"
+    )
+
+
 class WeightedEnergyForcesNacsDipoleLoss(torch.nn.Module):
-    def __init__(self, energy_weight=1.0, forces_weight=1.0, dipoles_weight=1.0, nacs_weight=1.0) -> None:
+    """Loss for the (field) models: energies [B, n_states], forces [N, n_states, 3],
+    forces on the MM point charges [M, n_states, 3], optional NACs and dipoles.
+
+    Per-configuration weights (config_weight, config_energy_weight, config_forces_weight,
+    config_mm_forces_weight) are honoured, so configurations with missing labels (weight 0)
+    do not contribute.
+    """
+
+    def __init__(self, energy_weight=1.0, forces_weight=1.0, dipoles_weight=1.0, nacs_weight=1.0,
+                 mm_forces_weight=None) -> None:
         super().__init__()
+        dt = torch.get_default_dtype()
+        self.register_buffer("energy_weight", torch.tensor(energy_weight, dtype=dt))
+        self.register_buffer("forces_weight", torch.tensor(forces_weight, dtype=dt))
+        self.register_buffer("nacs_weight", torch.tensor(nacs_weight, dtype=dt))
+        self.register_buffer("dipoles_weight", torch.tensor(dipoles_weight, dtype=dt))
         self.register_buffer(
-            "energy_weight",
-            torch.tensor(energy_weight, dtype=torch.get_default_dtype()),
-        )
-        self.register_buffer(
-            "forces_weight",
-            torch.tensor(forces_weight, dtype=torch.get_default_dtype()),
-        )
-        self.register_buffer(
-            "nacs_weight",
-            torch.tensor(nacs_weight, dtype=torch.get_default_dtype()),
-        )
-        self.register_buffer(
-            "dipoles_weight",
-            torch.tensor(dipoles_weight, dtype=torch.get_default_dtype()),
+            "mm_forces_weight",
+            torch.tensor(forces_weight if mm_forces_weight is None else mm_forces_weight, dtype=dt),
         )
 
-    def forward(self, ref: Batch, pred: TensorDict, training = False,) -> torch.Tensor:
+    def forward(self, ref: Batch, pred: TensorDict, training=False) -> torch.Tensor:
+        n_atoms = ref.ptr[1:] - ref.ptr[:-1]
+        w_graph = ref.weight
+        e_ref = _match(ref["energy"], pred["energy"], "energy")
+        w_e = (w_graph * ref.energy_weight).unsqueeze(-1)
+        loss = self.energy_weight * torch.mean(w_e * torch.square(e_ref - pred["energy"]))
 
-        loss = self.energy_weight * mean_squared_error_energy(ref, pred)
+        if pred.get("forces") is not None and self.forces_weight > 0:
+            f_ref = _match(ref["forces"], pred["forces"], "forces")
+            w_f = torch.repeat_interleave(w_graph * ref.forces_weight, n_atoms)
+            w_f = w_f.view(-1, *([1] * (f_ref.dim() - 1)))
+            loss = loss + self.forces_weight * torch.mean(w_f * torch.square(f_ref - pred["forces"]))
 
-        if ref["energy"].shape == pred["energy"].shape:
-            loss += self.forces_weight * mean_squared_error_forces(ref, pred)
+        if pred.get("mm_forces") is not None and self.mm_forces_weight > 0 and ref["mm_forces"].numel() > 0:
+            fm_ref = _match(ref["mm_forces"], pred["mm_forces"], "mm_forces")
+            num_mm = ref["num_mm"].reshape(-1)
+            w_m = torch.repeat_interleave(w_graph * ref["mm_forces_weight"].reshape(-1), num_mm)
+            w_m = w_m.view(-1, *([1] * (fm_ref.dim() - 1)))
+            loss = loss + self.mm_forces_weight * torch.mean(w_m * torch.square(fm_ref - pred["mm_forces"]))
 
-        if ref["forces"].shape == pred["forces"].shape:
-            loss += self.nacs_weight * phase_rmse_loss(ref, pred)
+        if pred.get("nacs") is not None and ref["nacs"].shape == pred["nacs"].shape:
+            loss = loss + self.nacs_weight * phase_rmse_loss(ref, pred)
 
-        if torch.count_nonzero(ref["mm_forces"]) != 0 and pred["mm_forces"] != None:
-           loss += self.forces_weight * mean_squared_error_pc_forces(ref, pred)
-
-        if ref["dipoles"].shape == pred["dipoles"].shape:
-            loss += self.dipoles_weight * 1000 * weighted_mean_squared_error_dipole(ref, pred)
+        if pred.get("dipoles") is not None and ref["dipoles"].shape == pred["dipoles"].shape:
+            loss = loss + self.dipoles_weight * 1000 * weighted_mean_squared_error_dipole(ref, pred)
 
         return loss
-
 
     def __repr__(self):
         return (

@@ -1,3 +1,4 @@
+import logging
 import torch
 
 from mace.tools.utils import AtomicNumberTable
@@ -12,7 +13,7 @@ def load_foundations(
     """
     Load the foundations of a model into a model for fine-tuning.
     """
-    print(model)
+    logging.debug(model)
     assert model_foundations.r_max == model.r_max
     z_table = AtomicNumberTable([int(z) for z in model_foundations.atomic_numbers])
     new_z_table = table
@@ -129,5 +130,5 @@ def load_foundations(
             model_foundations.products[i].linear.weight.clone()
         )
     print("Foundational model transfered")
-    print(model)
+    logging.debug(model)
     return model

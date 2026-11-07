@@ -437,7 +437,7 @@ def compute_mean_std_atomic_inter_energy(
         )
         graph_sizes = batch.ptr[1:] - batch.ptr[:-1]
         avg_atom_inter_es_list.append(
-            (batch.energy - graph_e0s) / graph_sizes
+            (batch.energy.reshape(batch.num_graphs, -1) - graph_e0s.unsqueeze(-1)) / graph_sizes.unsqueeze(-1)
         )  # {[n_graphs], }
 
     avg_atom_inter_es = torch.cat(avg_atom_inter_es_list)  # [total_n_graphs]
@@ -457,7 +457,7 @@ def _compute_mean_std_atomic_inter_energy(
         src=node_e0, index=batch.batch, dim=-1, dim_size=batch.num_graphs
     )
     graph_sizes = batch.ptr[1:] - batch.ptr[:-1]
-    atom_energies = (batch.energy - graph_e0s) / graph_sizes
+    atom_energies = (batch.energy.reshape(batch.num_graphs, -1) - graph_e0s.unsqueeze(-1)) / graph_sizes.unsqueeze(-1)
     return atom_energies
 
 
@@ -478,7 +478,7 @@ def compute_mean_rms_energy_forces(
         ).unsqueeze(-1)
         graph_sizes = (batch.ptr[1:] - batch.ptr[:-1]).unsqueeze(-1)
         atom_energy_list.append(
-            (batch.energy - graph_e0s) / graph_sizes
+            (batch.energy.reshape(batch.num_graphs, -1) - graph_e0s.unsqueeze(-1)) / graph_sizes.unsqueeze(-1)
         )  # {[n_graphs], }
         forces_list.append(batch.forces)  # {[n_graphs*n_atoms,3], }
 
@@ -501,7 +501,7 @@ def _compute_mean_rms_energy_forces(
         src=node_e0, index=batch.batch, dim=-1, dim_size=batch.num_graphs
     )
     graph_sizes = batch.ptr[1:] - batch.ptr[:-1]
-    atom_energies = (batch.energy - graph_e0s) / graph_sizes  # {[n_graphs], }
+    atom_energies = (batch.energy.reshape(batch.num_graphs, -1) - graph_e0s.unsqueeze(-1)) / graph_sizes.unsqueeze(-1)  # {[n_graphs], }
     forces = batch.forces  # {[n_graphs*n_atoms,3], }
 
     return atom_energies, forces
@@ -538,7 +538,7 @@ def compute_statistics(
         )
         graph_sizes = batch.ptr[1:] - batch.ptr[:-1]
         atom_energy_list.append(
-            (batch.energy - graph_e0s) / graph_sizes
+            (batch.energy.reshape(batch.num_graphs, -1) - graph_e0s.unsqueeze(-1)) / graph_sizes.unsqueeze(-1)
         )  # {[n_graphs], }
         forces_list.append(batch.forces)  # {[n_graphs*n_atoms,3], }
 

@@ -273,6 +273,14 @@ def train_one_epoch(
             logger.log(opt_metrics)
 
 
+def _pc_kwargs(model: torch.nn.Module, output_args: Dict[str, bool]) -> Dict[str, bool]:
+    """Field models accept compute_pc_grads (forces on the MM point charges)."""
+    inner = model.module if hasattr(model, "module") else model
+    if hasattr(inner, "multipole_max_ell"):
+        return {"compute_pc_grads": bool(output_args.get("mm_forces", True))}
+    return {}
+
+
 def take_step(
     model: torch.nn.Module,
     loss_fn: torch.nn.Module,
@@ -293,6 +301,7 @@ def take_step(
         compute_force=output_args["forces"],
         compute_virials=output_args["virials"],
         compute_stress=output_args["stress"],
+        **_pc_kwargs(model, output_args),
     )
     loss = loss_fn(pred=output, ref=batch)
     loss.backward()
@@ -333,6 +342,7 @@ def evaluate(
             compute_force=output_args["forces"],
             compute_virials=output_args["virials"],
             compute_stress=output_args["stress"],
+            **_pc_kwargs(model, output_args),
         )
         avg_loss, aux = metrics(batch, output)
 
@@ -386,21 +396,30 @@ class MACELoss(Metric):
         self.total_loss += loss
         self.num_data += batch.num_graphs
 
+        n_atoms = batch.ptr[1:] - batch.ptr[:-1]
         if output.get("energy") is not None and batch.energy is not None:
-            self.E_computed += 1.0
-            self.delta_es.append(batch.energy - output["energy"])
-            self.delta_es_per_atom.append(
-                (batch.energy - output["energy"]) / (batch.ptr[1:] - batch.ptr[:-1]).unsqueeze(-1)
-            )
+            ref_e = batch.energy.reshape(output["energy"].shape)
+            keep = (batch.weight * batch.energy_weight) > 0  # configs with an energy label
+            if bool(keep.any()):
+                self.E_computed += 1.0
+                d = (ref_e - output["energy"])[keep]
+                self.delta_es.append(d)
+                self.delta_es_per_atom.append(d / n_atoms[keep].unsqueeze(-1))
         if output.get("forces") is not None and batch.forces is not None:
-            self.Fs_computed += 1.0
-            self.fs.append(batch.forces)
-            self.delta_fs.append(batch.forces - output["forces"])
+            ref_f = batch.forces.reshape(output["forces"].shape)
+            keep = torch.repeat_interleave((batch.weight * batch.forces_weight) > 0, n_atoms)
+            if bool(keep.any()):
+                self.Fs_computed += 1.0
+                self.fs.append(ref_f[keep])
+                self.delta_fs.append((ref_f - output["forces"])[keep])
 
-        if output.get("mm_forces") is not None and torch.count_nonzero(batch.mm_forces) != 0:
-            self.mm_forces_computed += 1.0
-            self.mm_forces.append(batch.mm_forces)
-            self.delta_mm_forces.append(batch.mm_forces - output["mm_forces"])
+        if output.get("mm_forces") is not None and batch.mm_forces.numel() > 0:
+            ref_mm = batch.mm_forces.reshape(output["mm_forces"].shape)
+            keep = torch.repeat_interleave(batch.mm_forces_weight.reshape(-1) > 0, batch.num_mm.reshape(-1))
+            if bool(keep.any()):
+                self.mm_forces_computed += 1.0
+                self.mm_forces.append(ref_mm[keep])
+                self.delta_mm_forces.append((ref_mm - output["mm_forces"])[keep])
 
         if output.get("stress") is not None and batch.stress is not None:
             self.stress_computed += 1.0

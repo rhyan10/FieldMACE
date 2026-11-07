@@ -155,7 +155,7 @@ def run(args: argparse.Namespace):
 
     # Data preparation
     collections, atomic_energies_dict = get_dataset_from_xyz(
-        work_dir=args.work_dir,
+        work_dir=getattr(args, "work_dir", "."),
         train_path=args.train_file,
         valid_path=args.valid_file,
         valid_fraction=args.valid_fraction,
@@ -166,7 +166,8 @@ def run(args: argparse.Namespace):
         forces_key=args.forces_key,
         stress_key=args.stress_key,
         virials_key=args.virials_key,
-        dipole_key=args.dipole_key,
+        dipoles_key=getattr(args, "dipole_key", getattr(args, "dipoles_key", "dipoles")),
+        nacs_key=getattr(args, "nacs_key", "nacs"),
         charges_key=args.charges_key,
     )
 
@@ -221,11 +222,12 @@ def run(args: argparse.Namespace):
 
         # save the statistics as a json
         statistics = {
-            "atomic_energies": str(atomic_energies_dict),
-            "avg_num_neighbors": avg_num_neighbors,
-            "mean": mean,
-            "std": std,
-            "atomic_numbers": str(z_table.zs),
+            # plain Python types: numpy >= 2 reprs (np.int64(1)) cannot be parsed back
+            "atomic_energies": str({int(z): float(e) for z, e in atomic_energies_dict.items()}),
+            "avg_num_neighbors": float(avg_num_neighbors),
+            "mean": float(mean),
+            "std": float(std),
+            "atomic_numbers": str([int(z) for z in z_table.zs]),
             "r_max": args.r_max,
         }
 

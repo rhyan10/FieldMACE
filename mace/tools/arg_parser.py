@@ -84,7 +84,7 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--log_level", help="log level", type=str, default="INFO")
 
-    parser.add_argument("--n_energies", help="Number of energies", type=int)
+    parser.add_argument("--n_energies", help="Number of electronic states (energies) per configuration", type=int, default=1)
 
     parser.add_argument(
         "--error_table",
@@ -113,10 +113,36 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         choices=[
             "ExcitedMACE",
             "FieldEMACE",
-            "AttentionFieldEMACE",
             "PerAtomFieldEMACE",
             "AttentionPerAtomFieldEMACE"
         ],
+    )
+    parser.add_argument(
+        "--multipole_embedding",
+        help="how the multipole features enter the network: 'equivariant' (default) or 'legacy' "
+        "(original FieldMACE behaviour, not rotationally invariant for multipole_max_ell >= 1)",
+        type=str,
+        default="equivariant",
+        choices=["equivariant", "legacy"],
+    )
+    parser.add_argument(
+        "--num_multipole_basis", help="number of Gaussian basis functions for the multipole embedding",
+        type=int, default=8,
+    )
+    parser.add_argument(
+        "--expansion_centre",
+        help="FieldEMACE only: expand the MM potential about the QM 'centroid' (translation invariant, "
+        "default) or the coordinate 'origin' (original behaviour)",
+        type=str,
+        default="centroid",
+        choices=["centroid", "origin"],
+    )
+    parser.add_argument(
+        "--mm_forces_weight",
+        help="weight of the loss on the forces acting on the MM point charges (default: same as --forces_weight; "
+        "0 disables that term and skips computing the MM forces)",
+        type=float,
+        default=None,
     )
     parser.add_argument(
         "--r_max", help="distance cutoff (in Ang)", type=float, default=5.0
@@ -245,31 +271,31 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--compute_avg_num_neighbors",
         help="normalization factor for the message",
-        type=bool,
+        type=str2bool,
         default=True,
     )
     parser.add_argument(
         "--compute_stress",
         help="Select True to compute stress",
-        type=bool,
+        type=str2bool,
         default=False,
     )
     parser.add_argument(
         "--compute_forces",
         help="Select True to compute forces",
-        type=bool,
+        type=str2bool,
         default=True,
     )
     parser.add_argument(
         "--compute_dipoles",
         help="Select True to compute dipoles",
-        type=bool,
+        type=str2bool,
         default=False,
     )
     parser.add_argument(
         "--compute_nacs",
         help="Select True to compute nacs",
-        type=bool,
+        type=str2bool,
         default=False,
     )
     # Dataset
@@ -308,7 +334,7 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--multi_processed_test",
         help="Boolean value for whether the test data was multiprocessed",
-        type=bool,
+        type=str2bool,
         default=False,
         required=False,
     )
@@ -322,7 +348,7 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         "--pin_memory",
         help="Pin memory for data loading",
         default=True,
-        type=bool,
+        type=str2bool,
     )
     parser.add_argument(
         "--atomic_numbers",
@@ -362,7 +388,7 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--keep_isolated_atoms",
         help="Keep isolated atoms in the dataset, useful for transfer learning",
-        type=bool,
+        type=str2bool,
         default=False,
     )
     parser.add_argument(
@@ -698,7 +724,7 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         "--num_process",
         help="The user defined number of processes to use, as well as the number of files created.",
         type=int,
-        default=int(os.cpu_count() / 4),
+        default=max(1, int((os.cpu_count() or 4) / 4)),
     )
     parser.add_argument(
         "--valid_fraction",
@@ -808,7 +834,7 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--shuffle",
         help="Shuffle the training dataset",
-        type=bool,
+        type=str2bool,
         default=True,
     )
     parser.add_argument(
@@ -818,6 +844,18 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         default=123,
     )
     return parser
+
+
+def str2bool(value) -> bool:
+    """argparse helper: 'type=bool' would turn the string 'False' into True."""
+    if isinstance(value, bool):
+        return value
+    v = str(value).strip().lower()
+    if v in ("yes", "true", "t", "y", "1"):
+        return True
+    if v in ("no", "false", "f", "n", "0"):
+        return False
+    raise argparse.ArgumentTypeError(f"expected a boolean, got '{value}'")
 
 
 def check_float_or_none(value: str) -> Optional[float]:
