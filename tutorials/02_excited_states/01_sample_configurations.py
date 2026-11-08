@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Step 1: sample thioformaldehyde (CH2S) in a droplet of 100 water molecules.
 

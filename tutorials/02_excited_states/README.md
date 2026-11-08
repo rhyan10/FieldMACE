@@ -1,5 +1,7 @@
 # Tutorial 02: excited states – energies, NACs, dipoles and SOCs
 
+*Author: Rhyan Barrett*
+
 You will train one FieldMACE model that predicts, for a QM region in the field of MM point charges:
 
 * the energies and forces of 4 states (S0, S1, T1, T2), including the forces on the point charges,

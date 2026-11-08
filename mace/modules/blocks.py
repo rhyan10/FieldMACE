@@ -1,6 +1,7 @@
 ###########################################################################################
 # Elementary Block for Building O(3) Equivariant Higher Order Message Passing Neural Network
 # Authors: Ilyes Batatia, Gregor Simm
+# Modified for FieldMACE by Rhyan Barrett
 # This program is distributed under the MIT License (see MIT.md)
 ###########################################################################################
 

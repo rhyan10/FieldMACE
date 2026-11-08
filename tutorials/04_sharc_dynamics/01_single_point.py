@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Step 1: one SHARC single point with FieldMACE, compared with the LVC reference.
 

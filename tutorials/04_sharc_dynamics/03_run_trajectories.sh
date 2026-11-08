@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 # Step 3: run all trajectories of a run directory.
 #
 #   bash 03_run_trajectories.sh runs/gas_FIELDMACE              # pysharc (fast, model stays loaded)

@@ -1,5 +1,7 @@
 # Tutorial 04: surface hopping with SHARC 4
 
+*Author: Rhyan Barrett*
+
 FieldMACE models drive SHARC 4 through the interface `sharc/SHARC_FIELDMACE.py`, in every mode SHARC
 offers:
 
@@ -25,8 +27,18 @@ sharc_tools.py             file formats (geom, veloc, input, output.lis)
 
 ## Step 0: installation
 
+No SHARC yet? `sharc/install_sharc4.sh` in the FieldMACE repository builds SHARC 4 with `sharc.x` and
+pysharc in a conda environment or in your virtual environment, and tests it:
+
 ```bash
-export SHARC=/path/to/sharc4/bin         # SHARC 4.0 or 4.1
+bash ../../sharc/install_sharc4.sh --env venv --venv /path/to/your/venv --prefix ~/software   # or --env conda
+source ~/software/sharc4/sharc_env.sh
+```
+
+With SHARC installed (by the script or otherwise):
+
+```bash
+export SHARC=/path/to/sharc4/bin         # SHARC 4.0 or 4.1 (sharc_env.sh sets this)
 bash 00_install.sh
 ```
 

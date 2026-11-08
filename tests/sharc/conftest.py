@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """SHARC 4 integration tests. They run only when SHARC 4 is available:
 
     export SHARC=/path/to/sharc4/bin      (SHARC_FIELDMACE.py linked or copied into it)

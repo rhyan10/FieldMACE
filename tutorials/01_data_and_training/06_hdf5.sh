@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 # Step 6 (optional): large data sets - preprocess to HDF5 once, then train from HDF5.
 #
 # For data sets that do not fit comfortably in memory, or for multi-GPU training, convert the

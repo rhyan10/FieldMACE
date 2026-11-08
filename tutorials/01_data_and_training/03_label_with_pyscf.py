@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Step 3: QM labels for every frame with PySCF (DFT in the field of the MM point charges).
 

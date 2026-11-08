@@ -168,7 +168,17 @@ qm_out = sc.calculate(coords_bohr, mm_positions_angstrom, mm_charges)
 | QM/MM with `SHARC_QMMM` | `qm-program FIELDMACE` in `QMMM.template`, e.g. with `mm-program openmm` | MM charges enter FieldMACE as point charges; `grad_pc` goes back to the MM atoms |
 | point charges in `QM.in` | `point_charges pc.txt` | |
 
-Install it by linking it into SHARC's `bin` directory, with FieldMACE in the same Python environment:
+**Installing SHARC 4.** `sharc/install_sharc4.sh` installs SHARC 4 with `sharc.x` and pysharc. It works in a conda environment (compilers and libraries from conda-forge) or in a Python virtual environment (system compilers or cluster modules). It also installs FieldMACE into that environment, links the interface, writes `sharc_env.sh` and runs a test trajectory:
+
+```bash
+bash sharc/install_sharc4.sh --env conda --conda-env sharc4 --prefix ~/software          # conda
+bash sharc/install_sharc4.sh --env venv --venv ../venv-fieldmace --prefix ~/software      # existing venv
+source ~/software/sharc4/sharc_env.sh                                                      # in every shell / job
+```
+
+See `bash sharc/install_sharc4.sh --help` for all options.
+
+**By hand.** Link the interface into SHARC's `bin` directory, with FieldMACE in the same Python environment:
 
 ```bash
 ln -s /path/to/FieldMACE/sharc/SHARC_FIELDMACE.py $SHARC/
@@ -290,6 +300,7 @@ sim.context.setParameter("fieldmace_state", 1)        # switch the driving elect
   * pysharc received zero gradients from float32 models; the calculator now always returns double precision.
   * `nac_type smooth` for models trained on (E_j − E_i) · NAC_ij.
   * SOC selection rules (on by default).
+  * `sharc/install_sharc4.sh` installs SHARC 4 (`sharc.x` + pysharc) in a conda environment or a virtual environment and tests it. It also fixes an upstream input-reader bug (an `intent(out)` status left unset) that made pysharc read no input once PyTorch was imported.
 * **SHARC 4.** The new interface `sharc/SHARC_FIELDMACE.py` replaces the unfinished `mace/calculators/sharcinterface.py`. It works with `sharc.x`, pysharc and `SHARC_QMMM` (e.g. with OpenMM), and handles multiplicities and point-charge gradients. SOCs can also be learned as a free-form vector (`--soc_num`, X-MACE layout).
 * **Repository cleanup.** Removed `build/`, `*.pyc`, editor swap files and the egg-info. Added `.gitignore`. Declared every dependency (tqdm, python-hostlist, torchmetrics, configargparse, h5py, …). The package is now `fieldmace` (2.3.0); the import name is still `mace`.
 * **Tests.** 120+ tests: invariances and equivariances (including NACs and dipoles), finite-difference forces, batching, padding, gas phase, coincident charges, single atoms, float32, TorchScript, every loss term including the phase-free ones, CLI training (xyz, HDF5, transfer learning, all properties), the ASE and SHARC calculators, SHARC 4 (`sharc.x`, pysharc, `SHARC_QMMM` with OpenMM) and OpenMM ML/MM.

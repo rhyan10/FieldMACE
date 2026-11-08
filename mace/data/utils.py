@@ -1,6 +1,7 @@
 ###########################################################################################
 # Data parsing utilities
 # Authors: Ilyes Batatia, Gregor Simm and David Kovacs
+# Modified for FieldMACE by Rhyan Barrett
 # This program is distributed under the MIT License (see MIT.md)
 ###########################################################################################
 

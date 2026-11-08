@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """SHARC 4 interface tests: QM.in -> QM.out, units, multiplicities, finite differences,
 SHARC_QMMM (FieldMACE + OpenMM) and surface-hopping dynamics with sharc.x."""
 import copy

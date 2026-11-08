@@ -1,5 +1,7 @@
 # FieldMACE tutorials
 
+*Author: Rhyan Barrett*
+
 Four tutorials, one folder each. Every folder has a `README.md` (the tutorial text), numbered
 scripts that do the work, and `tutorial.ipynb`, a notebook version of the same steps.
 
@@ -31,6 +33,8 @@ with TDDFT or CASSCF labels; only the QM step and the amount of data change.
 ```bash
 pip install -e ".[mlmm,test]"          # FieldMACE with OpenMM support
 pip install pyscf matplotlib jupyter   # PySCF (tutorial 01 labels), plots, notebooks
+bash sharc/install_sharc4.sh --env venv --prefix ~/software   # SHARC 4, if you don't have it (or --env conda)
+source ~/software/sharc4/sharc_env.sh  # sets SHARC, PYTHONPATH, LD_LIBRARY_PATH; or by hand:
 export SHARC=/path/to/sharc4/bin       # SHARC 4 for tutorials 02 (labels) and 04
 export PYTHONPATH=$SHARC/../lib:$SHARC:$SHARC/../pysharc:$PYTHONPATH
 export LD_LIBRARY_PATH=$SHARC/../lib:$LD_LIBRARY_PATH   # pysharc

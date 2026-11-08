@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Step 2: set up surface-hopping trajectories for SHARC 4.
 

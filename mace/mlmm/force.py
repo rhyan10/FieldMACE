@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 OpenMM force that evaluates a trained FieldMACE model (FieldEMACE or PerAtomFieldEMACE)
 on the QM region, embedded in the point charges of the MM region.

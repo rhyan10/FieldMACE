@@ -1,3 +1,6 @@
+# Based on MACE (https://github.com/ACEsuit/mace, MIT License; see LICENSE.md)
+# Modified for FieldMACE by Rhyan Barrett
+
 from .arg_parser import build_default_arg_parser, build_preprocess_arg_parser
 from .arg_parser_tools import check_args
 from .cg import U_matrix_real

@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """Interface tests with randomly initialised FieldMACE models.
 
 Run:  pytest -q tests/

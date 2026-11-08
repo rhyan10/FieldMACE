@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """NACs, dipoles and SOCs: model outputs, labels, phase-free losses, training and calculators."""
 import copy
 import os

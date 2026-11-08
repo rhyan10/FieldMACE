@@ -1,6 +1,7 @@
 ###########################################################################################
 # Training utils
 # Authors: David Kovacs, Ilyes Batatia
+# Modified for FieldMACE by Rhyan Barrett
 # This program is distributed under the MIT License (see MIT.md)
 ###########################################################################################
 

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Part 2: excited-state ML/MM MD with the 4-state model from tutorial 02 (CH2S in water).
 

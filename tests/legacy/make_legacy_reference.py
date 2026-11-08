@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """Reference data for test_original_pickles_reproduce_original_numbers.
 
 Run with the ORIGINAL FieldMACE (commit 5a50538) importable, in an empty directory:

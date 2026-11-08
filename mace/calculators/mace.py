@@ -1,6 +1,7 @@
 ###########################################################################################
 # The ASE Calculator for MACE
 # Authors: Ilyes Batatia, David Kovacs
+# Modified for FieldMACE by Rhyan Barrett
 # This program is distributed under the MIT License (see MIT.md)
 ###########################################################################################
 

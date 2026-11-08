@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 # Step 3: train a FieldMACE model for 4 states with NACs, dipoles and SOCs.
 #
 #   bash 03_train.sh                       # CPU, ~45 min with the defaults (120 epochs)

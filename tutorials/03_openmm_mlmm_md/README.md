@@ -1,5 +1,7 @@
 # Tutorial 03: ML/MM molecular dynamics in OpenMM
 
+*Author: Rhyan Barrett*
+
 FieldMACE runs inside OpenMM as an `openmm.PythonForce` (OpenMM ≥ 8.3). The model describes the QM region in
 the field of the MM point charges, and everything else is the force field. Any force field OpenMM reads
 works.

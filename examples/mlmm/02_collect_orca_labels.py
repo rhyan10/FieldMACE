@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Step 2: after running ORCA in every data/qm/frame_XXXXX/ (``orca qm.inp > qm.out``),
 collect energies, QM forces and point-charge forces into a FieldMACE training file.

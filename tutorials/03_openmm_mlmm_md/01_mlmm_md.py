@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Part 1: ML/MM molecular dynamics in OpenMM with the ground-state model from tutorial 01.
 

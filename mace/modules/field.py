@@ -1,5 +1,6 @@
 ###########################################################################################
 # FieldMACE: MACE for QM/MM - QM region embedded in the field of MM point charges
+# Author: Rhyan Barrett
 #
 # Version 2 of the field models. Compared with the original implementation:
 #   * MM point charges use a flat layout ("mm_positions" [sum M, 3], "mm_charges" [sum M],

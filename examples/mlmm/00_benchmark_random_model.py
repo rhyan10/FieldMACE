@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Test the interface without a trained model.
 

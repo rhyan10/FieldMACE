@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 The *embedding frame*: how raw simulation coordinates are turned into the
 inputs FieldMACE sees (QM positions, MM point-charge positions and charges).

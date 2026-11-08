@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Turn any OpenMM System (Amber, CHARMM, OPLS, GAFF, ...) into the MM part of an
 electrostatically embedded FieldMACE/MM system.

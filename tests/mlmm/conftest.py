@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 import os, sys, warnings
 import pytest
 warnings.filterwarnings("ignore")

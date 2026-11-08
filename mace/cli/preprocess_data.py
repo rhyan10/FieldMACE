@@ -1,3 +1,6 @@
+# Based on MACE (https://github.com/ACEsuit/mace, MIT License; see LICENSE.md)
+# Modified for FieldMACE by Rhyan Barrett
+
 # This file loads an xyz dataset and prepares
 # new hdf5 file that is ready for training with on-the-fly dataloading
 

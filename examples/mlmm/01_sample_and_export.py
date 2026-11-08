@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Step 1: sample QM/MM configurations with a classical force field and export them
 for QM labelling + FieldMACE training.

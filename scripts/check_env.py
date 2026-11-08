@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """Check that a FieldMACE environment is complete.
 
     python scripts/check_env.py            # login node (no GPU needed)

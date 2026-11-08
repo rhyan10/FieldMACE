@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """Small helpers for tests and benchmarks: randomly initialised field models and inputs."""
 from typing import List, Optional, Sequence
 

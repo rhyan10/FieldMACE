@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """End-to-end training through the command line (small, CPU, a few epochs)."""
 import os
 import subprocess

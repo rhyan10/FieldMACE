@@ -1,6 +1,7 @@
 ###########################################################################################
 # Script for evaluating configurations contained in an xyz file with a trained model
 # Authors: Ilyes Batatia, Gregor Simm
+# Modified for FieldMACE by Rhyan Barrett
 # This program is distributed under the MIT License (see MIT.md)
 ###########################################################################################
 

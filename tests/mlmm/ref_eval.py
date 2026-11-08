@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """Reference evaluation through FieldMACE's own data pipeline (used to validate the OpenMM path)."""
 import warnings; warnings.filterwarnings("ignore")
 import numpy as np, torch, ase

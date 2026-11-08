@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """Write tutorial.ipynb in every tutorial folder (the notebook version of the README + scripts).
 
     python tutorials/make_notebooks.py
@@ -43,6 +46,8 @@ def nb01():
     return [
         md("""
 # Tutorial 01: QM/MM training data from any force field, and training
+
+*Author: Rhyan Barrett*
 
 Alanine dipeptide in TIP3P water (Amber14). The QM region is the alanine side chain (CA, HA, CB, HB1–3),
 cut from the backbone, with two hydrogen link atoms. This notebook runs the same steps as the scripts in this
@@ -120,6 +125,8 @@ def nb02():
         md("""
 # Tutorial 02: excited states – energies, NACs, dipoles and SOCs
 
+*Author: Rhyan Barrett*
+
 CH₂S in a droplet of 100 waters (SHARC 4's QM/MM example). The labels come from SHARC's LVC model of CH₂S,
 which gives energies, gradients, NACs, dipoles and SOCs of S0, S1, T1, T2 in the field of the water charges.
 Steps 1–2 need SHARC 4 (`$SHARC`). Details: [README](README.md)."""),
@@ -175,6 +182,8 @@ def nb03():
         md("""
 # Tutorial 03: ML/MM molecular dynamics in OpenMM
 
+*Author: Rhyan Barrett*
+
 FieldMACE as an `openmm.PythonForce`, with any force field for the rest. Part 1 needs the model from tutorial 01,
 part 2 the model and `work/` files from tutorial 02. Details: [README](README.md)."""),
         code(SETUP),
@@ -214,6 +223,8 @@ def nb04():
     return [
         md("""
 # Tutorial 04: surface hopping with SHARC 4
+
+*Author: Rhyan Barrett*
 
 The CH₂S model from tutorial 02 in SHARC 4: single point, gas-phase and QM/MM (SHARC_QMMM + OpenMM)
 trajectories with pysharc or `sharc.x`, compared with the LVC reference. Details: [README](README.md)."""),

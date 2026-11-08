@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """Small helpers shared by the SHARC tutorial scripts (SHARC 4 file formats)."""
 import glob
 import os

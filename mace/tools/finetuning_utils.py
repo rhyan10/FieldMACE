@@ -1,3 +1,6 @@
+# Based on MACE (https://github.com/ACEsuit/mace, MIT License; see LICENSE.md)
+# Modified for FieldMACE by Rhyan Barrett
+
 import logging
 import torch
 

@@ -1,5 +1,7 @@
 # Tutorial 01: QM/MM training data from any force field, and training
 
+*Author: Rhyan Barrett*
+
 You will
 
 1. build a classical OpenMM system with any force field and choose a QM region (with link atoms),

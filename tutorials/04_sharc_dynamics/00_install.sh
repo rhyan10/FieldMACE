@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 # Step 0: make FieldMACE known to SHARC 4 and check the installation.
 #
 #   export SHARC=/path/to/sharc4/bin       # (or: source /path/to/sharc4/bin/sharcvars.sh)

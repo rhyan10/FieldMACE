@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """Physics and edge-case tests for the field models (random weights, float64)."""
 import math
 import os

@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 Step 3: FieldMACE/MM molecular dynamics with the trained model and the same force field.
 

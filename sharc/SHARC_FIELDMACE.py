@@ -2,6 +2,7 @@
 # ******************************************
 #
 #    SHARC 4 interface for FieldMACE
+#    Author: Rhyan Barrett
 #
 #    FieldMACE (https://github.com/rhyan10/FieldMACE) predicts energies, gradients,
 #    non-adiabatic couplings, dipoles and spin-orbit couplings of a QM region in the

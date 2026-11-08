@@ -1,6 +1,7 @@
 ###########################################################################################
 # Atomic Data Class for handling molecules as graphs
 # Authors: Ilyes Batatia, Gregor Simm
+# Modified for FieldMACE by Rhyan Barrett
 # This program is distributed under the MIT License (see MIT.md)
 ###########################################################################################
 

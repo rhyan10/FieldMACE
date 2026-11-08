@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """Data parsing, batching, HDF5 and loss edge cases."""
 import ase
 import ase.io

@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 SHARC interface for FieldMACE: energies, gradients, NACs, dipoles and SOCs of a QM region
 embedded in MM point charges, returned in SHARC's QM.out layout (atomic units).

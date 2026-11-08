@@ -1,3 +1,6 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 """
 FieldMACE / MM simulations in OpenMM with any force field, and training-data export.
 

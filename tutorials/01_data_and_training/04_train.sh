@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+
 # Step 4: train ground-state FieldMACE models on the PySCF data.
 #
 #   bash 04_train.sh                          # both models, CPU (~15 min each with the defaults)
