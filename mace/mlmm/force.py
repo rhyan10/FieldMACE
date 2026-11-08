@@ -16,6 +16,9 @@ avoiding a neighbour-list rebuild (and a GPU->CPU synchronisation) every step.
 Properties: if the model predicts them, ``computation.last`` also holds "dipoles" [S+P, 3]
 (e*Angstrom), "socs" [P, 2] and "nacs" [N_model_atoms, P, 3] of the last evaluation.
 
+Diabatic models (--diabatic=True): the force uses the adiabatic energies, the eigenvalues of the
+predicted diabatic Hamiltonian, with exact gradients through the diagonalisation.
+
 Multi-state: the electronic state that drives the dynamics is the global context parameter
 ``fieldmace_state`` and can be changed during a run with
 ``context.setParameter("fieldmace_state", k)``. The energies of all states from the last
@@ -83,7 +86,8 @@ class FieldMACEComputation:
         self.spec = spec
         self.settings = settings
         self.frame = EmbeddingFrame(spec, settings)
-        self.n_states = int(getattr(self.model, "n_energies", 1))
+        self.diabatic = bool(getattr(self.model, "diabatic", False))
+        self.n_states = int(getattr(self.model, "n_states", getattr(self.model, "n_energies", 1)))
         self.state = self._check_state(state)
         self.energy_scale = float(energy_scale)
         self.length_scale = float(length_scale)
@@ -160,10 +164,17 @@ class FieldMACEComputation:
         ls = self.length_scale
         data = self.build_input(qm_pos * ls, mm_pos * ls, mm_q)
         out = self.model(data, training=False, compute_force=False, compute_pc_grads=False)
-        energies = out["energy"].reshape(-1)
+        if self.diabatic:  # adiabatic energies = eigenvalues of the diabatic Hamiltonian (differentiable)
+            from mace.tools.diabatic import adiabatic_energies_torch
+
+            energies = adiabatic_energies_torch(out["energy"], self.n_states).reshape(-1)
+        else:
+            energies = out["energy"].reshape(-1)
         (grad,) = torch.autograd.grad(energies[s], pos)
         e_all = energies.detach().cpu().numpy() - self.e0
         self.last = {"energies": e_all, "state": s, "n_mm_charges": int(mm_q.shape[0])}
+        if self.diabatic:
+            self.last["diabatic_hamiltonian"] = out["energy"].detach().cpu().numpy().reshape(-1)
         for key in ("dipoles", "socs", "nacs"):  # excited-state properties, if the model has them
             if out.get(key) is not None:
                 v = out[key].detach().cpu().numpy()
@@ -175,13 +186,19 @@ class FieldMACEComputation:
         s = self.state
         if STATE_PARAMETER in params:
             s = self._check_state(params[STATE_PARAMETER])
-        pos = state.getPositions(asNumpy=True).value_in_unit(unit.nanometer) * NM_TO_A
+        pos = np.asarray(state.getPositions(asNumpy=True).value_in_unit(unit.nanometer)) * NM_TO_A
         box = None
         if self.spec.periodic:
             box = state.getPeriodicBoxVectors(asNumpy=True).value_in_unit(unit.nanometer) * NM_TO_A
-        e, g = self.evaluate(np.asarray(pos), None if box is None else np.asarray(box), state=s)
+        full = getattr(self, "all_particles", False)  # OpenMM < 8.6: the state holds every particle
+        e, g = self.evaluate(pos[self.frame.particles] if full else pos, None if box is None else np.asarray(box),
+                             state=s)
         energy = e * self.energy_scale  # kJ/mol
         forces = -g * self.energy_scale * NM_TO_A  # kJ/mol/nm
+        if full:
+            f = np.zeros_like(pos)
+            f[self.frame.particles] = forces
+            forces = f
         return energy, forces
 
     # PythonForce pickles the computation for XmlSerializer: store the path, not the weights
@@ -193,11 +210,13 @@ class FieldMACEComputation:
             "state": self.state, "device": self.device, "dtype": self.dtype_arg,
             "energy_scale": self.energy_scale, "length_scale": self.length_scale,
             "subtract_e0": self.subtract_e0, "static_graph": self.static_graph_arg,
+            "all_particles": getattr(self, "all_particles", False),
         }
 
     def __setstate__(self, d):
         self.__init__(d["model_path"], d["spec"], d["settings"], d["state"], d["device"], d["dtype"],
                       d["energy_scale"], d["length_scale"], d["subtract_e0"], d.get("static_graph", "auto"))
+        self.all_particles = d.get("all_particles", False)
 
 
 def create_fieldmace_force(
@@ -210,8 +229,11 @@ def create_fieldmace_force(
     if not hasattr(mm, "PythonForce"):
         raise RuntimeError("openmm.PythonForce requires OpenMM >= 8.3")
     comp = FieldMACEComputation(model, spec, settings, **kwargs)
+    # OpenMM >= 8.6: the force sees only its particles; 8.3-8.5: all particles, the computation picks its own
+    comp.all_particles = not hasattr(mm.PythonForce, "setParticles")
     force = mm.PythonForce(comp, {STATE_PARAMETER: float(comp.state)})
-    force.setParticles(comp.frame.particles)
+    if not comp.all_particles:
+        force.setParticles(comp.frame.particles)
     force.setUsesPeriodicBoundaryConditions(spec.periodic)
     force.setForceGroup(force_group)
     force.setName("FieldMACE")
@@ -227,14 +249,29 @@ def create_fieldmace_mm_system(
     settings: EmbeddingSettings = EmbeddingSettings(),
     force_group: int = 0,
     model_kwargs: Optional[dict] = None,
+    backend: str = "python",
     **prepare_kwargs,
 ):
     """One call: any OpenMM System + QM atom list + FieldMACE model -> ML/MM System.
 
-    Returns (system, spec, computation). ``prepare_kwargs`` are passed to
-    :func:`prepare_qmmm_system` (link_atoms, link_charge_scheme, ...).
+    backend="python" (default): openmm.PythonForce, returns (system, spec, computation); the
+    computation holds the energies and properties of the last step (``computation.last``).
+    backend="torch": openmmtorch.TorchForce (model in libtorch, no Python per step; needs
+    openmm-torch from conda-forge), returns (system, spec, force).
+
+    ``prepare_kwargs`` are passed to :func:`prepare_qmmm_system` (link_atoms, link_charge_scheme, ...).
     """
     new, spec = prepare_qmmm_system(system, qm_atoms, topology=topology, **prepare_kwargs)
+    if backend == "torch":
+        from .torchforce import create_fieldmace_torchforce
+
+        kw = dict(model_kwargs or {})
+        kw.pop("device", None)  # the OpenMM platform decides
+        force = create_fieldmace_torchforce(model, spec, settings, force_group, **kw)
+        new.addForce(force)
+        return new, spec, force
+    if backend != "python":
+        raise ValueError("backend must be 'python' or 'torch'")
     force = create_fieldmace_force(model, spec, settings, force_group, **(model_kwargs or {}))
     new.addForce(force)
     return new, spec, force._computation

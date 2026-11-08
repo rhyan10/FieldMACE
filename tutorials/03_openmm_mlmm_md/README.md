@@ -2,7 +2,7 @@
 
 *Author: Rhyan Barrett*
 
-FieldMACE runs inside OpenMM as an `openmm.PythonForce` (OpenMM ≥ 8.3). The model describes the QM region in
+FieldMACE runs inside OpenMM as an `openmm.PythonForce` (OpenMM ≥ 8.3), or as an `openmmtorch.TorchForce`. The model describes the QM region in
 the field of the MM point charges, and everything else is the force field. Any force field OpenMM reads
 works.
 
@@ -10,6 +10,7 @@ works.
 01_mlmm_md.py          ground state: alanine side chain in water (model from tutorial 01), NVT + NVE
 02_multistate_md.py    excited states: CH2S in water (model from tutorial 02), switching states, all-state energies
 03_active_learning.py  find configurations the model is unsure about, for the next round of training
+04_active_learning_loop.sh  the automated loop: train committee, ML/MM MD, select, label (PySCF), repeat
 ```
 
 ---
@@ -71,6 +72,29 @@ positions); `energy_scale` and `length_scale` in `model_kwargs` cover models tra
 **Serialization.** The force pickles the model *path* (not the weights), so `XmlSerializer` and
 checkpoints work when the model is given as a file.
 
+**TorchForce backend.** `python 01_mlmm_md.py --backend torch` runs the model as an `openmmtorch.TorchForce`
+instead: TorchScript in libtorch, with no Python call per step. The device follows the OpenMM platform (CUDA
+platform, GPU). Install it from conda-forge, together with PyTorch from conda-forge:
+
+```bash
+conda install -c conda-forge openmm-torch "pytorch=*=cuda*"   # or =cpu* without a GPU
+```
+
+```python
+system, spec, force = create_fieldmace_mm_system(mm_system, qm_atoms, "model.model", topology=top,
+                                                 settings=settings, backend="torch")
+```
+
+Energies and forces are identical to the PythonForce, and `fieldmace_state` works the same way. Only
+`computation.last`, the per-step energies of all states, is not available, so for multi-state reporting use
+the default backend. On a CPU both backends take the same time (the model dominates). The TorchForce helps
+on GPUs and for running without Python.
+`mace.mlmm.export_torchscript(model, spec, "fieldmace_qmmm.pt")` writes the complete ML/MM potential as one
+TorchScript file for other programs.
+
+**OpenMM versions.** OpenMM 8.6 passes the force only its own particles. 8.3–8.5 pass all of them, and the
+force then picks its own. Both work.
+
 ## Part 2: excited states, switching states
 
 ```bash
@@ -110,3 +134,37 @@ and writes the frames with the largest disagreement to `work/al_candidates.xyz`.
 set and retrain. Repeat until the committee agrees along your production trajectories. A committee of
 the same architecture with different seeds (`SEED=2 bash 04_train.sh`) is the usual choice.
 `MACECalculator` with several model paths returns `energy_var` and `forces_var` directly.
+
+## Part 4: the automated loop
+
+```bash
+bash 04_active_learning_loop.sh               # = fieldmace_active_learning --config al.yaml
+bash 04_active_learning_loop.sh --status
+```
+
+`fieldmace_active_learning` repeats part 3 until the committee agrees. Each round:
+
+1. **train** a committee (`committee_size` models, seeds 1, 2, …) on the current training set with the
+   `mace_run_train` flags in `train_args`;
+2. **sample**: ML/MM MD with the first model at each temperature in `sampling` (PythonForce, or
+   TorchForce with `backend: torch`). Frames are stored in the training format. A trajectory that blows
+   up stops; its frames up to then are kept;
+3. **select**: committee force disagreement per frame (max over atoms and states). Frames between
+   `force_std_min` and `force_std_max` are candidates; the most uncertain ones are taken, at least
+   `min_separation` frames apart. Above `force_std_max` the model is so far off that the geometry is
+   probably unphysical, so it is not labelled;
+4. **label** with `labeller`: `pyscf` (as in tutorial 01), `model:<path>` (a bigger model as the
+   reference), `file.py:function` or `module:function` (your QM code: frames in, labelled frames out,
+   see `mace/mlmm/labelers.py`), or `external`. With `external` the loop writes
+   `round_NN/candidates.xyz` and stops. Label them on your cluster, write `round_NN/labelled.xyz` and run
+   the same command again;
+5. **merge** into `round_NN/train.xyz`, the training set of the next round.
+
+It stops after `rounds` rounds, or when fewer than `converged_fraction` of the MD frames are uncertain.
+`state.json` in the work directory records the progress, so the loop resumes where it stopped (after a
+time limit, a crash or external labelling). `fieldmace_active_learning --example` prints an annotated
+configuration. For excited-state and diabatic models, the disagreement covers the forces of all states
+and `sampling.state` chooses the driving state.
+
+On a cluster, run each round as one job (`--rounds 1`), or split the labelling into its own job array with
+`labeller: external`.

@@ -50,6 +50,9 @@ def main():
     p.add_argument("--temperature", type=float, default=300.0)
     p.add_argument("--device", default=None, help="model device (default: cuda if available)")
     p.add_argument("--platform", default=None, help="OpenMM platform (default: fastest available)")
+    p.add_argument("--backend", choices=["python", "torch"], default="python",
+                   help="python: openmm.PythonForce; torch: openmmtorch.TorchForce (model in libtorch, needs "
+                        "openmm-torch from conda-forge)")
     a = p.parse_args()
     os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
 
@@ -62,9 +65,12 @@ def main():
     # 2. ML/MM system: one call
     system, spec, comp = create_fieldmace_mm_system(
         s.system, qm_atoms, a.model, topology=s.topology, settings=settings,
-        model_kwargs=dict(device=a.device), **prep_kw)
-    print(f"FieldMACE on {comp.device}, {len(spec.model_atomic_numbers)} atoms incl. {len(spec.link_atoms)} link "
-          f"atoms, model dtype {comp.dtype}")
+        model_kwargs=dict(device=a.device), backend=a.backend, **prep_kw)
+    if a.backend == "python":
+        print(f"FieldMACE (PythonForce) on {comp.device}, {len(spec.model_atomic_numbers)} atoms incl. "
+              f"{len(spec.link_atoms)} link atoms, model dtype {comp.dtype}")
+    else:  # comp is the TorchForce; the device follows the OpenMM platform
+        print(f"FieldMACE (TorchForce), {len(spec.model_atomic_numbers)} atoms incl. {len(spec.link_atoms)} link atoms")
 
     # 3. NVT
     dt = a.dt_fs * unit.femtosecond
@@ -87,8 +93,9 @@ def main():
     T = sim.context.getState(getEnergy=True).getKineticEnergy() / (0.5 * unit.MOLAR_GAS_CONSTANT_R * (
         3 * system.getNumParticles() - system.getNumConstraints() - 3))
     print(f"NVT {a.nvt_ps} ps on {sim.context.getPlatform().getName()}: {ms:.1f} ms/step, "
-          f"final T = {T.value_in_unit(unit.kelvin):.0f} K; last FieldMACE energy {comp.last['energies'][0]:.4f} eV, "
-          f"{comp.last['n_mm_charges']} point charges")
+          f"final T = {T.value_in_unit(unit.kelvin):.0f} K" + (
+              f"; last FieldMACE energy {comp.last['energies'][0]:.4f} eV, {comp.last['n_mm_charges']} point charges"
+              if a.backend == "python" else ""))
 
     # 4. NVE: total energy should be conserved (drift / fluctuation tell you dt is fine and the
     #    forces are consistent with the energy - including the link-atom and switching terms)

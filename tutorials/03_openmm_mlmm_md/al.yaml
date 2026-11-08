@@ -1,0 +1,52 @@
+# Automated active learning for the alanine side chain (tutorial 01's system and data).
+# Run:  fieldmace_active_learning --config al.yaml        (or bash 04_active_learning_loop.sh)
+# Paths are relative to this file.
+work_dir: work/al
+system:
+  pdb: ../01_data_and_training/inputs/aladip_solvated.pdb
+  forcefield: [amber14-all.xml, amber14/tip3p.xml]
+  cutoff_nm: 0.9
+setup: ../01_data_and_training/data/setup.json      # QM atoms, link atoms, embedding of the data
+initial_data: ../01_data_and_training/data/train.xyz
+test_file: ../01_data_and_training/data/test.xyz
+committee_size: 3
+train_args:                                          # as 01_data_and_training/04_train.sh
+  model: PerAtomFieldEMACE
+  n_energies: 1
+  multipole_max_ell: 2
+  E0s: average
+  r_max: 5.0
+  num_interactions: 2
+  correlation: 3
+  hidden_irreps: 32x0e + 32x1o
+  MLP_irreps: 32x0e
+  num_radial_basis: 8
+  energy_weight: 10
+  forces_weight: 100
+  mm_forces_weight: 100
+  batch_size: 10
+  lr: 0.01
+  max_num_epochs: 200
+  scheduler: ReduceLROnPlateau
+  lr_factor: 0.5
+  scheduler_patience: 10
+  ema: true
+  ema_decay: 0.99
+  valid_fraction: 0.1
+  error_table: EnergyNacsDipoleMAE
+  default_dtype: float32
+sampling:
+  temperatures: [300, 450]      # hotter than the data, to find the gaps sooner
+  n_frames: 40
+  every: 100                    # 50 fs between frames at 0.5 fs
+  dt_fs: 0.5
+selection:
+  n_select: 15
+  force_std_min: 0.05           # eV/A
+  force_std_max: 1.5
+  min_separation: 2
+labeller: pyscf                 # the method of the tutorial-01 data
+labeller_args: {xc: b3lyp, basis: 6-31g*}
+rounds: 4
+converged_fraction: 0.05
+device: cpu
