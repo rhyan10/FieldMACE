@@ -124,6 +124,7 @@ if [ "$ENV_TYPE" = conda ]; then
   ACTIVATE="eval \"\$(conda shell.bash hook)\" && conda activate $CONDA_ENV"
 else
   if [ -z "$VENV" ]; then VENV=${VIRTUAL_ENV:-$PREFIX/venv-sharc4}; fi
+  case "$VENV" in /*) ;; *) VENV=$PWD/$VENV ;; esac  # absolute: sharc_env.sh is sourced from anywhere
   if [ ! -f "$VENV/bin/activate" ]; then
     PY=${PYTHON:-python3}
     command -v "$PY" >/dev/null || die "$PY not found (use --python)"
@@ -134,7 +135,7 @@ else
   fi
   # shellcheck disable=SC1091
   source "$VENV/bin/activate"
-  python -m pip install -q --upgrade pip setuptools wheel
+  python -m pip install -q --upgrade pip  # not setuptools: an existing torch may pin it
   python -m pip install -q numpy scipy h5py matplotlib pyparsing pyyaml sympy numba ase openmm \
     pyscf opt_einsum threadpoolctl joblib
   [ $PYSHARC = 1 ] && python -m pip install -q netCDF4
