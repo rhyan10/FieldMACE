@@ -176,7 +176,7 @@ bash sharc/install_sharc4.sh --env venv --venv ../venv-fieldmace --prefix ~/soft
 source ~/software/sharc4/sharc_env.sh                                                      # in every shell / job
 ```
 
-See `bash sharc/install_sharc4.sh --help` for all options.
+See `bash sharc/install_sharc4.sh --help` for all options. On the ZIH clusters (TU Dresden), `bash sharc/install_sharc4_zih.sh` does the same with the right modules and adds them to `sharc_env.sh`.
 
 **By hand.** Link the interface into SHARC's `bin` directory, with FieldMACE in the same Python environment:
 
