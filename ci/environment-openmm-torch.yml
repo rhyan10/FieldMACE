@@ -1,0 +1,33 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+# conda environment for the TorchForce backend (openmm-torch is on conda-forge only and needs
+# PyTorch from conda-forge). Also a starting point for users:  mamba env create -f ci/environment-openmm-torch.yml
+name: fieldmace-omt
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pytorch=*=cpu*          # or =cuda* for GPUs
+  - openmm>=8.3
+  - openmm-torch
+  - openmmtools
+  - numpy
+  - scipy
+  - ase>=3.23
+  - matscipy
+  - h5py
+  - tqdm
+  - pyyaml
+  - prettytable
+  - configargparse
+  - opt_einsum
+  - matplotlib
+  - pandas
+  - pytest
+  - pip
+  - pip:
+      - e3nn==0.5.1
+      - opt_einsum_fx
+      - torch-ema
+      - torchmetrics
+      - python-hostlist

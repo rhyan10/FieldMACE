@@ -1,0 +1,40 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+# SHARC 4 integration tests: builds SHARC with sharc/install_sharc4.sh (about 15 min), then runs
+# tests/sharc. Weekly and on demand (Actions -> sharc -> Run workflow).
+name: sharc
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  sharc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          auto-activate-base: true
+      - name: Build SHARC 4 in a conda environment
+        run: bash sharc/install_sharc4.sh --env conda --conda-env sharc4 --prefix "$RUNNER_TEMP/sw" --no-fieldmace
+      - name: Install FieldMACE (CPU PyTorch) and link the interface
+        run: |
+          conda activate sharc4
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[mlmm,test]"
+          source "$RUNNER_TEMP/sw/sharc4/sharc_env.sh"
+          ln -sf "$PWD/sharc/SHARC_FIELDMACE.py" "$SHARC/SHARC_FIELDMACE.py"
+      - name: SHARC tests
+        env:
+          OMP_NUM_THREADS: 2
+        run: |
+          conda activate sharc4
+          source "$RUNNER_TEMP/sw/sharc4/sharc_env.sh"
+          pytest -q tests/sharc tests/test_diabatic.py --durations=15

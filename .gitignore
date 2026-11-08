@@ -18,3 +18,4 @@ valid_indices_*.txt
 *.model
 !mace/calculators/foundations_models/*.model
 *.pt
+site/

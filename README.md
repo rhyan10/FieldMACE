@@ -2,23 +2,31 @@
 
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![tests](https://github.com/rhyan10/FieldMACE/actions/workflows/tests.yml/badge.svg)](https://github.com/rhyan10/FieldMACE/actions/workflows/tests.yml)
+[![docs](https://github.com/rhyan10/FieldMACE/actions/workflows/docs.yml/badge.svg)](https://rhyan10.github.io/FieldMACE/)
 
 FieldMACE is a deep-learning framework for QM/MM data.
 
 * **Model.** It extends the Message Passing Atomic Cluster Expansion (MACE) architecture. A multipole expansion encodes the electrostatic field that the MM point charges create at the QM region.
-* **Outputs.** It predicts energies (ground and excited states), forces on the QM atoms and forces on the MM point charges. It can also predict non-adiabatic couplings, permanent and transition dipoles, and spin-orbit couplings.
-* **OpenMM.** It ships an OpenMM interface for ML/MM molecular dynamics with any OpenMM force field: Amber, CHARMM, OPLS, GAFF/OpenFF and others.
+* **Outputs.** It predicts energies (ground and excited states), forces on the QM atoms and forces on the MM point charges. It can also predict non-adiabatic couplings, permanent and transition dipoles, and spin-orbit couplings, or a **diabatic Hamiltonian** whose diagonalisation gives all of these.
+* **OpenMM.** It ships an OpenMM interface for ML/MM molecular dynamics with any OpenMM force field: Amber, CHARMM, OPLS, GAFF/OpenFF and others. The model runs as a `PythonForce` or as an openmm-torch `TorchForce`, and it can be exported as one TorchScript file.
+* **SHARC 4.** Surface hopping, in the gas phase and in QM/MM with `SHARC_QMMM`.
+* **Active learning.** `fieldmace_active_learning` automates committee training, ML/MM MD, selection and labelling.
+
+Documentation: [rhyan10.github.io/FieldMACE](https://rhyan10.github.io/FieldMACE/) (built from this README and the tutorials). Changes: [CHANGELOG.md](CHANGELOG.md).
 
 For the main MACE parameters see [ACEsuit/mace](https://github.com/ACEsuit/mace).
 
 Version 2 changes the default model behaviour; read [What changed in version 2](#what-changed-in-version-2) before comparing with results from version 1.
 
-**Tutorials.** [`tutorials/`](tutorials/) has four step-by-step tutorials, each a folder with a README, runnable scripts and a notebook:
+**Tutorials.** [`tutorials/`](tutorials/) has six step-by-step tutorials, each a folder with a README, runnable scripts and a notebook:
 
 1. QM/MM training data from any force field, and training;
 2. excited states (NACs, dipoles, SOCs);
-3. ML/MM MD in OpenMM;
-4. surface hopping with SHARC 4.
+3. ML/MM MD in OpenMM, and automated active learning;
+4. surface hopping with SHARC 4;
+5. diabatic states: learning the diabatic Hamiltonian, and SHARC dynamics with it;
+6. a ligand in a protein pocket (p-xylene in T4 lysozyme, explicit water).
 
 ---
 
@@ -155,6 +163,19 @@ qm_out = sc.calculate(coords_bohr, mm_positions_angstrom, mm_charges)
 * **Phase continuity.** Couplings are sign-aligned with the previous step, so they change smoothly along a trajectory.
 * **Unit conversions.** `nac_to_au`, `dipole_to_au` and `soc_to_au` set them; the defaults assume eV and Å.
 
+### Diabatic models
+
+`--diabatic=True --n_energies=S` trains a model of the diabatic Hamiltonian H(R, MM charges). It has S + S(S−1)/2 energy outputs, ordered `[H_00 … H_S−1,S−1, H_01, H_02, …, H_12, …]`, each with forces on the atoms and on the point charges (`REF_energy`, `REF_forces`, `REF_mm_forces` in that layout). Adiabatic quantities follow from diagonalisation, exactly:
+
+```
+H = U diag(E) Uᵀ,   dE_k/dR = (Uᵀ dH/dR U)_kk,   NAC d_kl = (Uᵀ dH/dR U)_kl / (E_l − E_k)
+```
+
+* **Symmetry.** Couplings between states of opposite mirror symmetry (n→π\* and π→π\*, A1 and A2, …) change sign when the environment is mirrored, so they are pseudoscalars. Diabatic models therefore add a pseudoscalar readout to the usual scalar one. `--diabatic_coupling_weight` (default 10) gives the small couplings enough weight in the loss.
+* **No NAC labels needed.** The model never sees NACs, so there are no phase problems. The 1/ΔE singularity at crossings is exact, not learned. NACs come out on the MM atoms too.
+* **Labels from adiabatic data.** `mace.tools.diabatic.labels_from_adiabatic(E, U, grad, nac, …)` turns energies, gradients, NACs and a diabatisation U from any QM method into labels.
+* **Where it works.** The ASE calculator, the SHARC interface (with `coupling ddr` or `coupling overlap`) and the OpenMM force all take diabatic models. See [tutorial 05](tutorials/05_diabatic_states/).
+
 ---
 
 ## Surface hopping with SHARC 4
@@ -270,7 +291,8 @@ sim.context.setParameter("fieldmace_state", 1)        # switch the driving elect
 * **Virtual sites.** These are handled, including the TIP4P M-site.
 * **Periodic boxes.** Point charges use the minimum image, with an optional smooth cutoff.
 * **Training data from the same setup.** `examples/mlmm/01–03` sample with a classical force field, write QM inputs (ORCA example), collect labels and run ML/MM MD. They use the same embedding frame (`setup.json`).
-* **Implementation.** It runs through `openmm.PythonForce`. OpenMM's TorchScript route (`TorchForce`) was tested and is not used: the PyPI openmm-torch 1.5 fails at runtime with recent PyTorch.
+* **Two backends.** The default is `openmm.PythonForce` (OpenMM ≥ 8.3, nothing else to install). With `backend="torch"`, the same model runs as an `openmmtorch.TorchForce` in libtorch, with no Python per step. It needs openmm-torch and PyTorch from conda-forge; the PyPI openmm-torch fails with recent PyTorch. Both give identical energies and forces.
+* **Other programs.** `mace.mlmm.export_torchscript(model, spec, "fieldmace_qmmm.pt")` writes the whole ML/MM potential (embedding frame, link atoms, cutoff, model, state selection) as one TorchScript file: positions in nm (plus the box, plus the state) in, energy in kJ/mol out. Any engine that takes a TorchScript potential can run it, as can OpenMM's C++ API.
 
 `examples/mlmm/00_benchmark_random_model.py --device cuda` measures ms/step and checks energy conservation without a trained model.
 
@@ -290,6 +312,14 @@ sim.context.setParameter("fieldmace_state", 1)        # switch the driving elect
 * **Attention models removed.** `AttentionFieldEMACE` (could not be constructed) and `AttentionPerAtomFieldEMACE` are gone, since neither is part of the publication. FieldMACE now has `FieldEMACE` (one multipole expansion) and `PerAtomFieldEMACE`.
 * **NACs, dipoles and SOCs.** These were never produced by the field models (the readouts returned `None`). They are now implemented, see [Excited-state properties](#excited-state-properties).
 
+**Version 2.4**
+
+* **Diabatic models.** See [Diabatic models](#diabatic-models). The SHARC interface diagonalises H every step and also gives NACs on MM atoms and wave-function overlaps.
+* **OpenMM.** A TorchForce backend (`backend="torch"`) and `export_torchscript`. OpenMM 8.3–8.5 work again.
+* **Active learning.** `fieldmace_active_learning`, an automated, resumable loop: committee → ML/MM MD → selection → labels.
+* **Tutorials.** 05 (diabatic states) and 06 (a ligand in a protein pocket).
+* **Infrastructure.** CI (GitHub Actions), PyPI releases on tags, and a documentation site. See [CHANGELOG.md](CHANGELOG.md).
+
 **Performance and functionality**
 
 * **Variable charge counts.** Frames in a batch may have different numbers of point charges, or none (flat MM layout with `num_mm`). The old padded `[B, M, 3]` input is still accepted.
@@ -302,7 +332,7 @@ sim.context.setParameter("fieldmace_state", 1)        # switch the driving elect
   * SOC selection rules (on by default).
   * `sharc/install_sharc4.sh` installs SHARC 4 (`sharc.x` + pysharc) in a conda environment or a virtual environment and tests it. It also fixes an upstream input-reader bug (an `intent(out)` status left unset) that made pysharc read no input once PyTorch was imported.
 * **SHARC 4.** The new interface `sharc/SHARC_FIELDMACE.py` replaces the unfinished `mace/calculators/sharcinterface.py`. It works with `sharc.x`, pysharc and `SHARC_QMMM` (e.g. with OpenMM), and handles multiplicities and point-charge gradients. SOCs can also be learned as a free-form vector (`--soc_num`, X-MACE layout).
-* **Repository cleanup.** Removed `build/`, `*.pyc`, editor swap files and the egg-info. Added `.gitignore`. Declared every dependency (tqdm, python-hostlist, torchmetrics, configargparse, h5py, …). The package is now `fieldmace` (2.3.0); the import name is still `mace`.
+* **Repository cleanup.** Removed `build/`, `*.pyc`, editor swap files and the egg-info. Added `.gitignore`. Declared every dependency (tqdm, python-hostlist, torchmetrics, configargparse, h5py, …). The package is `fieldmace`; the import name is still `mace`.
 * **Tests.** 120+ tests: invariances and equivariances (including NACs and dipoles), finite-difference forces, batching, padding, gas phase, coincident charges, single atoms, float32, TorchScript, every loss term including the phase-free ones, CLI training (xyz, HDF5, transfer learning, all properties), the ASE and SHARC calculators, SHARC 4 (`sharc.x`, pysharc, `SHARC_QMMM` with OpenMM) and OpenMM ML/MM.
 
 **Old models and data**

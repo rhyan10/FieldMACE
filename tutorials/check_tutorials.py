@@ -5,7 +5,7 @@
 """
 Run every step of every tutorial in a temporary copy and report what works.
 
-    python tutorials/check_tutorials.py              # tiny settings, ~20 min on 2 CPU cores
+    python tutorials/check_tutorials.py              # tiny settings, ~25 min on 2 CPU cores
     python tutorials/check_tutorials.py --full       # the tutorials' real settings (hours on a CPU)
     python tutorials/check_tutorials.py --notebooks  # also execute the notebooks (tiny settings)
     python tutorials/check_tutorials.py --only 01 03 # some tutorials only
@@ -46,6 +46,7 @@ def steps(full):
         ("03", "01_mlmm_md.py", ["--nvt-ps", "0.01", "--nve-ps", "0.01"] if q else [], {}, False),
         ("03", "02_multistate_md.py", ["--ps-per-segment", "0.005"] if q else [], {}, True),
         ("03", "03_active_learning.py", ["--n-frames", "4", "--every", "5", "--n-select", "2"] if q else [], {}, False),
+        ("03", "04_active_learning_loop.sh", [] if q else ["--rounds", "1"], {}, False),
         # tutorial 04: SHARC
         ("04", "00_install.sh", [], {}, True),
         ("04", "01_single_point.py", [], {}, True),
@@ -56,14 +57,41 @@ def steps(full):
         ("04", "02_setup_trajectories.py", ["--mode", "qmmm", "--interface", "FIELDMACE", "--ntraj", "1", "--tmax", "1" if q else "50"], {}, True),
         ("04", "03_run_trajectories.sh", ["runs/qmmm_FIELDMACE"], {}, True),
         ("04", "04_analyze.py", ["runs/gas_FIELDMACE", "runs/gas_LVC", "runs/qmmm_FIELDMACE"], {}, True),
+        # tutorial 05: diabatic states (SHARC for the labels and the dynamics)
+        ("05", "01_sample_configurations.sh", ["--n-frames", "80", "--equil-ps", "0.5", "--n-initconds", "4"] if q else [], {}, True),
+        ("05", "02_label_diabatic.py", [], {}, True),
+        ("05", "03_train.sh", [], tiny_train, True),
+        ("05", "04_evaluate.py", [], {}, True),
+        ("05", "05_sharc_dynamics.sh", [], {"NTRAJ": "1", "TMAX": "2"} if q else {}, True),
+        ("05", "05_sharc_dynamics.sh", [], {"NTRAJ": "1", "TMAX": "2", "MODES": "gas", "COUPLING": "overlap"} if q
+         else {"MODES": "gas", "COUPLING": "overlap"}, True),
+        # tutorial 06: ligand in a protein pocket (labels: tiny PySCF run into work/, training on the shipped data)
+        ("06", "01_prepare_system.py", ["--equil-ps", "0.2"] if q else [], {}, False),
+        ("06", "02_sample_configurations.py", ["--n-frames", "4", "--stride-ps", "0.02"] if q else [], {}, False),
+        ("06", "03_label_with_pyscf.py", ["--max-frames", "2", "--basis", "sto-3g", "--gas-fraction", "0",
+                                          "--out", "work/check_data", "--partial", "work/check_partial.xyz"] if q else [],
+         {}, False),
+        ("06", "04_train.sh", [], tiny_train, False),
+        ("06", "05_evaluate.py", [], {}, False),
+        ("06", "06_mlmm_md.py", ["--nvt-ps", "0.01", "--nve-ps", "0.01"] if q else [], {}, False),
     ]
 
 
-FOLDER = {"01": "01_data_and_training", "02": "02_excited_states", "03": "03_openmm_mlmm_md", "04": "04_sharc_dynamics"}
+FOLDER = {"01": "01_data_and_training", "02": "02_excited_states", "03": "03_openmm_mlmm_md", "04": "04_sharc_dynamics",
+          "05": "05_diabatic_states", "06": "06_ligand_in_pocket"}
 NEEDS = {  # (tutorial, script) -> earlier steps it depends on
     ("03", "01_mlmm_md.py"): [("01", "04_train.sh")],
     ("03", "03_active_learning.py"): [("01", "04_train.sh")],
+    ("03", "04_active_learning_loop.sh"): [("01", "04_train.sh")],
     ("03", "02_multistate_md.py"): [("02", "03_train.sh")],
+    ("05", "02_label_diabatic.py"): [("05", "01_sample_configurations.sh")],
+    ("05", "03_train.sh"): [("05", "02_label_diabatic.py")],
+    ("05", "04_evaluate.py"): [("05", "03_train.sh")],
+    ("05", "05_sharc_dynamics.sh"): [("05", "03_train.sh")],
+    ("06", "02_sample_configurations.py"): [("06", "01_prepare_system.py")],
+    ("06", "03_label_with_pyscf.py"): [("06", "02_sample_configurations.py")],
+    ("06", "05_evaluate.py"): [("06", "04_train.sh")],
+    ("06", "06_mlmm_md.py"): [("06", "04_train.sh"), ("06", "01_prepare_system.py")],
 }
 
 
@@ -71,7 +99,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--full", action="store_true")
     p.add_argument("--notebooks", action="store_true")
-    p.add_argument("--only", nargs="*", default=["01", "02", "03", "04"])
+    p.add_argument("--only", nargs="*", default=list(FOLDER))
     p.add_argument("--keep", action="store_true", help="keep the temporary copy")
     a = p.parse_args()
     have_sharc = bool(os.environ.get("SHARC"))
@@ -118,7 +146,7 @@ def main():
             nb = os.path.join(tmp, FOLDER[tut], "tutorial.ipynb")
             if not os.path.exists(nb):
                 continue
-            if tut in ("02", "04") and not have_sharc:
+            if tut in ("02", "04", "05") and not have_sharc:
                 results.append(("skip", f"{FOLDER[tut]}/tutorial.ipynb", "needs $SHARC", 0.0))
                 continue
             t0 = time.time()

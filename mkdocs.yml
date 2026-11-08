@@ -1,0 +1,50 @@
+# Author: Rhyan Barrett
+# Part of FieldMACE, distributed under the MIT License (see LICENSE.md)
+# Documentation site: pip install mkdocs-material && mkdocs serve
+# The pages are generated from README.md, CHANGELOG.md and the tutorial READMEs (docs/hooks.py).
+site_name: FieldMACE
+site_description: Equivariant ML potentials for a QM region embedded in MM point charges - OpenMM and SHARC interfaces
+site_author: Rhyan Barrett
+repo_url: https://github.com/rhyan10/FieldMACE
+repo_name: rhyan10/FieldMACE
+edit_uri: ""
+docs_dir: docs
+exclude_docs: |
+  hooks.py
+  __pycache__/
+hooks:
+  - docs/hooks.py
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+  palette:
+    - scheme: default
+      toggle: {icon: material/brightness-7, name: Dark mode}
+    - scheme: slate
+      toggle: {icon: material/brightness-4, name: Light mode}
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Python API: api.md
+  - Tutorials:
+      - Overview: tutorials/index.md
+      - 01 Data and training: tutorials/01_data_and_training/index.md
+      - 02 Excited states: tutorials/02_excited_states/index.md
+      - 03 OpenMM ML/MM MD: tutorials/03_openmm_mlmm_md/index.md
+      - 04 SHARC dynamics: tutorials/04_sharc_dynamics/index.md
+      - 05 Diabatic states: tutorials/05_diabatic_states/index.md
+      - 06 Ligand in a protein pocket: tutorials/06_ligand_in_pocket/index.md
+  - Changelog: changelog.md

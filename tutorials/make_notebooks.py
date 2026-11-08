@@ -216,6 +216,13 @@ else:
 
 ML/MM MD with one model, a committee evaluates the frames, the most uncertain ones are written for labelling."""),
         code('run(f"python 03_active_learning.py --n-frames {4 if QUICK else 40} --every {5 if QUICK else 100} --n-select {2 if QUICK else 10}")'),
+        md("""
+## Part 4: the automated loop
+
+`fieldmace_active_learning --config al.yaml`: train a committee, ML/MM MD, select the uncertain frames, label
+them with PySCF, add them, repeat. One round here; running the same command again continues."""),
+        code('print(open("al.yaml").read())'),
+        code('run("bash 04_active_learning_loop.sh" + ("" if QUICK else " --rounds 1"))'),
     ]
 
 
@@ -259,9 +266,113 @@ display(Image("results/populations.png"))'''),
     ]
 
 
+def nb05():
+    return [
+        md("""
+# Tutorial 05: diabatic states – learning the diabatic Hamiltonian, dynamics in SHARC
+
+*Author: Rhyan Barrett*
+
+A diabatic FieldMACE model learns the elements of the diabatic Hamiltonian H(R, MM charges) and their
+gradients. Adiabatic energies, gradients and NACs (also on the MM atoms) follow from diagonalising H. The SHARC
+interface does this every step, so SHARC runs unchanged, with NACs or with wave-function overlaps.
+CH₂S in water again, with diabatic labels from SHARC's LVC model. Details: [README](README.md)."""),
+        code(SETUP + '\nassert os.environ.get("SHARC"), "set $SHARC (SHARC 4 bin directory) before starting Jupyter"'),
+        md("## Step 1: sampling (as tutorial 02)"),
+        code('run(f"bash 01_sample_configurations.sh --n-frames {80 if QUICK else 1000} --equil-ps {0.5 if QUICK else 20} --n-initconds {4 if QUICK else 10}")'),
+        md("""
+## Step 2: diabatic labels
+
+`REF_energy` holds the 10 elements `[H_00 H_11 H_22 H_33 | H_01 H_02 H_03 H_12 H_13 H_23]`; `REF_forces` and
+`REF_mm_forces` hold −dH/dR of every element on the atoms and on the point charges."""),
+        code('run("python 02_label_diabatic.py")'),
+        code('''import ase.io
+import matplotlib.pyplot as plt
+from mace.tools.diabatic import unpack
+frames = ase.io.read("data/train.xyz", index=":")
+x = [f for f in frames if f.info.get("config_type") == "solvated"][0]
+for k in ("REF_energy", "REF_forces", "REF_mm_forces", "REF_dipoles", "REF_socs"):
+    print(f"{k:14s}", np.shape(x.info[k]))
+H = unpack(np.ravel(x.info["REF_energy"]), 4)
+print("diabatic Hamiltonian (eV, diagonal relative to H_00):"); print(np.round(H - H[0, 0] * np.eye(4), 4))
+sol = np.array([np.ravel(f.info["REF_energy"]) for f in frames if f.info.get("config_type") == "solvated"])
+plt.figure(figsize=(5, 3))
+plt.hist(1000 * sol[:, 4], bins=40, alpha=0.6, label="H_01 (singlets)")
+plt.hist(1000 * sol[:, 9], bins=40, alpha=0.6, label="H_23 (triplets)")
+plt.xlabel("diabatic coupling (meV)"); plt.legend(); plt.show()'''),
+        md("## Step 3: training (`--diabatic=True --n_energies=4`)"),
+        code('''env = {"EPOCHS": "2", "CHANNELS": "8"} if QUICK else {}
+run("bash 03_train.sh", env=env)'''),
+        md("## Step 4: evaluation – diabatic elements, and the adiabatic energies and NACs that follow"),
+        code('run("python 04_evaluate.py")\ndisplay(Image("results/parity_diabatic.png"))'),
+        code('''from mace.calculators import MACECalculator
+calc = MACECalculator("models/ch2s_diabatic.model", device="cpu", diabatic_blocks=[[0, 1], [2, 3]])
+t = [f for f in ase.io.read("data/test.xyz", index=":") if "mm_charges" in f.info][0]
+a = t.copy(); a.info = {"mm_positions": t.info["mm_positions"], "mm_charges": t.info["mm_charges"]}
+calc.calculate(a)
+r = calc.results
+print("adiabatic energies (eV):", r["energies"], " LVC:", np.ravel(t.info["REF_adiabatic_energy"]))
+print("NAC S0-S1 on the QM atoms (1/A):\\n", r["nacs"][:, 0])
+print("largest NAC S0-S1 on a water charge (1/A):", np.abs(r["mm_nacs"][:, 0]).max())'''),
+        md("""
+## Step 5: surface hopping in SHARC, FieldMACE (diabatic) vs LVC
+
+Gas phase and QM/MM (SHARC_QMMM + OpenMM), trajectories starting in T2. First with NACs (`coupling ddr`),
+then with wave-function overlaps (`coupling overlap`), which only diabatic models can give."""),
+        code('''env = {"NTRAJ": "1", "TMAX": "2"} if QUICK else {}
+run("bash 05_sharc_dynamics.sh", env=env)
+display(Image("results/ddr_gas/populations.png"))
+display(Image("results/ddr_qmmm/populations.png"))'''),
+        code('''run("bash 05_sharc_dynamics.sh", env={**env, "MODES": "gas", "COUPLING": "overlap"})
+display(Image("results/overlap_gas/populations.png"))'''),
+    ]
+
+
+def nb06():
+    return [
+        md("""
+# Tutorial 06: a ligand in a protein pocket
+
+*Author: Rhyan Barrett*
+
+p-xylene in T4 lysozyme L99A in explicit water. The ligand is FieldMACE (DFT quality) in the field of the protein,
+water and ions; the rest is Amber14/TIP3P. The labelled data are shipped: steps 2-3 are optional. Details:
+[README](README.md)."""),
+        code(SETUP),
+        md("## Step 1: the solvated complex, with GAFF parameters for the ligand"),
+        code('run(f"python 01_prepare_system.py --equil-ps {0.2 if QUICK else 50}")'),
+        code('print(open("work/setup.json").read()[:600])'),
+        md("""
+## Steps 2-3 (optional): sampling and PySCF labels
+
+A few frames here as a demonstration (the full data set is shipped in `data/`)."""),
+        code('''run(f"python 02_sample_configurations.py --n-frames {4 if QUICK else 20} --stride-ps {0.02 if QUICK else 0.5}")
+run("python 03_label_with_pyscf.py --max-frames 2 --gas-fraction 0 --out work/demo_data --partial work/demo_partial.xyz"
+    + (" --basis sto-3g" if QUICK else ""))'''),
+        md("## Step 4: training"),
+        code('''env = {"EPOCHS": "2", "CHANNELS": "8"} if QUICK else {}
+run("bash 04_train.sh", env=env)'''),
+        md("## Step 5: evaluation, and what the pocket's field does"),
+        code('run("python 05_evaluate.py")\ndisplay(Image("results/parity_pocket.png"))'),
+        md("## Step 6: ML/MM MD in OpenMM, compared with the classical ligand"),
+        code('''run(f"python 06_mlmm_md.py --nvt-ps {0.01 if QUICK else 2} --nve-ps {0.01 if QUICK else 0.5}")
+display(Image("results/ligand_geometry.png"))'''),
+    ]
+
+
+def _same_cells(path, cells):
+    old = nbf.read(path, as_version=4).cells
+    return [(c.cell_type, c.source) for c in old] == [(c.cell_type, c.source) for c in cells]
+
+
 def main():
-    for folder, cells in (("01_data_and_training", nb01()), ("02_excited_states", nb02()),
-                          ("03_openmm_mlmm_md", nb03()), ("04_sharc_dynamics", nb04())):
+    targets =(("01_data_and_training", nb01()), ("02_excited_states", nb02()), ("03_openmm_mlmm_md", nb03()),
+               ("04_sharc_dynamics", nb04()), ("05_diabatic_states", nb05()),
+               ("06_ligand_in_pocket", nb06()))
+    for folder, cells in targets:
+        path = os.path.join(HERE, folder, "tutorial.ipynb")
+        if os.path.exists(path) and _same_cells(path, cells):
+            continue  # unchanged: keep the file (and its cell ids)
         nb = nbf.v4.new_notebook()
         nb.cells = cells
         nb.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3", "language": "python"}
