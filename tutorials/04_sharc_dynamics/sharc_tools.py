@@ -59,7 +59,7 @@ tmax         {tmax}
 stepsize     {dt}
 nsubsteps    25
 surf         sharc
-coupling     ddr
+coupling     {coupling}
 nogradcorrect
 ekincorrect  parallel_vel
 reflect_frustrated none
@@ -69,9 +69,11 @@ output_format ascii
 """
 
 
-def write_input(path, tmax=50.0, dt=0.5, state=2, seed=1234, extra=""):
+def write_input(path, tmax=50.0, dt=0.5, state=2, seed=1234, extra="", coupling="ddr"):
+    """coupling: "ddr" (NACs from the interface) or "overlap" (wave-function overlaps; needs an
+    interface that gives them: LVC, or a diabatic FieldMACE model)."""
     with open(path, "w") as fh:
-        fh.write(SHARC_INPUT.format(tmax=tmax, dt=dt, state=state, seed=seed, extra=extra))
+        fh.write(SHARC_INPUT.format(tmax=tmax, dt=dt, state=state, seed=seed, extra=extra, coupling=coupling))
 
 
 def write_fieldmace_template(path, model, properties=("energy", "forces", "nacs", "dipoles", "socs"), device="cpu"):

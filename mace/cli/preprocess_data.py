@@ -173,6 +173,7 @@ def run(args: argparse.Namespace):
         nacs_key=getattr(args, "nacs_key", "nacs"),
         socs_key=getattr(args, "socs_key", "REF_socs"),
         soc_num=getattr(args, "soc_num", None),
+        n_states=args.n_energies if getattr(args, "diabatic", False) else None,
         charges_key=args.charges_key,
     )
 
@@ -214,7 +215,9 @@ def run(args: argparse.Namespace):
     if args.compute_statistics:
         logging.info("Computing statistics")
         if len(atomic_energies_dict) == 0:
-            atomic_energies_dict = get_atomic_energies(args.E0s, collections.train, z_table)
+            atomic_energies_dict = get_atomic_energies(
+                args.E0s, collections.train, z_table,
+                n_diagonal=args.n_energies if getattr(args, "diabatic", False) else None)
         atomic_energies: np.ndarray = np.array(
             [atomic_energies_dict[z] for z in z_table.zs]
         )

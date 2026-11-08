@@ -46,7 +46,7 @@ from mace.calculators.sharc_calculator import SharcCalculator
 __all__ = ["SHARC_FIELDMACE"]
 
 AUTHORS = "Rhyan Barrett"
-VERSION = "2.3"
+VERSION = "2.4"
 VERSIONDATE = datetime.datetime(2026, 11, 8)
 NAME = "FIELDMACE"
 DESCRIPTION = "     FAST interface for FieldMACE (ML for QM/MM; energies, gradients, NACs, dipoles, SOCs)"
@@ -54,6 +54,8 @@ CHANGELOGSTRING = """
 2.1  SHARC 4 interface: point charges (grad_pc), multiplicities, SOCs, phase tracking
 2.3  smooth NACs (nac_type), SOC selection rules, double-precision arrays for pysharc
      (float32 models gave zero gradients in pysharc); tutorial: tutorials/04_sharc_dynamics
+2.4  diabatic models: diagonalised every step (per multiplicity), NACs on point charges (nacdr_pc),
+     wave-function overlaps (coupling overlap); tutorial: tutorials/05_diabatic_states
 """
 PREV_FILE = "FIELDMACE_previous.npz"
 
@@ -149,6 +151,8 @@ class SHARC_FIELDMACE(SHARC_FAST):
         props = self._properties()
         if any("nac" in p for p in props):
             features.add("nacdr")
+        if self.calculator is not None and self.calculator.diabatic:
+            features |= {"nacdr", "overlap"}  # from the diabatic Hamiltonian
         if "socs" in props or sum(self.QMin.molecule.get("states", [1])[1:]) == 0:
             features.add("soc")  # singlets only: SOCs are zero by definition
         return features
@@ -241,7 +245,7 @@ class SHARC_FIELDMACE(SHARC_FAST):
         props = set(calc.properties)
         if req["soc"] and "socs" not in props and sum(calc.states[1:]) > 0:
             raise ValueError("SOCs requested, but FIELDMACE.template does not list 'socs' (or the model has none)")
-        if req["nacdr"] and "nacs" not in props:
+        if req["nacdr"] and "nacs" not in props and not calc.diabatic:
             raise ValueError("NACs requested, but FIELDMACE.template does not list 'nacs' (or the model has none)")
         qm = calc.get_qm(self._prediction, as_arrays=True)
 
@@ -256,6 +260,12 @@ class SHARC_FIELDMACE(SHARC_FAST):
                 self.QMout["grad_pc"] = qm["grad_pc"]
         if req["nacdr"]:
             self.QMout["nacdr"] = qm["nacdr"]
+            if npc > 0 and "nacdr_pc" in qm:  # diabatic models: NACs on the point charges too
+                self.QMout["nacdr_pc"] = qm["nacdr_pc"]
+        if req.get("overlap"):
+            if "overlap" not in qm:
+                raise ValueError("overlaps need a diabatic model (train with --diabatic=True)")
+            self.QMout["overlap"] = np.asarray(qm["overlap"], dtype=complex)
         if req["dm"]:
             if "dm" in qm:
                 self.QMout["dm"] = qm["dm"]

@@ -163,6 +163,7 @@ def run(args: argparse.Namespace) -> None:
             nacs_key=args.nacs_key,
             socs_key=args.socs_key,
             soc_num=args.soc_num if args.compute_socs else None,
+            n_states=args.n_energies if args.diabatic else None,
             keep_isolated_atoms=args.keep_isolated_atoms,
         )
         if len(collections.train) < args.batch_size:
@@ -217,7 +218,8 @@ def run(args: argparse.Namespace) -> None:
         else:
             if args.train_file.endswith(".xyz"):
                 atomic_energies_dict = get_atomic_energies(
-                    args.E0s, collections.train, z_table
+                    args.E0s, collections.train, z_table,
+                    n_diagonal=args.n_energies if args.diabatic else None,
                 )
             else:
                 atomic_energies_dict = get_atomic_energies(args.E0s, None, z_table)
@@ -327,6 +329,8 @@ def run(args: argparse.Namespace) -> None:
         nacs_weight=args.nacs_weight,
         mm_forces_weight=args.mm_forces_weight,
         socs_weight=args.socs_weight,
+        output_weights=([1.0] * args.n_energies + [float(args.diabatic_coupling_weight)]
+                        * (args.n_energies * (args.n_energies - 1) // 2)) if args.diabatic else None,
     )
     
     if args.compute_avg_num_neighbors:
@@ -503,6 +507,7 @@ def run(args: argparse.Namespace) -> None:
             compute_dipoles=args.compute_dipoles,
             compute_socs=args.compute_socs,
             soc_num=args.soc_num,
+            diabatic=args.diabatic,
             multipole_embedding=args.multipole_embedding,
             num_multipole_basis=args.num_multipole_basis,
             expansion_centre=args.expansion_centre,

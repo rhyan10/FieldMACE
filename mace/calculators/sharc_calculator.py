@@ -144,10 +144,17 @@ class SharcCalculator:
         self.calc = MACECalculator(model_paths=modelpath, device=device)
         model = self.calc.models[0]
         self.model = model
-        self.n_model_states = int(getattr(model, "n_energies", 1))
+        self.diabatic = bool(getattr(model, "diabatic", False))
+        self.n_model_states = int(getattr(model, "n_states", getattr(model, "n_energies", 1)))
         for prop, flag in {"nacs": "compute_nacs", "dipoles": "compute_dipoles", "socs": "compute_socs"}.items():
+            if prop == "nacs" and self.diabatic:
+                continue  # NACs follow from the diabatic Hamiltonian
             if prop in self.properties and not getattr(model, flag, False):
                 raise ValueError(f"'{prop}' requested but the model was trained without {flag}")
+        if self.diabatic and "forces" in self.properties and "nacs" not in self.properties:
+            self.properties.append("nacs")
+        if self.diabatic:
+            self.nac_type = "nac"  # NACs come from the diabatic Hamiltonian; nac_type does not apply
 
         if states is None:
             if isinstance(n_states, dict):
@@ -163,6 +170,16 @@ class SharcCalculator:
         self.nmstates = len(self.mstates)
         self.nstates = sum(self.states)
         self._setup_state_map()
+        if self.diabatic:
+            if self.mode != "spatial":
+                raise NotImplementedError("diabatic models need one model state per spatial SHARC state")
+            # diagonalise each multiplicity separately (no electronic coupling between multiplicities)
+            offsets = np.concatenate([[0], np.cumsum(self.states)])
+            blocks = [list(range(int(offsets[m]), int(offsets[m + 1]))) for m in range(len(self.states))
+                      if self.states[m] > 0]
+            if sum(len(b) for b in blocks) < self.n_model_states:  # one multiplicity, extra model states
+                blocks = [list(range(self.n_model_states))]
+            self.calc.diabatic_blocks = blocks
         self.soc_selection_rules = bool(soc_selection_rules)
         self._soc_forbidden = np.array([[(ma == mb == 1) or (ma == mb and ja == jb) or abs(sa - sb) > 1
                                          for (mb, jb, sb) in self.mstates] for (ma, ja, sa) in self.mstates])
@@ -217,12 +234,21 @@ class SharcCalculator:
                 mm = mm * self.distance_unit_conversion
             info = {"mm_positions": mm, "mm_charges": np.asarray(mm_charges, dtype=float).reshape(-1)}
         self.molecule.info = info
+        if self.diabatic and self.last_prediction is not None and "U" in self.last_prediction:
+            self.calc._diabatic_U = np.asarray(self.last_prediction["U"])  # eigenvector sign continuity
         self.calc.calculate(self.molecule)
         res = self.calc.results
         out = {"energy": np.asarray(res["energies"]), "forces": np.asarray(res["forces_all"])}
-        for key in ("mm_forces", "nacs", "dipoles", "socs"):
-            if key in res:
+        for key in ("mm_forces", "nacs", "dipoles", "socs", "mm_nacs", "U"):
+            if key in res and res[key] is not None:
                 out[key] = np.asarray(res[key])
+        if self.diabatic:
+            if "diabatic_socs" in res:
+                out["socs"] = np.asarray(res["diabatic_socs"])  # still in the diabatic basis
+            if self.last_prediction is not None and "U" in self.last_prediction:
+                out["U_previous"] = np.asarray(self.last_prediction["U"])
+            self.last_prediction = out  # signs are fixed by the eigenvectors, no per-coupling flipping
+            return out
         if self.last_prediction is not None:
             for key in ("nacs", "dipoles", "socs"):
                 if key in out and key in self.last_prediction and np.shape(out[key]) == np.shape(self.last_prediction[key]):
@@ -238,8 +264,9 @@ class SharcCalculator:
     def get_qm(self, pred: Dict[str, np.ndarray], as_arrays: bool = False) -> Dict[str, list]:
         M, idx = self.nmstates, self.model_index
         h = np.diag(np.asarray(pred["energy"], dtype=complex)[idx] * self.energy_unit_conversion)
+        U_ms = self._u_ms(pred["U"]) if self.diabatic else None
         if "socs" in self.properties and "socs" in pred:
-            h = h + self._soc_matrix(pred["socs"])
+            h = h + self._soc_matrix(pred["socs"], U_ms)
         out = {"h": h}
         if "forces" in self.properties:
             f = np.asarray(pred["forces"])  # [N, S_model, 3]
@@ -262,6 +289,21 @@ class SharcCalculator:
                     nac[a, b] = v if i < j else -v
                     nac[b, a] = -nac[a, b]
             out["nacdr"] = nac
+            if self.diabatic and "mm_nacs" in pred:  # diabatic models also give NACs on the point charges
+                npc = pred["mm_nacs"].shape[0]
+                nac_pc = np.zeros((M, M, npc, 3))
+                for a in range(M):
+                    for b in range(a + 1, M):
+                        i, j = idx[a], idx[b]
+                        if i == j or not self._coupled(a, b):
+                            continue
+                        v = pred["mm_nacs"][:, self._pair_index[(min(i, j), max(i, j))]] * self.nac_to_au
+                        nac_pc[a, b] = v if i < j else -v
+                        nac_pc[b, a] = -nac_pc[a, b]
+                out["nacdr_pc"] = nac_pc
+        if self.diabatic:  # <previous step | this step>, for SHARC's overlap-based couplings
+            out["overlap"] = (self._u_ms(pred["U_previous"]).T @ U_ms if "U_previous" in pred
+                              else np.eye(M))
         if "dipoles" in self.properties and "dipoles" in pred:
             S = self.n_model_states
             dm = np.zeros((3, M, M))
@@ -276,11 +318,25 @@ class SharcCalculator:
         # SHARC works in double precision; float32 models give float32 arrays, which pysharc's C
         # extension would read as garbage (it takes the raw buffer), so always hand over float64/complex128
         out = {k: np.ascontiguousarray(v, dtype=np.complex128 if k == "h" else np.float64) for k, v in out.items()}
+        if not self.diabatic:
+            out.pop("overlap", None)
         if as_arrays:
             return out
         return {k: v.tolist() for k, v in out.items()}
 
-    def _soc_matrix(self, socs: np.ndarray) -> np.ndarray:
+    def _u_ms(self, U: np.ndarray) -> np.ndarray:
+        """Diabatic-to-adiabatic matrix of the model states, expanded to SHARC's M_S states."""
+        M, idx = self.nmstates, self.model_index
+        U_ms = np.zeros((M, M))
+        for a in range(M):
+            for b in range(M):
+                if self.mstates[a][0] == self.mstates[b][0] and self.mstates[a][2] == self.mstates[b][2]:
+                    U_ms[a, b] = U[idx[a], idx[b]]
+        return U_ms
+
+    def _soc_matrix(self, socs: np.ndarray, U_ms: Optional[np.ndarray] = None) -> np.ndarray:
+        """SOC part of SHARC's Hamiltonian. Diabatic models predict it in the diabatic basis; U_ms
+        transforms it to the adiabatic states."""
         M = self.nmstates
         soc = np.zeros((M, M), dtype=complex)
         iu = np.triu_indices(M, 1)
@@ -296,7 +352,12 @@ class SharcCalculator:
                     soc[a, b] = val if i < j else np.conj(val)
         if self.soc_selection_rules:
             soc[self._soc_forbidden] = 0.0
-        return soc + soc.conj().T
+        soc = soc + soc.conj().T
+        if U_ms is not None:
+            soc = U_ms.T @ soc @ U_ms
+            if self.soc_selection_rules:
+                soc[self._soc_forbidden | self._soc_forbidden.T] = 0.0
+        return soc
 
     # ------------------------------------------------------------------ #
     def _adjust_phase(self, key: str, previous: np.ndarray, current: np.ndarray) -> np.ndarray:

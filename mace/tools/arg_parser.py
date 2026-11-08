@@ -306,6 +306,21 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         default=False,
     )
     parser.add_argument(
+        "--diabatic",
+        help="diabatic model: --n_energies diabatic states S, labels are the S + S(S-1)/2 elements of the "
+        "diabatic Hamiltonian [H_00..H_S-1,S-1, H_01, H_02, ..] in REF_energy and their forces -dH/dR in "
+        "REF_forces / REF_mm_forces (see mace.tools.diabatic)",
+        type=str2bool,
+        default=False,
+    )
+    parser.add_argument(
+        "--diabatic_coupling_weight",
+        help="diabatic models: extra loss weight of the off-diagonal elements (couplings) and their forces, "
+        "relative to the diagonal; couplings are usually much smaller than the diagonal's spread",
+        type=float,
+        default=10.0,
+    )
+    parser.add_argument(
         "--train_file",
         help="Training set file, format is .xyz or .h5",
         type=str,
@@ -815,6 +830,9 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         "--socs_key", help="key of the spin-orbit couplings in atoms.info", type=str, default="REF_socs"
     )
     parser.add_argument("--soc_num", help="free-form SOC vector length (see mace_run_train)", type=int, default=None)
+    parser.add_argument("--diabatic", help="diabatic model (see mace_run_train); E0s from the diagonal only",
+                        type=str2bool, default=False)
+    parser.add_argument("--n_energies", help="number of (diabatic) states, used with --diabatic", type=int, default=1)
     parser.add_argument(
         "--charges_key",
         help="Key of atomic charges in training xyz",

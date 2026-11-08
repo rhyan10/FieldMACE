@@ -74,6 +74,8 @@ def sharc_models(tmp_path_factory):
         "singlets": dict(n_energies=3, compute_nacs=True, compute_dipoles=True),
         # energies and forces only
         "plain": dict(n_energies=4),
+        # diabatic: 4 diabatic states -> 10 elements of H, diabatic dipoles and SOCs (8x8 upper triangle)
+        "diabatic": dict(n_energies=4, diabatic=True, compute_dipoles=True, compute_socs=True, soc_num=28),
     }
     paths = {}
     for name, kw in specs.items():

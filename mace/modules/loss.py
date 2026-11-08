@@ -468,9 +468,12 @@ class WeightedEnergyForcesNacsDipoleLoss(torch.nn.Module):
     """
 
     def __init__(self, energy_weight=1.0, forces_weight=1.0, dipoles_weight=1.0, nacs_weight=1.0,
-                 mm_forces_weight=None, socs_weight=1.0) -> None:
+                 mm_forces_weight=None, socs_weight=1.0, output_weights=None) -> None:
         super().__init__()
         dt = torch.get_default_dtype()
+        # per-output weights of the energy-like outputs (diabatic models: diagonal vs couplings)
+        self.register_buffer("output_weights", torch.ones(1, dtype=dt) if output_weights is None
+                             else torch.as_tensor(output_weights, dtype=dt))
         self.register_buffer("energy_weight", torch.tensor(energy_weight, dtype=dt))
         self.register_buffer("forces_weight", torch.tensor(forces_weight, dtype=dt))
         self.register_buffer("nacs_weight", torch.tensor(nacs_weight, dtype=dt))
@@ -488,20 +491,23 @@ class WeightedEnergyForcesNacsDipoleLoss(torch.nn.Module):
         graphs = torch.arange(n_graphs, device=n_atoms.device)
         e_ref = _match(ref["energy"], pred["energy"], "energy")
         w_e = (w_graph * ref.energy_weight).unsqueeze(-1)
-        loss = self.energy_weight * torch.mean(w_e * torch.square(e_ref - pred["energy"]))
+        w_out = self.output_weights  # [S_out] or [1]
+        loss = self.energy_weight * torch.mean(w_e * w_out * torch.square(e_ref - pred["energy"]))
 
         if pred.get("forces") is not None and self.forces_weight > 0:
             f_ref = _match(ref["forces"], pred["forces"], "forces")
             w_f = torch.repeat_interleave(w_graph * ref.forces_weight, n_atoms)
             w_f = w_f.view(-1, *([1] * (f_ref.dim() - 1)))
-            loss = loss + self.forces_weight * torch.mean(w_f * torch.square(f_ref - pred["forces"]))
+            w_fo = w_out.view(-1, 1) if f_ref.dim() == 3 else w_out[:1]
+            loss = loss + self.forces_weight * torch.mean(w_f * w_fo * torch.square(f_ref - pred["forces"]))
 
         if pred.get("mm_forces") is not None and self.mm_forces_weight > 0 and ref["mm_forces"].numel() > 0:
             fm_ref = _match(ref["mm_forces"], pred["mm_forces"], "mm_forces")
             num_mm = ref["num_mm"].reshape(-1)
             w_m = torch.repeat_interleave(w_graph * ref["mm_forces_weight"].reshape(-1), num_mm)
             w_m = w_m.view(-1, *([1] * (fm_ref.dim() - 1)))
-            loss = loss + self.mm_forces_weight * torch.mean(w_m * torch.square(fm_ref - pred["mm_forces"]))
+            w_mo = w_out.view(-1, 1) if fm_ref.dim() == 3 else w_out[:1]
+            loss = loss + self.mm_forces_weight * torch.mean(w_m * w_mo * torch.square(fm_ref - pred["mm_forces"]))
 
         nacs = pred.get("nacs")
         if nacs is not None and self.nacs_weight > 0 and nacs.numel() > 0:

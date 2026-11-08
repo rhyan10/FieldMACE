@@ -13,7 +13,7 @@ conservation of each trajectory. Several run directories are plotted together, e
 against the LVC reference with the same initial conditions.
 
 With a handful of short trajectories the populations are noisy; production runs use 100+.
-Output: results/populations.png
+Output: results/populations.png (--out to change the directory)
 """
 import argparse
 import os
@@ -57,8 +57,9 @@ def analyse(run):
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("runs", nargs="+")
+    p.add_argument("--out", default=os.path.join(HERE, "results"), help="directory for populations.png")
     a = p.parse_args()
-    os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
+    os.makedirs(a.out, exist_ok=True)
     fig, ax = plt.subplots(1, len(a.runs), figsize=(5 * len(a.runs), 3.8), squeeze=False, sharey=True)
     for i, run in enumerate(a.runs):
         t, pops, hops, drift, n = analyse(run)
@@ -72,8 +73,8 @@ def main():
     ax[0, 0].set_ylabel("population (fraction of trajectories)")
     ax[0, 0].legend()
     fig.tight_layout()
-    fig.savefig(os.path.join(HERE, "results", "populations.png"), dpi=120)
-    print("wrote results/populations.png")
+    fig.savefig(os.path.join(a.out, "populations.png"), dpi=120)
+    print(f"wrote {os.path.join(a.out, 'populations.png')}")
 
 
 if __name__ == "__main__":

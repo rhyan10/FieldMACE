@@ -112,6 +112,7 @@ def config_from_atoms_list(
     pc_key = "REF_mm_forces",
     config_type_weights: Dict[str, float] = None,
     soc_num: Optional[int] = None,
+    n_states: Optional[int] = None,
 ) -> Configurations:
     """Convert list of ase.Atoms into Configurations"""
     if config_type_weights is None:
@@ -133,6 +134,7 @@ def config_from_atoms_list(
                 pc_key=pc_key,
                 config_type_weights=config_type_weights,
                 soc_num=soc_num,
+                n_states=n_states,
             )
         )
     return all_configs
@@ -159,6 +161,7 @@ def config_from_atoms(
     config_type_weights: Dict[str, float] = None,
     socs_key="REF_socs",
     soc_num: Optional[int] = None,
+    n_states: Optional[int] = None,
 ) -> Configuration:
     """Convert ase.Atoms to Configuration.
 
@@ -241,9 +244,9 @@ def config_from_atoms(
     # label layout: energy [n_states], forces [n_atoms, n_states, 3]
     energy = np.atleast_1d(np.asarray(energy, dtype=float)).reshape(-1)
     forces = np.asarray(forces, dtype=float).reshape(len(atoms), -1, 3)
-    n_states = len(energy) if energy_weight != 0.0 or forces_weight == 0.0 else forces.shape[1]
+    n_out = len(energy) if energy_weight != 0.0 or forces_weight == 0.0 else forces.shape[1]
     if forces_weight == 0.0:
-        forces = np.zeros((len(atoms), n_states, 3))
+        forces = np.zeros((len(atoms), n_out, 3))
     if energy_weight == 0.0:
         energy = np.zeros(forces.shape[1])
     if forces.shape[1] != len(energy):
@@ -253,7 +256,7 @@ def config_from_atoms(
     elif f_mm.shape[1] != len(energy):
         raise ValueError(f"MM forces for {f_mm.shape[1]} states but {len(energy)} energies")
 
-    n_s = len(energy)
+    n_s = int(n_states) if n_states else len(energy)  # diabatic models: n_states < number of outputs
     n_p = n_s * (n_s - 1) // 2
     n_at = len(atoms)
     if nacs is None:
@@ -358,6 +361,7 @@ def load_from_xyz(
     nacs_key: str = 'REF_nacs',
     socs_key: str = "REF_socs",
     soc_num: Optional[int] = None,
+    n_states: Optional[int] = None,
     pc_key = "REF_mm_forces",
     extract_atomic_energies: bool = False,
     keep_isolated_atoms: bool = False,
@@ -436,6 +440,7 @@ def load_from_xyz(
         nacs_key=nacs_key,
         socs_key=socs_key,
         soc_num=soc_num,
+        n_states=n_states,
         charges_key=charges_key,
         pc_key = pc_key,
     )
@@ -443,11 +448,12 @@ def load_from_xyz(
 
 
 def compute_average_E0s(
-    collections_train: Configurations, z_table: AtomicNumberTable
+    collections_train: Configurations, z_table: AtomicNumberTable, n_diagonal: Optional[int] = None
 ) -> Dict[int, float]:
     """
     Function to compute the average interaction energy of each chemical element
-    returns dictionary of E0s
+    returns dictionary of E0s. n_diagonal: diabatic models - average only the first n_diagonal
+    energy labels (the diagonal of the diabatic Hamiltonian), not the couplings.
     """
     # configurations without an energy label (energy_weight == 0) carry a dummy energy
     collections_train = [c for c in collections_train if getattr(c, "energy_weight", 1.0) != 0.0]
@@ -456,7 +462,8 @@ def compute_average_E0s(
     A = np.zeros((len_train, len_zs))
     B = np.zeros(len_train)
     for i in range(len_train):
-        B[i] = np.mean(collections_train[i].energy)
+        e = np.ravel(collections_train[i].energy)
+        B[i] = np.mean(e[:n_diagonal] if n_diagonal else e)
         for j, z in enumerate(z_table.zs):
             A[i, j] = np.count_nonzero(collections_train[i].atomic_numbers == z)
     try:

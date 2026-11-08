@@ -48,6 +48,7 @@ def get_dataset_from_xyz(
     pc_key: str = "REF_mm_forces",
     socs_key: str = "REF_socs",
     soc_num: Optional[int] = None,
+    n_states: Optional[int] = None,
 ) -> Tuple[SubsetCollection, Optional[Dict[int, float]]]:
     """Load training and test dataset from xyz file"""
     atomic_energies_dict, all_train_configs = data.load_from_xyz(
@@ -62,6 +63,7 @@ def get_dataset_from_xyz(
         nacs_key = nacs_key,
         socs_key=socs_key,
         soc_num=soc_num,
+        n_states=n_states,
         pc_key=pc_key,
         extract_atomic_energies=True,
         keep_isolated_atoms=keep_isolated_atoms,
@@ -78,6 +80,7 @@ def get_dataset_from_xyz(
             nacs_key = nacs_key,
             socs_key=socs_key,
         soc_num=soc_num,
+        n_states=n_states,
             charges_key=charges_key,
             pc_key=pc_key,
             extract_atomic_energies=False,
@@ -100,6 +103,7 @@ def get_dataset_from_xyz(
             nacs_key = nacs_key,
             socs_key=socs_key,
         soc_num=soc_num,
+        n_states=n_states,
             virials_key=virials_key,
             charges_key=charges_key,
             pc_key=pc_key,
@@ -298,7 +302,7 @@ def load_from_json(f: str, map_location: str = "cpu") -> torch.nn.Module:
     return model_load_yaml.to(map_location)
 
 
-def get_atomic_energies(E0s, train_collection, z_table) -> dict:
+def get_atomic_energies(E0s, train_collection, z_table, n_diagonal=None) -> dict:
     if E0s is not None:
         logging.info(
             "Isolated Atomic Energies (E0s) not in training file, using command line argument"
@@ -311,7 +315,7 @@ def get_atomic_energies(E0s, train_collection, z_table) -> dict:
             try:
                 assert train_collection is not None
                 atomic_energies_dict = data.compute_average_E0s(
-                    train_collection, z_table
+                    train_collection, z_table, n_diagonal=n_diagonal
                 )
             except Exception as e:
                 raise RuntimeError(

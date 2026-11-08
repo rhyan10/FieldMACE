@@ -47,7 +47,7 @@ from .blocks import (
 from .radial import ZBLBasis
 from .utils import compute_hessians_vmap, get_edge_vectors_and_lengths
 
-FIELD_MODEL_VERSION = 3
+FIELD_MODEL_VERSION = 4
 
 
 # --------------------------------------------------------------------------------------- #
@@ -168,6 +168,75 @@ def state_pairs(n_states: int) -> List[List[int]]:
 
 
 # --------------------------------------------------------------------------------------- #
+# pseudoscalar readout (diabatic couplings between states of opposite mirror symmetry)
+# --------------------------------------------------------------------------------------- #
+@compile_mode("script")
+class PseudoscalarReadoutBlock(torch.nn.Module):
+    """Parity-odd (pseudoscalar, 0o) node outputs for diabatic couplings.
+
+    A coupling between two diabatic states of opposite symmetry under a mirror plane of the molecule
+    (e.g. A1 and A2 in C2v) changes sign when the environment is mirrored: it is a pseudoscalar. A
+    MACE readout gives only true scalars (0e), which are blind to that sign, so such couplings would
+    be learned as zero. For every channel k, with u, v, w learned vectors (1o) of the node features,
+    p = v x w (a pseudovector, 1e), and E (1o) and G (2e) learned combinations of the node's field
+    features (field and field gradient of the point charges at the atom):
+
+        s_k = u_k . p_k  +  E_k . p_k  +  u_k . (G_k p_k)          (all pseudoscalars)
+
+    e.g. u.(G p) ~ e_x^T G e_y is the field-gradient component that couples A1 and A2 states in C2v.
+    The s_k are weighted by an MLP of the node's scalar features (even) and summed: odd.
+    """
+
+    def __init__(self, irreps_in: o3.Irreps, n_out: int, field_irreps: Optional[o3.Irreps] = None,
+                 n_triple: int = 16, n_hidden: int = 16):
+        super().__init__()
+        irreps_in = o3.Irreps(irreps_in)
+        self.n_out = int(n_out)
+        self.n_triple = int(n_triple)
+        vec = o3.Irreps(f"{n_triple}x1o")
+        self.lin_u = o3.Linear(irreps_in, vec)
+        self.lin_v = o3.Linear(irreps_in, vec)
+        self.lin_w = o3.Linear(irreps_in, vec)
+        self.lin_s = o3.Linear(irreps_in, o3.Irreps(f"{n_hidden}x0e"))
+        self.mlp = torch.nn.Sequential(torch.nn.SiLU(), torch.nn.Linear(n_hidden, n_triple * n_out))
+        field_irreps = o3.Irreps(field_irreps) if field_irreps is not None else o3.Irreps("")
+        self.use_field_vec = field_irreps.count(o3.Irrep(1, -1)) > 0
+        self.use_field_grad = field_irreps.count(o3.Irrep(2, 1)) > 0
+        # always built (an o3.Linear without matching inputs outputs zeros), so TorchScript sees real modules
+        self.lin_fe = o3.Linear(field_irreps, vec)
+        self.lin_fg = o3.Linear(field_irreps, o3.Irreps(f"{n_triple}x2e"))
+        self.tp_gp = o3.ElementwiseTensorProduct(o3.Irreps(f"{n_triple}x2e"), o3.Irreps(f"{n_triple}x1e"), ["1e"])
+
+    def _pseudovectors(self, x: torch.Tensor) -> torch.Tensor:
+        n = x.shape[0]
+        v = self.lin_v(x).reshape(n, self.n_triple, 3)
+        w = self.lin_w(x).reshape(n, self.n_triple, 3)
+        return torch.cross(v, w, dim=-1)  # [n, K, 3], 1e
+
+    @torch.jit.export
+    def vectors(self, x: torch.Tensor) -> torch.Tensor:
+        """Pseudovector (1e) outputs [n, n_out, 3]: sum_k g_k(scalars) (v_k x w_k)."""
+        n = x.shape[0]
+        g = self.mlp(self.lin_s(x)).reshape(n, self.n_triple, self.n_out)
+        return torch.einsum("nkx,nko->nox", self._pseudovectors(x), g)
+
+    def forward(self, x: torch.Tensor, field: Optional[torch.Tensor] = None) -> torch.Tensor:  # -> [n, n_out]
+        n = x.shape[0]
+        u = self.lin_u(x).reshape(n, self.n_triple, 3)
+        p = self._pseudovectors(x)
+        s = torch.sum(u * p, dim=-1)  # [n, K], odd
+        if field is not None:
+            if self.use_field_vec:
+                e = self.lin_fe(field).reshape(n, self.n_triple, 3)
+                s = s + torch.sum(e * p, dim=-1)
+            if self.use_field_grad:
+                gp = self.tp_gp(self.lin_fg(field), p.reshape(n, -1)).reshape(n, self.n_triple, 3)  # G p, 1e
+                s = s + torch.sum(u * gp, dim=-1)
+        g = self.mlp(self.lin_s(x)).reshape(n, self.n_triple, self.n_out)  # even
+        return torch.einsum("nk,nko->no", s, g)
+
+
+# --------------------------------------------------------------------------------------- #
 # base model
 # --------------------------------------------------------------------------------------- #
 class _FieldMACEBase(torch.nn.Module):
@@ -175,12 +244,17 @@ class _FieldMACEBase(torch.nn.Module):
 
     Outputs (B configurations, N atoms, M point charges, S states, P = S(S-1)/2 pairs):
       energy [B, S], forces [N, S, 3], mm_forces [M, S, 3]
+               diabatic=True: S diabatic states give S + P outputs, the diabatic Hamiltonian
+               [H_00, ..., H_S-1,S-1, then H_ij for the pairs]; forces are -dH/dR of every element
+               (see mace.tools.diabatic for turning them into adiabatic energies, gradients, NACs)
       nacs     [N, P, 3]       if compute_nacs     (per-atom couplings for every state pair)
       dipoles  [B, S + P, 3]   if compute_dipoles  (S permanent dipoles, then P transition dipoles)
       socs     [B, P, 2]       if compute_socs     (real and imaginary part for every state pair)
                [B, 1, soc_num] if compute_socs and soc_num is given (free-form SOC vector, e.g. the
                                upper triangle of SHARC's spin-orbit matrix as in X-MACE; one phase)
     """
+
+    odd_layers: List[int]  # interaction layers with a pseudoscalar coupling readout (diabatic models)
 
     # set by subclasses
     _expansion = "global"  # "global" (FieldEMACE) or "per_atom"
@@ -216,6 +290,7 @@ class _FieldMACEBase(torch.nn.Module):
         expansion_centre: str = "centroid",
         compute_socs: bool = False,
         soc_num: Optional[int] = None,
+        diabatic: bool = False,
     ):
         super().__init__()
         if multipole_embedding not in ("equivariant", "legacy"):
@@ -230,12 +305,25 @@ class _FieldMACEBase(torch.nn.Module):
             raise ValueError("soc_num must be >= 1")
         if (compute_nacs or (compute_socs and soc_num is None)) and n_energies < 2:
             raise ValueError("NACs and SOCs couple pairs of states: they need n_energies >= 2")
+        if diabatic and compute_nacs:
+            raise ValueError("diabatic models have no NAC outputs: NACs follow from the diabatic Hamiltonian")
+        if diabatic and n_energies < 2:
+            raise ValueError("a diabatic model needs at least 2 states")
         self.register_buffer("atomic_numbers", torch.tensor(atomic_numbers, dtype=torch.int64))
         self.register_buffer("r_max", torch.tensor(r_max, dtype=torch.get_default_dtype()))
         self.register_buffer("num_interactions", torch.tensor(num_interactions, dtype=torch.int64))
-        self.n_energies = n_energies
+        # n_states: electronic states; n_energies: energy-like outputs (diabatic: all elements of H)
+        self.diabatic = bool(diabatic)
+        self.n_states = int(n_energies)
         self.n_nacs = int(n_energies * (n_energies - 1) / 2)
         self.n_dipoles = int(n_energies + self.n_nacs)
+        n_energies = self.n_states + self.n_nacs if self.diabatic else self.n_states
+        self.n_energies = n_energies
+        # atomic reference energies (E0s) enter the diagonal only, not diabatic couplings
+        mask = torch.ones(n_energies, dtype=torch.get_default_dtype())
+        if self.diabatic:
+            mask[self.n_states:] = 0.0
+        self.register_buffer("e0_mask", mask, persistent=False)
         self.compute_nacs = bool(compute_nacs)
         self.compute_dipoles = bool(compute_dipoles)
         self.compute_socs = bool(compute_socs)
@@ -310,6 +398,10 @@ class _FieldMACEBase(torch.nn.Module):
         self.products = torch.nn.ModuleList()
         self.readouts = torch.nn.ModuleList()
         self.property_readouts = torch.nn.ModuleList()
+        # diabatic couplings: a true-scalar part (readouts) plus a pseudoscalar part (odd_readouts)
+        self.odd_readouts = torch.nn.ModuleList()
+        self.odd_dipole_readouts = torch.nn.ModuleList()
+        self.odd_layers = []
         for i in range(num_interactions):
             first = i == 0
             last = i == num_interactions - 1
@@ -347,6 +439,11 @@ class _FieldMACEBase(torch.nn.Module):
                 self.readouts.append(LinearReadoutBlock(hidden_irreps, n_energies, False))
             if self.n_prop_out > 0:
                 self.property_readouts.append(o3.Linear(hidden_out, prop_irreps))
+            if self.diabatic and self.n_nacs > 0 and o3.Irreps(hidden_out).count(o3.Irrep(1, -1)) > 0:
+                self.odd_readouts.append(PseudoscalarReadoutBlock(hidden_out, self.n_nacs, field_irreps))
+                if self.compute_dipoles:  # pseudovector part of the off-diagonal diabatic dipoles
+                    self.odd_dipole_readouts.append(PseudoscalarReadoutBlock(hidden_out, self.n_nacs))
+                self.odd_layers.append(i)
 
     # ------------------------------------------------------------------ #
     # models pickled by earlier versions
@@ -377,6 +474,16 @@ class _FieldMACEBase(torch.nn.Module):
             self.n_prop_out = 0
         if "multipole_attention" in self._modules:
             del self._modules["multipole_attention"]
+        if "diabatic" not in self.__dict__:  # before FieldMACE 2.4
+            self.diabatic = False
+            self.n_states = int(self.n_energies)
+        if "odd_readouts" not in self._modules:
+            self.odd_readouts = torch.nn.ModuleList()
+            self.odd_dipole_readouts = torch.nn.ModuleList()
+            self.odd_layers = []
+        if "e0_mask" not in self._buffers:
+            dt = self.atomic_energies_fn.atomic_energies.dtype
+            self.register_buffer("e0_mask", torch.ones(int(self.n_energies), dtype=dt), persistent=False)
 
     # ------------------------------------------------------------------ #
     def _field_features(
@@ -455,13 +562,13 @@ class _FieldMACEBase(torch.nn.Module):
         edge_attrs = self.spherical_harmonics(vectors)
         edge_feats = self.radial_embedding(lengths, node_attrs, data["edge_index"], self.atomic_numbers)
 
-        energies = [e0.unsqueeze(-1).expand(-1, self.n_energies)]
-        node_energies_list = [node_e0.unsqueeze(-1).expand(-1, self.n_energies)]
+        energies = [e0.unsqueeze(-1) * self.e0_mask]
+        node_energies_list = [node_e0.unsqueeze(-1) * self.e0_mask]
         if hasattr(self, "pair_repulsion_fn"):
             pair_node = self.pair_repulsion_fn(lengths, node_attrs, data["edge_index"], self.atomic_numbers)
             pair_e = scatter_sum(pair_node, batch, dim=-1, dim_size=num_graphs)
-            energies.append(pair_e.unsqueeze(-1).expand(-1, self.n_energies))
-            node_energies_list.append(pair_node.unsqueeze(-1).expand(-1, self.n_energies))
+            energies.append(pair_e.unsqueeze(-1) * self.e0_mask)
+            node_energies_list.append(pair_node.unsqueeze(-1) * self.e0_mask)
 
         phi = self._field_features(positions, batch, ptr, mm_pos, mm_q, num_mm, mm_batch, num_graphs)
         multipole_feats = self.linear_up(self.multipole_radial_embedding(phi))
@@ -483,6 +590,14 @@ class _FieldMACEBase(torch.nn.Module):
             node_out = readout(node_feats).reshape(n_nodes, self.n_energies)
             energies.append(scatter_sum(node_out, batch, dim=0, dim_size=num_graphs))
             node_energies_list.append(node_out)
+
+        if len(self.odd_layers) > 0:  # pseudoscalar parts of the diabatic couplings
+            odd = torch.zeros(n_nodes, self.n_nacs, dtype=positions.dtype, device=positions.device)
+            for k, odd_head in enumerate(self.odd_readouts):
+                odd = odd + odd_head(node_feats_list[self.odd_layers[k]], multipole_feats)
+            odd_node = torch.cat([torch.zeros(n_nodes, self.n_states, dtype=odd.dtype, device=odd.device), odd], dim=1)
+            energies.append(scatter_sum(odd_node, batch, dim=0, dim_size=num_graphs))
+            node_energies_list.append(odd_node)
 
         contributions = torch.stack(energies, dim=1)  # [B, n_contrib, n_e]
         total_energy = torch.sum(contributions, dim=1)  # [B, n_e]
@@ -506,7 +621,14 @@ class _FieldMACEBase(torch.nn.Module):
             if self.compute_nacs:
                 nacs = vec[:, : self.n_nac_vectors]
             if self.compute_dipoles:
-                dipoles = scatter_sum(vec[:, self.n_nac_vectors:], batch, dim=0, dim_size=num_graphs)
+                dip_node = vec[:, self.n_nac_vectors:]
+                if len(self.odd_dipole_readouts) > 0:  # diabatic: pseudovector part of the off-diagonal dipoles
+                    odd_d = torch.zeros(n_nodes, self.n_nacs, 3, dtype=positions.dtype, device=positions.device)
+                    for kd, dip_head in enumerate(self.odd_dipole_readouts):
+                        odd_d = odd_d + dip_head.vectors(node_feats_list[self.odd_layers[kd]])
+                    dip_node = dip_node + torch.cat(
+                        [torch.zeros(n_nodes, self.n_states, 3, dtype=odd_d.dtype, device=odd_d.device), odd_d], dim=1)
+                dipoles = scatter_sum(dip_node, batch, dim=0, dim_size=num_graphs)
 
         forces: Optional[torch.Tensor] = None
         mm_forces: Optional[torch.Tensor] = None

@@ -50,6 +50,8 @@ def main():
                    help="initial state, SHARC MCH numbering: 1 S0, 2 S1, 3/5/7 T1 (M_S=-1/0/+1), 4/6/8 T2 "
                         "(default 4: T2, which decays within 200 fs; from S1, intersystem crossing takes ps)")
     p.add_argument("--device", default="cpu")
+    p.add_argument("--coupling", choices=["ddr", "overlap"], default="ddr",
+                   help="SHARC coupling: NACs (ddr) or wave-function overlaps (overlap; LVC or diabatic models)")
     p.add_argument("--runs", default=os.path.join(HERE, "runs"))
     a = p.parse_args()
     sharc_dir()
@@ -96,7 +98,8 @@ def main():
                 copy_lvc(os.path.join(qmdir, "LVC"))
         write_geom(os.path.join(traj, "geom"), ic["elements"][sel], ic["positions_bohr"][k][sel], ic["masses_amu"][sel])
         write_veloc(os.path.join(traj, "veloc"), ic["velocities_au"][k][sel])
-        write_input(os.path.join(traj, "input"), tmax=a.tmax, dt=a.dt, state=a.state, seed=1000 + k, extra=extra)
+        write_input(os.path.join(traj, "input"), tmax=a.tmax, dt=a.dt, state=a.state, seed=1000 + k, extra=extra,
+                    coupling=a.coupling)
         with open(os.path.join(qmdir, "runQM.sh"), "w") as fh:
             fh.write(f"cd QM\n$SHARC/SHARC_{iface}.py QM.in >> QM.log 2>> QM.err\nerr=$?\nexit $err\n")
         os.chmod(os.path.join(qmdir, "runQM.sh"), 0o755)

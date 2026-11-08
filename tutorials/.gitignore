@@ -4,9 +4,12 @@
 */results/
 */h5/
 04_sharc_dynamics/runs/
+05_diabatic_states/runs/
 04_sharc_dynamics/singlepoint/
 */executed.ipynb
 .ipynb_checkpoints/
 # data: only the compressed tutorial-01 data set and its setup.json are shipped
 01_data_and_training/data/*.xyz
 02_excited_states/data/
+05_diabatic_states/data/
+06_ligand_in_pocket/data/*.xyz

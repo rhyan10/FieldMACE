@@ -108,7 +108,11 @@ class LVCLabeler:
             sign[sign == 0] = 1.0
             out = {"h": np.array(q.h) * np.outer(sign, sign), "grad": np.array(q.grad),
                    "grad_pc": np.array(q.grad_pc), "nacdr": np.array(q.nacdr) * np.outer(sign, sign)[:, :, None, None],
-                   "dm": np.array(q.dm) * np.outer(sign, sign)[None]}
+                   "dm": np.array(q.dm) * np.outer(sign, sign)[None],
+                   # for diabatic labels (tutorial 05): diabatic -> adiabatic matrix with the same signs
+                   "U": it._U * sign[None, :]}
+            if getattr(q, "nacdr_pc", None) is not None:
+                out["nacdr_pc"] = np.array(q.nacdr_pc) * np.outer(sign, sign)[:, :, None, None]
         finally:
             os.chdir(cwd)
         return out

@@ -74,6 +74,9 @@ class MACECalculator(Calculator):
         **kwargs,
     ):
         kwargs.pop("n_energies", None)  # accepted for backwards compatibility, read from the model
+        # diabatic models: groups of states diagonalised separately (e.g. one per multiplicity)
+        self.diabatic_blocks = kwargs.pop("diabatic_blocks", None)
+        self._diabatic_U = None  # eigenvectors of the last call, for sign continuity
         Calculator.__init__(self, **kwargs)
         self.results = {}
 
@@ -272,7 +275,8 @@ class MACECalculator(Calculator):
                     props[key].append(out[key].detach())
         e = torch.stack(energies)  # [n_models, n_states]
         f = torch.stack(forces)  # [n_models, n_atoms, n_states, 3]
-        n_states = e.shape[1]
+        diabatic = bool(getattr(self.models[0], "diabatic", False))
+        n_states = int(getattr(self.models[0], "n_states", e.shape[1])) if diabatic else e.shape[1]
         if not 0 <= state < n_states:
             raise ValueError(f"state={state} but the model predicts {n_states} state(s)")
         e_conv = self.energy_units_to_eV
@@ -309,10 +313,48 @@ class MACECalculator(Calculator):
                 self.results["socs"] = sc[:, 0] + 1j * sc[:, 1]  # complex [n_pairs]
             else:
                 self.results["socs"] = sc.reshape(-1)  # free-form real vector [soc_num]
+        if diabatic:
+            self._diabatic_to_adiabatic(n_states, state)
         if self.num_models > 1:
             self.results["energy_var"] = (e.var(0, unbiased=False) * e_conv**2).cpu().numpy()
             self.results["forces_var"] = (f.var(0, unbiased=False) * f_conv**2).cpu().numpy()
         return self.results
+
+    def _diabatic_to_adiabatic(self, n_states: int, state: int):
+        """Diabatic model: keep its outputs as diabatic_* and replace energies, forces, NACs and dipoles
+        by the adiabatic ones (diagonalisation, Hellmann-Feynman; see mace.tools.diabatic)."""
+        from mace.tools.diabatic import adiabatize, state_pairs, unpack
+
+        r = self.results
+        S = n_states
+        H = unpack(r["energies"], S)
+        dH = -unpack(np.moveaxis(r["forces_all"], 1, 0), S)  # [S, S, N, 3]
+        dH_pc = -unpack(np.moveaxis(r["mm_forces"], 1, 0), S) if "mm_forces" in r else None
+        ad = adiabatize(H, dH, dH_pc, blocks=self.diabatic_blocks, U_ref=self._diabatic_U)
+        self._diabatic_U = ad["U"]
+        U, pairs = ad["U"], state_pairs(S)
+        r["diabatic_hamiltonian"] = H
+        r["diabatic_forces"] = r["forces_all"]
+        r["U"] = U
+        r["energies"] = ad["energies"]
+        r["energy"] = r["free_energy"] = float(ad["energies"][state])
+        r["forces_all"] = -np.moveaxis(ad["grad"], 0, 1)  # [N, S, 3]
+        r["forces"] = r["forces_all"][:, state, :]
+        r["nacs"] = np.stack([ad["nac"][i, j] for i, j in pairs], axis=1) if pairs else np.zeros((len(dH[0, 0]), 0, 3))
+        if dH_pc is not None:
+            r["diabatic_mm_forces"] = r["mm_forces"]
+            r["mm_forces"] = -np.moveaxis(ad["grad_pc"], 0, 1)  # [M, S, 3]
+            r["mm_nacs"] = np.stack([ad["nac_pc"][i, j] for i, j in pairs], axis=1) if pairs else None
+        if "dipoles" in r:  # diabatic dipole matrix -> adiabatic
+            d = np.asarray(r["dipoles"])
+            r["diabatic_dipoles"] = d
+            mu = unpack(d, S)  # [S, S, 3]
+            mu_ad = np.einsum("ik,ijx,jl->klx", U, mu, U)
+            r["dipoles"] = np.concatenate([np.stack([mu_ad[k, k] for k in range(S)]),
+                                           np.stack([mu_ad[i, j] for i, j in pairs])])
+            r["dipole"] = r["dipoles"][state]
+        if "socs" in r:  # left in the diabatic basis (the SHARC calculator transforms them)
+            r["diabatic_socs"] = r.pop("socs")
 
     def get_hessian(self, atoms=None):
         if atoms is None and self.atoms is None:
