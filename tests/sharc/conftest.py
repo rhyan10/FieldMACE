@@ -77,6 +77,9 @@ def sharc_models(tmp_path_factory):
         m = build_field_model("PerAtomFieldEMACE", seed=3, atomic_numbers=ZS, channels=8, **kw)
         paths[name] = str(d / f"{name}.model")
         torch.save(m, paths[name])
+        if name == "spatial":  # float32 copy: models are usually trained in float32
+            paths["spatial32"] = str(d / "spatial32.model")
+            torch.save(m.float(), paths["spatial32"])
     torch.set_default_dtype(old)
     return paths
 

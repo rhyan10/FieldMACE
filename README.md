@@ -13,6 +13,13 @@ For the main MACE parameters see [ACEsuit/mace](https://github.com/ACEsuit/mace)
 
 Version 2 changes the default model behaviour; read [What changed in version 2](#what-changed-in-version-2) before comparing with results from version 1.
 
+**Tutorials.** [`tutorials/`](tutorials/) has four step-by-step tutorials, each a folder with a README, runnable scripts and a notebook:
+
+1. QM/MM training data from any force field, and training;
+2. excited states (NACs, dipoles, SOCs);
+3. ML/MM MD in OpenMM;
+4. surface hopping with SHARC 4.
+
 ---
 
 ## Installation
@@ -94,7 +101,8 @@ With S = `--n_energies` states and P = S(S−1)/2 state pairs, ordered (0,1), (0
 `--soc_num` takes SOCs in a free layout, as in X-MACE: for SHARC, the upper triangle of the M_S-resolved SOC matrix, either real or as (re, im) pairs. See [SHARC 4](#surface-hopping-with-sharc-4).
 
 * **Arbitrary phases.** The sign of every coupling between two states (NACs, transition dipoles, SOCs) is arbitrary in QM data. The losses and error metrics therefore use the better of the two signs, chosen separately for each configuration and pair. Labels do not need consistent phases.
-* **Units.** Use whatever units your data has. For "smooth" NACs (NAC × ΔE), just store them under the NAC key.
+* **Units.** Use whatever units your data has.
+* **Smooth NACs (recommended).** NACs grow as 1/ΔE near crossings and then dominate the loss. Train on smooth NACs instead: (E_j − E_i) · NAC_ij for each pair i < j, stored under the NAC key. The SHARC interface converts them back with `nac_type smooth`.
 * **Missing labels.** Frames without a property label get weight 0 for that term.
 * **Field dependence.** All properties respond to the MM field, like the energies.
 * **SOCs are rotation-invariant scalars.** This is the usual ML convention, as in SchNarc and SPaiNN. If your SOCs are resolved by triplet M_S component in a fixed laboratory frame, that is an approximation.
@@ -175,6 +183,8 @@ properties     energy forces nacs dipoles socs
 device         cuda
 energy_unit    eV                        # units the model was trained in
 distance_unit  Angstrom
+nac_type       smooth                    # the model predicts (E_j - E_i) * NAC_ij; "nac" for plain NACs
+# soc_selection_rules true               # default: SOCs that vanish by spin symmetry are set to zero
 ```
 
 **States.** The SHARC `states` line (e.g. `states 2 0 2`, 8 states with M_S) is matched to the model:
@@ -182,6 +192,16 @@ distance_unit  Angstrom
 * **Spatial model.** `n_energies` = number of spatial states (here 4: S0, S1, T1, T2). Every M_S component of a triplet gets the triplet's energy and gradient. NACs couple states of the same multiplicity and M_S; all other NACs are zero. SOCs need a model trained with `--soc_num`: the upper triangle of the nmstates × nmstates SOC matrix, X-MACE layout. Use nmstates(nmstates−1)/2 real values (here 28), or nmstates(nmstates−1) values as (re, im) pairs (here 56).
 * **M_S-resolved model.** `n_energies` = nmstates (here 8). NACs, dipoles and SOCs are taken pair by pair.
 * **Other combinations.** These raise an error that says what does not match. With singlets only, SOC requests return zeros.
+
+**SOC selection rules.** By default, SOC elements that vanish exactly are set to zero instead of taking the model's small, noisy values:
+
+* between two singlets;
+* between the M_S components of one multiplet;
+* for |ΔM_S| > 1.
+
+Noise between exactly degenerate M_S components would otherwise mix them and cause spurious hops.
+
+**Smooth NACs.** With `nac_type smooth` the interface divides the model's (E_j − E_i) · NAC_ij by the model's own energy gap.
 
 **What the interface answers.** `h` (with SOCs if `soc` is requested), `grad`, `grad_pc`, `nacdr`, `dm` (zeros and a warning without a dipole model) and `phases`. Requests the model cannot answer (`nacdr` without NACs, SOCs between multiplicities without a SOC model) fail with a clear error.
 
@@ -204,7 +224,9 @@ They cover:
 * finite-difference checks of `grad` and `grad_pc`, and of the full `SHARC_QMMM` (FieldMACE + OpenMM) gradient;
 * phase continuity between calls;
 * `setup_traj.py` hooks;
-* surface hopping with `sharc.x` and pysharc, gas phase and QM/MM.
+* surface hopping with `sharc.x` and pysharc, gas phase and QM/MM, with float64 and float32 models.
+
+[Tutorial 04](tutorials/04_sharc_dynamics/) runs a trained model through all of this and compares the dynamics with the reference.
 
 ---
 
@@ -263,8 +285,13 @@ sim.context.setParameter("fieldmace_state", 1)        # switch the driving elect
 * **Variable charge counts.** Frames in a batch may have different numbers of point charges, or none (flat MM layout with `num_mm`). The old padded `[B, M, 3]` input is still accepted.
 * **Faster maths.** The multipole maths is vectorised (no Python loops over graphs or (l, m)). A dense path handles single configurations in MD. Forces on QM atoms and point charges come from one backward pass per state.
 * **TorchScript.** Field models compile with TorchScript.
+* **Tutorials (2.3).** [`tutorials/`](tutorials/) has four tutorials (data and training, excited states, OpenMM ML/MM, SHARC 4), each with a README, scripts and a notebook, all checked by `tutorials/check_tutorials.py`.
+* **SHARC fixes and options (2.3).**
+  * pysharc received zero gradients from float32 models; the calculator now always returns double precision.
+  * `nac_type smooth` for models trained on (E_j − E_i) · NAC_ij.
+  * SOC selection rules (on by default).
 * **SHARC 4.** The new interface `sharc/SHARC_FIELDMACE.py` replaces the unfinished `mace/calculators/sharcinterface.py`. It works with `sharc.x`, pysharc and `SHARC_QMMM` (e.g. with OpenMM), and handles multiplicities and point-charge gradients. SOCs can also be learned as a free-form vector (`--soc_num`, X-MACE layout).
-* **Repository cleanup.** Removed `build/`, `*.pyc`, editor swap files and the egg-info. Added `.gitignore`. Declared every dependency (tqdm, python-hostlist, torchmetrics, configargparse, h5py, …). The package is now `fieldmace` (2.2.0); the import name is still `mace`.
+* **Repository cleanup.** Removed `build/`, `*.pyc`, editor swap files and the egg-info. Added `.gitignore`. Declared every dependency (tqdm, python-hostlist, torchmetrics, configargparse, h5py, …). The package is now `fieldmace` (2.3.0); the import name is still `mace`.
 * **Tests.** 120+ tests: invariances and equivariances (including NACs and dipoles), finite-difference forces, batching, padding, gas phase, coincident charges, single atoms, float32, TorchScript, every loss term including the phase-free ones, CLI training (xyz, HDF5, transfer learning, all properties), the ASE and SHARC calculators, SHARC 4 (`sharc.x`, pysharc, `SHARC_QMMM` with OpenMM) and OpenMM ML/MM.
 
 **Old models and data**

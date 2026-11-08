@@ -75,6 +75,9 @@ class SharcCalculator:
         soc_to_au: Optional[float] = None,
         mm_positions_in_angstrom: bool = True,
         states: Optional[List[int]] = None,
+        soc_selection_rules: bool = True,
+        nac_type: str = "nac",
+        min_gap: float = 1e-4,
     ):
         """
         atom_types : chemical formula ("CH2S"), list of symbols, or atomic numbers of the QM atoms
@@ -86,8 +89,18 @@ class SharcCalculator:
         energy_unit / distance_unit : units the model was trained in ("eV"/"Hartree", "Angstrom"/"Bohr")
         nac_to_au, dipole_to_au, soc_to_au : conversion of the model's NACs, dipoles and SOCs to
             atomic units. Defaults assume NACs in 1/length, dipoles in e*length (model length unit)
-            and SOCs in the model energy unit. Set nac_to_au yourself for smooth NACs (NAC * dE).
+            and SOCs in the model energy unit.
+        nac_type : "nac" - the model predicts NACs <i|d/dR|j>;
+                   "smooth" - the model predicts smooth NACs (E_j - E_i) * NAC_ij for each pair i < j,
+                   which stay finite at near-degeneracies and are much easier to learn. They are
+                   divided by the model's own energy gap (at least ``min_gap``, model energy unit)
+                   before they go to SHARC.
         mm_positions_in_angstrom : MM positions given to calculate() are in Angstrom (default) or bohr.
+        soc_selection_rules : set SOC elements that vanish exactly to zero instead of using the model's
+            (small, noisy) prediction: between two singlets, between the M_S components of the same
+            spin multiplet (same spatial state; zero for real, non-degenerate states), and for
+            |Delta M_S| > 1 (the spin-orbit operator has spin rank 1). Noise between exactly degenerate
+            M_S components would otherwise mix them and cause spurious hops.
         """
         energy_unit = {"ev": "eV", "hartree": "Hartree"}.get(str(energy_unit).lower(), energy_unit)
         distance_unit = {"ang": "Angstrom", "angstrom": "Angstrom", "bohr": "Bohr"}.get(
@@ -120,6 +133,10 @@ class SharcCalculator:
         self.molecule = ase.Atoms(numbers=self.atom_types)
         self.n_atoms = len(self.atom_types)
         self.nac_key = nac_key
+        if nac_type not in ("nac", "smooth"):
+            raise ValueError("nac_type must be 'nac' or 'smooth'")
+        self.nac_type = nac_type
+        self.min_gap = float(min_gap)
 
         self.calc = MACECalculator(model_paths=modelpath, device=device)
         model = self.calc.models[0]
@@ -143,6 +160,9 @@ class SharcCalculator:
         self.nmstates = len(self.mstates)
         self.nstates = sum(self.states)
         self._setup_state_map()
+        self.soc_selection_rules = bool(soc_selection_rules)
+        self._soc_forbidden = np.array([[(ma == mb == 1) or (ma == mb and ja == jb) or abs(sa - sb) > 1
+                                         for (mb, jb, sb) in self.mstates] for (ma, ja, sa) in self.mstates])
         self.last_prediction: Optional[Dict[str, np.ndarray]] = None
 
     # ------------------------------------------------------------------ #
@@ -231,7 +251,11 @@ class SharcCalculator:
                     i, j = idx[a], idx[b]
                     if i == j or not self._coupled(a, b):
                         continue
-                    v = pred["nacs"][:, self._pair_index[(min(i, j), max(i, j))]] * self.nac_to_au
+                    lo, hi = min(i, j), max(i, j)
+                    v = pred["nacs"][:, self._pair_index[(lo, hi)]] * self.nac_to_au
+                    if self.nac_type == "smooth":  # (E_hi - E_lo) * NAC_lo,hi  ->  NAC_lo,hi
+                        gap = float(pred["energy"][hi] - pred["energy"][lo])
+                        v = v / (np.sign(gap) or 1.0) / max(abs(gap), self.min_gap)
                     nac[a, b] = v if i < j else -v
                     nac[b, a] = -nac[a, b]
             out["nacdr"] = nac
@@ -246,6 +270,9 @@ class SharcCalculator:
                         continue
                     dm[:, a, b] = dm[:, b, a] = pred["dipoles"][S + self._pair_index[(min(i, j), max(i, j))]] * self.dipole_to_au
             out["dm"] = dm
+        # SHARC works in double precision; float32 models give float32 arrays, which pysharc's C
+        # extension would read as garbage (it takes the raw buffer), so always hand over float64/complex128
+        out = {k: np.ascontiguousarray(v, dtype=np.complex128 if k == "h" else np.float64) for k, v in out.items()}
         if as_arrays:
             return out
         return {k: v.tolist() for k, v in out.items()}
@@ -264,6 +291,8 @@ class SharcCalculator:
                 if i != j:
                     val = v[self._pair_index[(min(i, j), max(i, j))]] * self.soc_to_au
                     soc[a, b] = val if i < j else np.conj(val)
+        if self.soc_selection_rules:
+            soc[self._soc_forbidden] = 0.0
         return soc + soc.conj().T
 
     # ------------------------------------------------------------------ #

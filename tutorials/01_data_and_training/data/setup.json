@@ -1,0 +1,44 @@
+{
+  "qm_atoms": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+  ],
+  "qm_atomic_numbers": [
+    6,
+    1,
+    6,
+    1,
+    1,
+    1
+  ],
+  "link_atoms": [
+    [
+      8,
+      6,
+      0.7522429261559697
+    ],
+    [
+      8,
+      14,
+      0.7161629434954009
+    ]
+  ],
+  "embedding": {
+    "origin": "centroid",
+    "cutoff": 8.0,
+    "switch_width": 2.0,
+    "cutoff_reference": "centroid"
+  },
+  "prepare_kwargs": {
+    "link_charge_scheme": "Z1"
+  },
+  "units": {
+    "length": "Angstrom",
+    "energy": "eV",
+    "charge": "e"
+  }
+}

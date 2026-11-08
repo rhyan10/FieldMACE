@@ -126,7 +126,14 @@ def test_file_mode_qmout_matches_model(tmp_path, sharc_models, pc):
         q.nacdr[0, 1], -r["nacs"][:, 0] * BOHR, atol=1e-9)
     soc = np.zeros((8, 8))
     soc[np.triu_indices(8, 1)] = r["socs"] * HARTREE_PER_EV
+    # selection rules: no SOC between the singlets, between M_S components of the same triplet, or |dM_S| > 1
+    from mace.calculators.sharc_calculator import sharc_mstates
+    ms = sharc_mstates([2, 0, 2])
+    forbidden = np.array([[(ma == mb == 1) or (ma == mb and ja == jb) or abs(sa - sb) > 1 for mb, jb, sb in ms]
+                          for ma, ja, sa in ms])
+    soc[forbidden] = 0.0
     assert np.allclose(np.abs(np.triu(q.h, 1)), np.abs(soc), atol=1e-9)
+    assert np.abs(q.h[0, 1]) == 0 and np.abs(q.h[2, 4]) == 0 and np.abs(q.h[2, 3]) > 0  # S0-S1, T1(-1)-T1(0); T1-T2
     if pc:
         assert q.grad_pc.shape == (M, 12, 3)
         assert np.allclose(q.grad_pc[1], -r["mm_forces"][:, 1] * HARTREE_PER_EV * BOHR, atol=1e-9)
@@ -456,13 +463,18 @@ def test_sharc_dynamics_qmmm_fieldmace_openmm(tmp_path, sharc_models):
 # --------------------------------------------------------------------------- #
 @requires_pysharc
 @requires_sharc_x
-def test_pysharc_matches_sharc_x(tmp_path, sharc_models):
-    """Same trajectory (same seed) with pysharc as with sharc.x calling SHARC_FIELDMACE.py each step."""
-    ref = run_sharc(make_dynamics_dir(tmp_path / "x", sharc_models["spatial"], ALL, tmax=2.0))
-    traj = make_dynamics_dir(tmp_path / "py", sharc_models["spatial"], ALL, tmax=2.0)
+@pytest.mark.parametrize("model", ["spatial", "spatial32"])
+def test_pysharc_matches_sharc_x(tmp_path, sharc_models, model):
+    """Same trajectory (same seed) with pysharc as with sharc.x calling SHARC_FIELDMACE.py each step.
+
+    The float32 model checks that pysharc gets double-precision arrays (it reads raw buffers)."""
+    ref = run_sharc(make_dynamics_dir(tmp_path / "x", sharc_models[model], ALL, tmax=2.0))
+    traj = make_dynamics_dir(tmp_path / "py", sharc_models[model], ALL, tmax=2.0)
     lis = run_sharc(traj, pysharc="FIELDMACE")
     assert lis.shape == ref.shape == (5, 9)
+    assert np.ptp(ref[:, 4]) > 1e-5 and np.ptp(lis[:, 4]) > 1e-5  # forces act: kinetic energy changes
     assert np.allclose(lis[:, :8], ref[:, :8], atol=2e-6)  # step, time, states, energies, angular momentum
+    assert np.ptp(lis[:, 6]) < 5e-3  # total energy conserved (random model, strong couplings)
     assert (traj / "restart" / "FIELDMACE_previous.npz").exists()
 
 

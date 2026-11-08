@@ -23,6 +23,9 @@
 #        energy_unit  eV | Hartree                (units the model was trained in)
 #        distance_unit Angstrom | Bohr
 #        nac_to_au / dipole_to_au / soc_to_au     (optional unit conversions, see SharcCalculator)
+#        nac_type     nac | smooth                (smooth: the model predicts (E_j - E_i) * NAC_ij)
+#        soc_selection_rules true | false         (default true: SOCs between singlets, between the M_S
+#                                                  components of one multiplet and for |dM_S| > 1 are zero)
 #
 #    This file is distributed with FieldMACE under the MIT license; SHARC is GPL-3.
 #
@@ -42,12 +45,14 @@ from mace.calculators.sharc_calculator import SharcCalculator
 __all__ = ["SHARC_FIELDMACE"]
 
 AUTHORS = "Rhyan Barrett"
-VERSION = "2.1"
-VERSIONDATE = datetime.datetime(2026, 11, 7)
+VERSION = "2.3"
+VERSIONDATE = datetime.datetime(2026, 11, 8)
 NAME = "FIELDMACE"
 DESCRIPTION = "     FAST interface for FieldMACE (ML for QM/MM; energies, gradients, NACs, dipoles, SOCs)"
 CHANGELOGSTRING = """
 2.1  SHARC 4 interface: point charges (grad_pc), multiplicities, SOCs, phase tracking
+2.3  smooth NACs (nac_type), SOC selection rules, double-precision arrays for pysharc
+     (float32 models gave zero gradients in pysharc); tutorial: tutorials/04_sharc_dynamics
 """
 PREV_FILE = "FIELDMACE_previous.npz"
 
@@ -76,6 +81,8 @@ class SHARC_FIELDMACE(SHARC_FAST):
                 "nac_to_au": None,
                 "dipole_to_au": None,
                 "soc_to_au": None,
+                "soc_selection_rules": True,
+                "nac_type": "nac",
             }
         )
         self.QMin.template.types.update(
@@ -88,6 +95,8 @@ class SHARC_FIELDMACE(SHARC_FAST):
                 "nac_to_au": float,
                 "dipole_to_au": float,
                 "soc_to_au": float,
+                "soc_selection_rules": bool,
+                "nac_type": str,
             }
         )
         self.calculator = None
@@ -194,6 +203,8 @@ class SHARC_FIELDMACE(SHARC_FAST):
             nac_to_au=t["nac_to_au"],
             dipole_to_au=t["dipole_to_au"],
             soc_to_au=t["soc_to_au"],
+            soc_selection_rules=t["soc_selection_rules"],
+            nac_type=t["nac_type"],
             mm_positions_in_angstrom=False,  # SHARC passes point-charge coordinates in bohr
         )
         self.log.info(

@@ -373,7 +373,11 @@ def test_sharc_calculator(prop_model_file):
 
     sym, qm, mm, q = methane_in_charges(8, seed=3)
     bohr = 0.529177210903
-    sc = SharcCalculator(sym, prop_model_file, device="cpu",
+    # three singlets with SOCs: unphysical (SOCs between singlets vanish), but it tests the plumbing;
+    # the selection rules (default) would zero them
+    assert np.allclose(np.triu(np.array(SharcCalculator(sym, prop_model_file, device="cpu", properties=[
+        "energy", "socs"]).calculate(qm / bohr, mm, q)["h"]), 1), 0)
+    sc = SharcCalculator(sym, prop_model_file, device="cpu", soc_selection_rules=False,
                          properties=["energy", "forces", "nacs", "dipoles", "socs"])
     out = sc.calculate(qm / bohr, mm, q)
     S = 3
@@ -397,6 +401,17 @@ def test_sharc_calculator(prop_model_file):
     assert np.allclose(dm[:, 0, 2], r["dipoles"][3 + 1] / bohr)
     assert np.allclose(h[1, 2], r["socs"][2] / 27.211386245988)
 
+    # smooth NACs: the model output (E_j - E_i) * NAC_ij is divided by the model's own gap
+    sm = SharcCalculator(sym, prop_model_file, device="cpu", soc_selection_rules=False, nac_type="smooth",
+                         properties=["energy", "forces", "nacs"])
+    nac_s = np.array(sm.calculate(qm / bohr, mm, q)["nacdr"])
+    e = r["energies"]
+    assert np.allclose(nac_s[0, 1], r["nacs"][:, 0] * bohr / (e[1] - e[0]))
+    assert np.allclose(nac_s[1, 2], r["nacs"][:, 2] * bohr / (e[2] - e[1]))
+    assert np.allclose(nac_s, -np.transpose(nac_s, (1, 0, 2, 3)))
+    with pytest.raises(ValueError):
+        SharcCalculator(sym, prop_model_file, device="cpu", nac_type="smoothed")
+
     # phase tracking: a previous step with flipped couplings flips the new output
     prev = {k: v.copy() for k, v in sc.last_prediction.items()}
     prev["nacs"][:, 0] *= -1
@@ -408,6 +423,49 @@ def test_sharc_calculator(prop_model_file):
     assert np.allclose(np.array(out2["h"])[0, 2], -h[0, 2])
     assert np.allclose(np.array(out2["dm"])[:, 1, 2], -dm[:, 1, 2])
     assert np.allclose(np.array(out2["nacdr"])[0, 2], nac[0, 2])  # untouched pairs keep their sign
+
+
+def test_sharc_calculator_returns_double_precision(prop_model_file, tmp_path):
+    """pysharc reads raw buffers as float64: a float32 model must still give float64/complex128 arrays."""
+    from mace.calculators.sharc_calculator import SharcCalculator
+
+    m = torch.load(prop_model_file, weights_only=False).float()
+    p = tmp_path / "f32.model"
+    torch.save(m, p)
+    sym, qm, mm, q = methane_in_charges(8, seed=3)
+    sc = SharcCalculator(sym, str(p), device="cpu", properties=["energy", "forces", "nacs", "dipoles", "socs"])
+    out = sc.get_qm(sc.predict(qm / 0.529177210903, mm, q), as_arrays=True)
+    assert out["h"].dtype == np.complex128
+    for k in ("grad", "grad_pc", "nacdr", "dm"):
+        assert out[k].dtype == np.float64 and out[k].flags["C_CONTIGUOUS"], k
+    assert np.abs(out["grad"]).max() > 0
+
+
+def test_sharc_soc_selection_rules(tmp_path):
+    """Singlets + triplets: SOCs vanish between singlets, within a multiplet and for |dM_S| > 1."""
+    from mace.calculators.sharc_calculator import SharcCalculator, sharc_mstates
+    from mace.tools.testing import build_field_model
+
+    m = build_field_model("PerAtomFieldEMACE", seed=5, atomic_numbers=[1, 6], channels=8, n_energies=4,
+                          compute_socs=True, soc_num=56)
+    p = tmp_path / "st.model"
+    torch.save(m, p)
+    sym, qm, mm, q = methane_in_charges(8, seed=3)
+    ms = sharc_mstates([2, 0, 2])
+    on = np.array(SharcCalculator(sym, str(p), states=[2, 0, 2], properties=["energy", "socs"]).calculate(
+        qm / 0.529177210903, mm, q)["h"])
+    off = np.array(SharcCalculator(sym, str(p), states=[2, 0, 2], properties=["energy", "socs"],
+                                   soc_selection_rules=False).calculate(qm / 0.529177210903, mm, q)["h"])
+    assert np.allclose(on, on.conj().T)
+    for a, (ma, ja, sa) in enumerate(ms):
+        for b, (mb, jb, sb) in enumerate(ms):
+            if a == b:
+                continue
+            forbidden = (ma == mb == 1) or (ma == mb and ja == jb) or abs(sa - sb) > 1
+            assert (on[a, b] == 0) == forbidden, (a, b)
+            if not forbidden:
+                assert on[a, b] == off[a, b]
+    assert np.abs(off[0, 1]) > 0  # the raw model output is not zero there
 
 
 def test_sharc_calculator_rejects_missing_property(tmp_path):

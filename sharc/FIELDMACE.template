@@ -6,6 +6,11 @@ device         cpu
 # units the model was trained in
 energy_unit    eV
 distance_unit  Angstrom
+# NACs: "nac" (the model predicts NACs) or "smooth" (it predicts (E_j - E_i) * NAC_ij, recommended)
+# nac_type       smooth
 # optional conversions of the model's NACs / dipoles / SOCs to atomic units
-# (defaults: 1/Angstrom, e*Angstrom, eV; set nac_to_au for smooth NACs = NAC * dE)
+# (defaults: 1/Angstrom (smooth: eV/Angstrom), e*Angstrom, eV)
 # nac_to_au     0.529177210903
+# SOCs between singlets, between the M_S components of the same multiplet and for |dM_S| > 1 are
+# exactly zero; the model's small noise there is removed (default true)
+# soc_selection_rules true
