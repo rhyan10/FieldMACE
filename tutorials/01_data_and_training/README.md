@@ -72,10 +72,18 @@ python 01_prepare_system.py --pdb sys.pdb --forcefield charmm36.xml charmm36/wat
 
 Nothing in FieldMACE inspects the force field beyond OpenMM's standard force classes. Bonded terms and
 nonbonded parameters are found generically, including OPLS-style `RBTorsionForce` and
-`CustomNonbondedForce` with geometric combination rules.
+`CustomNonbondedForce` with geometric combination rules. The MM environment must be a fixed-charge
+force field: implicit solvent (`GBSAOBCForce`, `CustomGBForce`) and polarisable force fields (AMOEBA,
+Drude) raise an error, because their energy cannot be split into point charges plus the rest.
 
-**Choosing the QM region (`--qm`).** Use `"index 8-13"` (0-based indices), `"resname LIG"` or `"resid 2"`,
-combined with `or`. For anything fancier, compute the indices with MDTraj and pass `index`.
+The `charmm36.xml` line works for proteins and standard residues. For capped peptides such as this
+tutorial's alanine dipeptide, OpenMM's CHARMM36 files have several matching templates for the merged
+ACE-ALA-NME residue; pass `residueTemplates=` or use a PSF.
+
+**Choosing the QM region (`--qm`).** Use `"index 8-13"` (0-based indices), `"resname LIG"`, `"resid 2"`,
+`"name CA CB"` or `"element C"`, combined with `and` (binds first) and `or`, e.g.
+`"resid 2 and name CA HA CB HB1 HB2 HB3"`. For anything fancier, compute the indices with MDTraj and pass
+`index`.
 
 **Link atoms.** Every covalent bond between a QM and an MM atom gets a hydrogen on the bond:
 `r_H = r_QM + ratio · (r_MM − r_QM)`. The ratio is a typical X–H distance over the force-field bond

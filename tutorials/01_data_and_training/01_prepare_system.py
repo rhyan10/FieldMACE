@@ -18,6 +18,7 @@ The QM region is chosen with --qm (selection syntax of mace.mlmm.io.select_atoms
   "index 8-13"      0-based atom indices / ranges    (default: the alanine side chain CA HA CB HB1-3)
   "resname LIG"     whole residues by name
   "resid 2"         residues by id
+  "resid 2 and name CA HA CB HB1 HB2 HB3"   atom names / elements ("element C"), with "and" / "or"
 Covalent bonds between QM and MM atoms are capped with hydrogen link atoms automatically.
 
 Outputs (work/):

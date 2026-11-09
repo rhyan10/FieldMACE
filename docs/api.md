@@ -8,7 +8,7 @@ The most used entry points. Every function and class has a docstring with the de
 
 | | |
 |---|---|
-| `mace_run_train` (`mace.cli.run_train`) | training from the command line. `--model PerAtomFieldEMACE` or `FieldEMACE`, `--n_energies`, `--compute_nacs`, `--compute_dipoles`, `--compute_socs`, `--diabatic`, `--mm_forces_weight`, ... |
+| `mace_run_train` (`mace.cli.run_train`) | training from the command line. `--model PerAtomFieldEMACE` or `FieldEMACE`, `--n_energies`, `--compute_nacs`, `--compute_dipoles`, `--compute_socs`, `--diabatic`, `--mm_forces_weight`, `--foundation_model` (MACE-MP-0 2023 and MACE-OFF23 only), ... |
 | `mace.modules.PerAtomFieldEMACE`, `FieldEMACE` | the models. Inputs: the QM atoms and the MM point charges (flat layout: `mm_positions [M, 3]`, `mm_charges [M]`, `num_mm [B]`) |
 | `mace.tools.diabatic` | diabatic models: `adiabatize` (H, dH → E, U, gradients, NACs), `labels_from_adiabatic` (the inverse, for labels), `pack`, `unpack` |
 
@@ -24,7 +24,7 @@ The most used entry points. Every function and class has a docstring with the de
 
 | | |
 |---|---|
-| `create_fieldmace_mm_system(system, qm_atoms, model, topology=, settings=, backend="python" or "torch", **prepare_kwargs)` | any OpenMM System → ML/MM System. Link atoms, charge schemes, virtual sites, periodic boxes |
+| `create_fieldmace_mm_system(system, qm_atoms, model, topology=, settings=, backend="python" or "torch", **prepare_kwargs)` | any fixed-charge OpenMM System → ML/MM System. Link atoms, charge schemes, virtual sites, periodic boxes |
 | `EmbeddingSettings(origin, cutoff, switch_width, cutoff_reference)` | how the MM charges enter the model; save it with the data (`save_setup` / `load_setup`) |
 | `FieldMACEStateReporter` | energies of all states during MD; switch the driving state with `context.setParameter("fieldmace_state", k)` |
 | `export_torchscript(model, spec, path)` | the whole ML/MM potential as one TorchScript file: positions (nm) [, box] [, state] → energy (kJ/mol) |

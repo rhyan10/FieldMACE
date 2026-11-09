@@ -9,7 +9,7 @@ FieldMACE is a deep-learning framework for QM/MM data.
 
 * **Model.** It extends the Message Passing Atomic Cluster Expansion (MACE) architecture. A multipole expansion encodes the electrostatic field that the MM point charges create at the QM region.
 * **Outputs.** It predicts energies (ground and excited states), forces on the QM atoms and forces on the MM point charges. It can also predict non-adiabatic couplings, permanent and transition dipoles, and spin-orbit couplings, or a **diabatic Hamiltonian** whose diagonalisation gives all of these.
-* **OpenMM.** It ships an OpenMM interface for ML/MM molecular dynamics with any OpenMM force field: Amber, CHARMM, OPLS, GAFF/OpenFF and others. The model runs as a `PythonForce` or as an openmm-torch `TorchForce`, and it can be exported as one TorchScript file.
+* **OpenMM.** It ships an OpenMM interface for ML/MM molecular dynamics with any fixed-charge force field OpenMM can build: Amber, CHARMM, OPLS, GAFF/OpenFF and others. Implicit solvent and polarisable force fields (AMOEBA, Drude) are not supported as the MM environment. The model runs as a `PythonForce` or as an openmm-torch `TorchForce`, and it can be exported as one TorchScript file.
 * **SHARC 4.** Surface hopping, in the gas phase and in QM/MM with `SHARC_QMMM`.
 * **Active learning.** `fieldmace_active_learning` automates committee training, ML/MM MD, selection and labelling.
 
@@ -79,7 +79,16 @@ mace_run_train --name=protein --train_file=train.xyz --valid_fraction=0.1 --mode
 * `PerAtomFieldEMACE` (recommended): expands the MM potential about every QM atom.
 * `FieldEMACE`: a single multipole expansion about the QM centroid.
 
-Transfer learning works as before with `--foundation_model=medium_off` (or `small`, `medium`, `large`, `*_off`, or a path).
+**Starting from a MACE foundation model.** `--foundation_model` initialises a field model with the MACE layers of a pretrained model: the node embedding, the radial basis, the interaction and product blocks. The field interactions, the readouts and any excited-state heads start from scratch. The architecture options (`r_max`, channels, `max_ell`, layers, correlation order, radial basis) are replaced by the foundation model's, with a warning, and every element of your data must be one the foundation model knows.
+
+| `--foundation_model` | model | where it comes from | status |
+|---|---|---|---|
+| `medium` | MACE-MP-0 medium (2023-12-03) | bundled in `mace/calculators/foundations_models/` | tested |
+| `small`, `large` | MACE-MP-0 small / large (2023) | downloaded on first use | worked in FieldMACE 1, not re-tested |
+| `small_off`, `medium_off`, `large_off` | MACE-OFF23 (ASL license) | downloaded on first use | worked in FieldMACE 1, not re-tested |
+| a file path | a `.model` file | | only models made with the same (2023) MACE version |
+
+**Newer foundation models do not work yet.** That includes MACE-MPA-0, MACE-OMAT-0, MACE-MP-0b3, MACE-MATPES, MACE-OFF24 and the multi-head MH models. FieldMACE is built on a 2023 version of MACE, which lacks the newer blocks; loading MACE-MPA-0, for example, fails with `Can't get attribute 'RealAgnosticDensityInteractionBlock'`. Supporting them means updating the MACE core and is planned on a development branch. The ASE helpers `mace_mp()`, `mace_off()` and `mace_anicc()` in `mace.calculators` have the same limits; they are upstream MACE code, not FieldMACE models.
 
 **Field-specific options**
 
@@ -333,7 +342,7 @@ sim.context.setParameter("fieldmace_state", 1)        # switch the driving elect
   * `sharc/install_sharc4.sh` installs SHARC 4 (`sharc.x` + pysharc) in a conda environment or a virtual environment and tests it. It also fixes an upstream input-reader bug (an `intent(out)` status left unset) that made pysharc read no input once PyTorch was imported.
 * **SHARC 4.** The new interface `sharc/SHARC_FIELDMACE.py` replaces the unfinished `mace/calculators/sharcinterface.py`. It works with `sharc.x`, pysharc and `SHARC_QMMM` (e.g. with OpenMM), and handles multiplicities and point-charge gradients. SOCs can also be learned as a free-form vector (`--soc_num`, X-MACE layout).
 * **Repository cleanup.** Removed `build/`, `*.pyc`, editor swap files and the egg-info. Added `.gitignore`. Declared every dependency (tqdm, python-hostlist, torchmetrics, configargparse, h5py, …). The package is `fieldmace`; the import name is still `mace`.
-* **Tests.** 120+ tests: invariances and equivariances (including NACs and dipoles), finite-difference forces, batching, padding, gas phase, coincident charges, single atoms, float32, TorchScript, every loss term including the phase-free ones, CLI training (xyz, HDF5, transfer learning, all properties), the ASE and SHARC calculators, SHARC 4 (`sharc.x`, pysharc, `SHARC_QMMM` with OpenMM) and OpenMM ML/MM.
+* **Tests.** 160+ tests: invariances and equivariances (including NACs and dipoles), finite-difference forces, batching, padding, gas phase, coincident charges, single atoms, float32, TorchScript, every loss term including the phase-free ones, CLI training (xyz, HDF5, transfer learning from the bundled MACE-MP-0 medium, all properties), the ASE and SHARC calculators, SHARC 4 (`sharc.x`, pysharc, `SHARC_QMMM` with OpenMM) and OpenMM ML/MM.
 
 **Old models and data**
 

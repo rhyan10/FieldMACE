@@ -46,6 +46,9 @@ CI, packaging and a documentation site.
   GROMACS, OpenMM XML and serialized inputs; part 7, MD recipes (platform, time step, NVT/NPT,
   reporters, energy components, restarts, cost).
 - `select_atoms`: `name` and `element` keywords, and `and` clauses (`resid 2 and name CA CB`).
+- README: which MACE foundation models `--foundation_model` can start from (MACE-MP-0 2023, MACE-OFF23)
+  and which it cannot yet (MPA-0, OMAT-0, MP-0b3, MATPES, OFF24, MH); the MM environment must be a
+  fixed-charge force field.
 - GitHub Actions: tests with pip (Python 3.10–3.13) and with conda-forge openmm-torch, sdist and
   wheel build; weekly SHARC 4 integration tests; release to PyPI on tags (trusted publishing);
   the documentation site (MkDocs, GitHub Pages) built from the READMEs and tutorials.

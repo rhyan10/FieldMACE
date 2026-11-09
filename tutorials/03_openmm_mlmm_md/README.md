@@ -3,8 +3,9 @@
 *Author: Rhyan Barrett*
 
 FieldMACE runs inside OpenMM as an `openmm.PythonForce` (OpenMM ≥ 8.3), or as an `openmmtorch.TorchForce`. The model describes the QM region in
-the field of the MM point charges, and everything else is the force field. Any force field OpenMM reads
-works.
+the field of the MM point charges, and everything else is the force field. Any fixed-charge force field
+OpenMM can build works (Amber, CHARMM, OPLS, GAFF/OpenFF, ...); implicit solvent and polarisable force
+fields are rejected with an error, see part 5.
 
 ```
 01_mlmm_md.py          ground state: alanine side chain in water (model from tutorial 01), NVT + NVE
