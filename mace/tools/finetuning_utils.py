@@ -17,7 +17,6 @@ def load_foundations(
     Load the foundations of a model into a model for fine-tuning.
     """
     logging.debug(model)
-    assert model_foundations.r_max == model.r_max
     z_table = AtomicNumberTable([int(z) for z in model_foundations.atomic_numbers])
     new_z_table = table
     num_species_foundations = len(z_table.zs)
@@ -25,6 +24,17 @@ def load_foundations(
         model_foundations.node_embedding.linear.weight.shape[0]
         // num_species_foundations
     )
+    unknown = sorted(int(z) for z in new_z_table.zs if int(z) not in [int(x) for x in z_table.zs])
+    if unknown:
+        from mace.tools.data_checks import InputError
+
+        raise InputError(f"the data contain element(s) Z={unknown} that the foundation model does not know "
+                         f"(it has Z={[int(z) for z in z_table.zs]}): train without --foundation_model, or use a "
+                         "foundation model that covers them")
+    if float(model_foundations.r_max) != float(model.r_max):
+        from mace.tools.data_checks import InputError
+
+        raise InputError(f"--r_max={float(model.r_max)} differs from the foundation model's {float(model_foundations.r_max)}")
     indices_weights = [z_table.z_to_index(z) for z in new_z_table.zs]
     num_radial = model.radial_embedding.out_dim
     num_species = len(indices_weights)
@@ -106,8 +116,8 @@ def load_foundations(
                     .clone()
                     / (num_species_foundations / num_species) ** 0.5
                 )
-            except:
-                pass
+            except RuntimeError as err:  # different first-layer block: this weight stays at its initial value
+                logging.warning(f"skip connection of interaction {i} not transferred from the foundation model ({err})")
 
     for i in range(min(len(model.products), len(model_foundations.products))):
         n_contr = min(len(model.products[i].symmetric_contractions.contractions),

@@ -4,6 +4,13 @@ import os
 from e3nn import o3
 
 
+def _require(ok: bool, message: str) -> None:
+    if not ok:
+        from mace.tools.data_checks import InputError
+
+        raise InputError(message)
+
+
 def check_args(args):
     """
     Check input arguments, update them if necessary for valid and consistent inputs, and return a tuple containing
@@ -50,31 +57,34 @@ def check_args(args):
                 logging.WARNING,
             )
         )
-        assert (
-            len({irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}) == 1
-        ), "All channels must have the same dimension, use the num_channels and max_L keywords to specify the number of channels and the maximum L"
+        _require(
+            len({irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}) == 1,
+            f"--hidden_irreps={args.hidden_irreps}: all irreps need the same number of channels (e.g. "
+            "'32x0e + 32x1o'), or use --num_channels and --max_L")
     elif args.num_channels is not None and args.max_L is not None:
-        assert args.num_channels > 0, "num_channels must be positive integer"
-        assert args.max_L >= 0, "max_L must be non-negative integer"
+        _require(args.num_channels > 0, "--num_channels must be a positive integer")
+        _require(args.max_L >= 0, "--max_L must be a non-negative integer")
         args.hidden_irreps = o3.Irreps(
             (args.num_channels * o3.Irreps.spherical_harmonics(args.max_L))
             .sort()
             .irreps.simplify()
         )
-        assert (
-            len({irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}) == 1
-        ), "All channels must have the same dimension, use the num_channels and max_L keywords to specify the number of channels and the maximum L"
+        _require(
+            len({irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}) == 1,
+            f"--hidden_irreps={args.hidden_irreps}: all irreps need the same number of channels (e.g. "
+            "'32x0e + 32x1o'), or use --num_channels and --max_L")
     elif args.hidden_irreps is not None:
-        assert (
-            len({irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}) == 1
-        ), "All channels must have the same dimension, use the num_channels and max_L keywords to specify the number of channels and the maximum L"
+        _require(
+            len({irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}) == 1,
+            f"--hidden_irreps={args.hidden_irreps}: all irreps need the same number of channels (e.g. "
+            "'32x0e + 32x1o'), or use --num_channels and --max_L")
 
         args.num_channels = list(
             {irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}
         )[0]
         args.max_L = o3.Irreps(args.hidden_irreps).lmax
     elif args.max_L is not None and args.num_channels is None:
-        assert args.max_L >= 0, "max_L must be non-negative integer"
+        _require(args.max_L >= 0, "--max_L must be a non-negative integer")
         args.num_channels = 128
         args.hidden_irreps = o3.Irreps(
             (args.num_channels * o3.Irreps.spherical_harmonics(args.max_L))
@@ -82,7 +92,7 @@ def check_args(args):
             .irreps.simplify()
         )
     elif args.max_L is None and args.num_channels is not None:
-        assert args.num_channels > 0, "num_channels must be positive integer"
+        _require(args.num_channels > 0, "--num_channels must be a positive integer")
         args.max_L = 1
         args.hidden_irreps = o3.Irreps(
             (args.num_channels * o3.Irreps.spherical_harmonics(args.max_L))

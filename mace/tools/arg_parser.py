@@ -582,7 +582,8 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         default=True,
     )
     parser.add_argument(
-        "--scheduler", help="Type of scheduler", type=str, default="ReduceLROnPlateau"
+        "--scheduler", help="learning-rate scheduler", type=str, default="ReduceLROnPlateau",
+        choices=["ReduceLROnPlateau", "ExponentialLR"]
     )
     parser.add_argument(
         "--lr_factor", help="Learning rate factor", type=float, default=0.8

@@ -108,7 +108,7 @@ class FieldMACETorchModule(torch.nn.Module):
         self.register_buffer("batch", torch.zeros(n, dtype=torch.long))
         self.register_buffer("ptr", torch.tensor([0, n], dtype=torch.long))
         self.register_buffer("cell", torch.zeros(3, 3, dtype=dt))
-        self.static_graph = (n <= 128) if static_graph == "auto" else bool(static_graph)
+        self.static_graph = (n <= 32) if static_graph == "auto" else bool(static_graph)  # all pairs: n^2 edges
         ii, jj = torch.meshgrid(torch.arange(n), torch.arange(n), indexing="ij")
         mask = ii != jj
         self.register_buffer("edge_index_static", torch.stack([ii[mask], jj[mask]]))

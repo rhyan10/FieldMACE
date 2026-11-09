@@ -65,13 +65,17 @@ def parse_args() -> argparse.Namespace:
         "--path", help="path to results file or directory", required=True
     )
     parser.add_argument(
-        "--min_epoch", help="minimum epoch", default=50, type=int, required=False
+        "--min_epoch", help="plot epochs after this one", default=0, type=int, required=False
     )
     return parser.parse_args()
 
 
 def plot(data: pd.DataFrame, min_epoch: int, output_path: str) -> None:
-    data = data[data["epoch"] > min_epoch]
+    data = data[pd.to_numeric(data["epoch"], errors="coerce") > min_epoch]
+    if len(data) == 0:
+        print(f"WARNING: no epochs after --min_epoch={min_epoch}: {output_path} not written")
+        return
+    data = data.select_dtypes(include=[np.number]).join(data[["name", "mode"]]).drop(columns=["seed"], errors="ignore")
 
     data = data.groupby(["name", "mode", "epoch"]).agg([np.mean, np.std]).reset_index()
 
@@ -151,11 +155,16 @@ def plot(data: pd.DataFrame, min_epoch: int, output_path: str) -> None:
         color=colors[2],
     )
 
+    if "mae_mm_f" in valid_data:  # forces on the MM point charges (FieldMACE)
+        ax.plot(valid_data["epoch"], valid_data["mae_mm_f"]["mean"], color=colors[4], zorder=1,
+                label="MAE MM forces [eV/Å]")
+
     ax.set_ylim(bottom=0.0)
     ax.set_xlabel("Epoch")
     ax.legend()
 
     fig.savefig(output_path)
+    print(f"wrote {output_path}")
     plt.close(fig)
 
 
@@ -182,8 +191,9 @@ def run(args: argparse.Namespace) -> None:
         for results in parse_training_results(path)
     )
 
+    out_dir = args.path if os.path.isdir(args.path) else os.path.dirname(os.path.abspath(args.path))
     for name, group in data.groupby("name"):
-        plot(group, min_epoch=args.min_epoch, output_path=f"{name}.pdf")
+        plot(group, min_epoch=args.min_epoch, output_path=os.path.join(out_dir, f"{name}.pdf"))
 
 
 if __name__ == "__main__":

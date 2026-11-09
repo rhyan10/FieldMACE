@@ -298,11 +298,11 @@ def test_al_flags_paths_and_committee(tmp_path):
     (tmp_path / "e0.json").write_text("{}")
     sub = tmp_path / "cfg"
     sub.mkdir()
-    (sub / "a.yaml").write_text("work_dir: w\nsetup: ../d.xyz\ninitial_data: ../d.xyz\n"
+    (sub / "a.yaml").write_text("work_dir: w\nsetup: ../d.xyz\ninitial_data: ../d.xyz\nsystem: {pdb: ../d.xyz}\n"
                                 "train_args: {E0s: ../e0.json, valid_file: ../d.xyz, model: PerAtomFieldEMACE}\n")
     cfg = ALConfig.from_file(str(sub / "a.yaml"))
     assert cfg.train_args["E0s"] == str(tmp_path / "e0.json") and cfg.train_args["valid_file"] == str(tmp_path / "d.xyz")
-    (sub / "b.yaml").write_text("work_dir: w\nsetup: ../d.xyz\ninitial_data: ../d.xyz\ncommittee_size: 1\n"
+    (sub / "b.yaml").write_text("work_dir: w\nsetup: ../d.xyz\ninitial_data: ../d.xyz\nsystem: {pdb: ../d.xyz}\ncommittee_size: 1\n"
                                 "initial_models: [../d.xyz, ../d.xyz]\n")
     with pytest.raises(ValueError, match="committee_size"):
         ALConfig.from_file(str(sub / "b.yaml"))

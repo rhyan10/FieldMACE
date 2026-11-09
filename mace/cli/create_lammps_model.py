@@ -10,7 +10,9 @@ def main():
     assert len(sys.argv) == 2, f"Usage: {sys.argv[0]} model_path"
 
     model_path = sys.argv[1]  # takes model name as command-line input
-    model = torch.load(model_path, map_location="cpu", weights_only=False)
+    from mace.tools.torch_tools import load_model
+
+    model = load_model(model_path, "cpu")
     if hasattr(model, "multipole_max_ell"):
         sys.exit(f"{model_path} is a FieldMACE field model: it needs the MM point charges, which LAMMPS's MACE "
                  "pair style does not pass. Use the OpenMM interface (mace.mlmm) or the ASE calculator instead.")

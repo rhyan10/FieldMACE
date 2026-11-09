@@ -305,6 +305,19 @@ def prepare_qmmm_system(
     graph = _bond_graph(system, topology)
     qm_z = _atomic_numbers(system, qm, topology, atomic_numbers)
     z_of = dict(zip(qm, qm_z))
+    if topology is not None:  # covalent QM-MM bonds of the force field that the topology does not have
+        missing_b = []
+        for f in system.getForces():
+            if isinstance(f, mm.HarmonicBondForce):
+                for k in range(f.getNumBonds()):
+                    a_, b_, r0_, _ = f.getBondParameters(k)
+                    if ((a_ in qm_set) != (b_ in qm_set)) and b_ not in graph[a_] \
+                            and r0_.value_in_unit(unit.angstrom) < 1.9:
+                        missing_b.append((a_, b_) if a_ in qm_set else (b_, a_))
+        if missing_b:
+            warnings.warn(f"the force field bonds QM and MM atoms {sorted(set(missing_b))} but the topology has no such "
+                          "bond (a PDB file without CONECT records?): no link atom is placed there. Add the bonds to "
+                          "the topology, or pass link_atoms=[(qm_atom, mm_atom), ...]")
     if link_atoms == "auto" or link_atoms is True:
         pairs = sorted({(i, j) for i in qm for j in graph[i] if j not in qm_set})
     elif not link_atoms:

@@ -27,6 +27,14 @@ to see, what they mean and what to do.
 | `multipole_max_ell=4 but field_irreps=... stops at l=3` | the higher multipoles would be dropped | add `4x4e` to `--field_irreps`, or a smaller `--multipole_max_ell` |
 | `pbc=(True, True, True) but lattice vector 0 of the cell is zero` | periodic frames without a cell | `pbc=False` for a QM cluster in point charges |
 | `--device=cuda but PyTorch sees no CUDA GPU` | no GPU on this node | `--device=cpu`, or a GPU node |
+| `'REF_forces' (no energy in this frame) has 1 state(s) but the model has 2 energy outputs` | a frame with the wrong number of states | fix the frame, or `--n_energies` as suggested |
+| `two QM atoms 0.000 A apart` / `non-finite (NaN/inf) QM atom positions` | duplicated atoms or a failed geometry | remove or fix the frame |
+| `... not in --atomic_numbers` | `--atomic_numbers` lacks an element of the data | add it, or leave `--atomic_numbers` out |
+| `no training frame has energies ... use --energy_key=energy --forces_key=forces` | the file was written by ASE with a calculator | use the suggested keys |
+| `the HDF5 frames have 1 energies but the model has 2` | HDF5 data and `--n_energies`/`--diabatic` disagree | as suggested |
+| `--max_ell=0`, `--r_max ... must be positive`, `--num_interactions ... at least 1` | invalid model settings | e.g. `--max_ell=3`, `--r_max=5.0` |
+| `the data contain element(s) Z=[54] that the foundation model does not know` | fine-tuning from a model without that element | another foundation model, or train from scratch |
+| warning: `Epoch k: the validation loss is nan` | training diverged | a smaller `--lr`; the NaN epoch is not saved |
 | warning: `MM charge within 0.5 A of a QM atom` | usually a QM atom is also in the MM charge list | remove QM atoms from `mm_positions` / `mm_charges` |
 | warning: `frame(s) are periodic (pbc=True)` | frames from a periodic code | set `pbc=False` for a QM cluster in point charges |
 | warning: `No training frame has MM point charges` | gas-phase data only | the model cannot learn a field response without charges |
@@ -48,6 +56,9 @@ Training files can be `.xyz` or `.extxyz` (extended XYZ), or HDF5 from `mace_pre
 | `the system is periodic: pass the box vectors` | `frame_to_atoms` without the box of a periodic system | pass `state.getPeriodicBoxVectors()` |
 | warning: `link_atoms=False but the QM region cuts ... covalent bond(s)` | QM atoms with dangling bonds | `link_atoms="auto"` (default) |
 | `selection '...': incomplete clause` / `index range 30-20 is reversed` | a typo in the selection | complete the clause / write `20-30` |
+| warning: `the force field bonds QM and MM atoms [...] but the topology has no such bond` | the topology (e.g. a PDB without CONECT) lacks bonds | add the bonds, or pass `link_atoms=[(qm, mm), ...]` |
+| warning: `embedding cutoff ... more than half the box` | with `cutoff_reference="nearest"` some charges have two images within the cutoff | smaller cutoff or larger box |
+| warning: `the input has no box vectors` | a periodic method was requested for an input without a box | add the box (CRYST1), or accept a non-periodic system |
 
 ## ASE calculator
 
@@ -75,4 +86,5 @@ before anything runs. Paths in the YAML file, including files in `train_args`
 
 | message | fix |
 |---|---|
+| `'system' needs the MM system for sampling` / `unknown mace_run_train option(s) in train_args` / `labeller_args: unknown option(s)` | the YAML misses or misspells a key | as the message says |
 | `... of the frames are uncertain but none lies in [force_std_min, force_std_max]` | the model leaves its training domain during sampling: a smaller time step or temperature, a larger `force_std_max`, or more training data near the start structure |

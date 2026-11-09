@@ -48,6 +48,10 @@ def load_system(
 ) -> LoadedSystem:
     kw = dict(nonbondedMethod=nonbonded_method, nonbondedCutoff=cutoff_nm * unit.nanometer,
               constraints=constraints, rigidWater=rigid_water)
+    needs = {"prmtop": ("inpcrd", inpcrd), "top": ("gro", gro), "system_xml": ("pdb", pdb), "psf": ("pdb or crd", pdb or crd)}
+    for given, (other, value) in needs.items():
+        if locals()[given] and not value:
+            raise ValueError(f"{given}= needs {other}= as well (the coordinates)")
     if prmtop:
         prm = app.AmberPrmtopFile(prmtop)
         crd_ = app.AmberInpcrdFile(inpcrd)
@@ -56,6 +60,10 @@ def load_system(
             prm.topology.setPeriodicBoxVectors(box)
         if box is None and nonbonded_method in (app.PME, app.Ewald, app.CutoffPeriodic):
             kw["nonbondedMethod"] = app.NoCutoff
+            import warnings
+
+            warnings.warn("the input has no box vectors: the system is set up without periodic boundaries "
+                          "(nonbondedMethod=NoCutoff) instead of the requested periodic method")
         return LoadedSystem(prm.createSystem(**kw), prm.topology, crd_.positions, box)
     if top:
         g = app.GromacsGroFile(gro)
@@ -69,8 +77,16 @@ def load_system(
         else:
             pdbf = app.PDBFile(pdb)
             pos, box = pdbf.positions, pdbf.topology.getPeriodicBoxVectors()
-        if box is not None:
-            p.setBox(*[box[i][i] for i in range(3)])
+        if box is not None:  # lengths and angles: triclinic boxes (e.g. truncated octahedra) stay triclinic
+            from openmm.app.internal.unitcell import computeLengthsAndAngles
+
+            a_, b_, c_, al, be, ga = computeLengthsAndAngles(
+                [v.value_in_unit(unit.nanometer) for v in box])
+            p.setBox(a_ * unit.nanometer, b_ * unit.nanometer, c_ * unit.nanometer,
+                     al * unit.radian, be * unit.radian, ga * unit.radian)
+        elif nonbonded_method in (app.PME, app.Ewald, app.CutoffPeriodic):
+            raise ValueError("CHARMM input without box vectors (a .crd file has none): give a PDB with a CRYST1 "
+                             "record (pdb=...), or nonbonded_method=app.NoCutoff for a non-periodic system")
         params = app.CharmmParameterSet(*charmm_params)
         return LoadedSystem(p.createSystem(params, **kw), p.topology, pos, box)
     if system_xml:
@@ -83,6 +99,10 @@ def load_system(
         ff = app.ForceField(*forcefield)
         if pdbf.topology.getPeriodicBoxVectors() is None and nonbonded_method in (app.PME, app.Ewald, app.CutoffPeriodic):
             kw["nonbondedMethod"] = app.NoCutoff
+            import warnings
+
+            warnings.warn("the input has no box vectors: the system is set up without periodic boundaries "
+                          "(nonbondedMethod=NoCutoff) instead of the requested periodic method")
         return LoadedSystem(ff.createSystem(pdbf.topology, **kw), pdbf.topology, pdbf.positions,
                             pdbf.topology.getPeriodicBoxVectors())
     raise ValueError("No input given")

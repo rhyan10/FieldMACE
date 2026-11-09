@@ -20,6 +20,14 @@ def get_neighborhood(
     assert len(pbc) == 3 and all(isinstance(i, (bool, np.bool_)) for i in pbc)
     assert cell.shape == (3, 3)
 
+    if not any(pbc) and len(positions) > 0:
+        # a cluster (FieldMACE's usual case): translate to the origin and use a box just larger than the
+        # cluster. The box used to scale with the largest |coordinate| (x 5 x cutoff): QM coordinates ~400 A
+        # from the origin cost ~4 GB and seconds per frame in matscipy's binning.
+        positions = np.asarray(positions, dtype=float)
+        positions = positions - positions.min(axis=0)
+        cell = np.identity(3, dtype=float) * (float(positions.max()) + 2.0 * cutoff + 1.0)
+
     pbc_x = pbc[0]
     pbc_y = pbc[1]
     pbc_z = pbc[2]
@@ -28,11 +36,13 @@ def get_neighborhood(
     # Extend cell in non-periodic directions
     # For models with more than 5 layers, the multiplicative constant needs to be increased.
     temp_cell = np.copy(cell)
-    if not pbc_x:
+    if not any(pbc) and len(positions) > 0:
+        temp_cell = cell
+    elif not pbc_x:
         temp_cell[0, :] = max_positions * 5 * cutoff * identity[0, :]
-    if not pbc_y:
+    if any(pbc) and not pbc_y:
         temp_cell[1, :] = max_positions * 5 * cutoff * identity[1, :]
-    if not pbc_z:
+    if any(pbc) and not pbc_z:
         temp_cell[2, :] = max_positions * 5 * cutoff * identity[2, :]
 
     sender, receiver, unit_shifts = neighbour_list(

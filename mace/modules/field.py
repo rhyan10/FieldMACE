@@ -316,6 +316,12 @@ class _FieldMACEBase(torch.nn.Module):
                              "or lower --multipole_max_ell")
         # the layers assume the scalars come first ("8x1o + 8x0e" would leave the last layer without scalars)
         hidden_irreps = o3.Irreps(hidden_irreps).sort().irreps.simplify()
+        if not r_max > 0 or num_interactions < 1:
+            raise ValueError(f"r_max={r_max} must be positive and num_interactions={num_interactions} at least 1")
+        if min(correlation if isinstance(correlation, list) else [correlation]) < 1:
+            raise ValueError(f"correlation={correlation} must be at least 1")
+        if max_ell < 1:  # the symmetric contraction needs l >= 1 edge features
+            raise ValueError(f"max_ell={max_ell}: use --max_ell >= 1 (the spherical harmonics of the edges; 3 is usual)")
         if (compute_nacs or compute_dipoles) and hidden_irreps.count(o3.Irrep(1, -1)) == 0:
             raise ValueError(f"hidden_irreps={hidden_irreps} has no vectors (1o): NACs and dipoles are vectors and "
                              "would be identically zero. Use e.g. --hidden_irreps='32x0e + 32x1o' (or --max_L=1)")

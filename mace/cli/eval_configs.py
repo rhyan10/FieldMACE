@@ -59,14 +59,19 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    run(args)
+    try:
+        run(args)
+    except (RuntimeError, ValueError, FileNotFoundError) as err:  # bad input: a message, not a traceback
+        import sys
+
+        sys.exit(f"ERROR: {err}")
 
 
 def run(args: argparse.Namespace) -> None:
     device = torch_tools.init_device(args.device)
 
     # Load model, in its own dtype unless --default_dtype is given
-    model = torch.load(f=args.model, map_location=args.device, weights_only=False)
+    model = torch_tools.load_model(args.model, args.device)
     dtype = args.default_dtype or {torch.float32: "float32", torch.float64: "float64"}[next(model.parameters()).dtype]
     torch_tools.set_default_dtype(dtype)
     model = model.to(args.device).to(torch_tools.dtype_dict[dtype])

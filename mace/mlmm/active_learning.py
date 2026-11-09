@@ -130,6 +130,17 @@ class ALConfig:
         for key, p_ in checks:
             if p_ and not os.path.exists(p_):
                 raise ValueError(f"{path}: {key} = {p_} does not exist (paths are relative to the YAML file)")
+        import inspect
+
+        from .io import load_system
+
+        bad_sys = set(sysd) - set(inspect.signature(load_system).parameters)
+        if bad_sys:
+            raise ValueError(f"{path}: unknown key(s) {sorted(bad_sys)} in 'system' "
+                             f"(known: {sorted(inspect.signature(load_system).parameters)})")
+        if not any(sysd.get(k) for k in ("pdb", "prmtop", "top", "psf", "system_xml")):
+            raise ValueError(f"{path}: 'system' needs the MM system for sampling (pdb + forcefield, prmtop + inpcrd, "
+                             "top + gro, psf + pdb/crd, or system_xml + pdb); see fieldmace_active_learning --example")
         for sub, allowed in (("sampling", SAMPLING_KEYS), ("selection", SELECTION_KEYS)):
             bad = set(d.get(sub) or {}) - set(allowed)
             if bad:
@@ -140,6 +151,15 @@ class ALConfig:
             raise ValueError(f"{path}: initial_models must list at least 2 models (the disagreement needs a committee)")
         # file arguments of mace_run_train are relative to the YAML file too
         ta = dict(d.get("train_args", {}) or {})
+        from mace.tools import build_default_arg_parser
+
+        dests = {a.dest for a in build_default_arg_parser()._actions}
+        bad_ta = sorted(set(ta) - dests)
+        if bad_ta:
+            raise ValueError(f"{path}: unknown mace_run_train option(s) in train_args: {bad_ta}")
+        set_by_loop = sorted(set(ta) & {"train_file", "name", "work_dir"})
+        if set_by_loop:
+            raise ValueError(f"{path}: train_args {set_by_loop} are set by the loop; remove them")
         for k in TRAIN_PATH_ARGS:
             v = ta.get(k)
             if isinstance(v, str) and v and not (k == "E0s" and not v.lower().endswith(".json")) \
@@ -246,10 +266,14 @@ class ActiveLearningLoop:
     # ------------------------------------------------------------- #
     def run(self, max_rounds: Optional[int] = None) -> Dict:
         rounds_run = 0
+        if self.state["finished"] and self.state.get("reason") == "rounds" and self.state["round"] < self.c.rounds:
+            self.log(f"rounds raised to {self.c.rounds}: continuing from round {self.state['round']}")
+            self.state["finished"] = False
         while not self.state["finished"]:
             r = self.state["round"]
             if r >= self.c.rounds:
                 self.state["finished"] = True
+                self.state["reason"] = "rounds"
                 self.log(f"reached {self.c.rounds} rounds")
                 break
             os.makedirs(self.rdir(), exist_ok=True)
@@ -307,6 +331,8 @@ class ActiveLearningLoop:
         s = dict(temperatures=[300.0], n_frames=50, every=100, dt_fs=0.5, state=0, backend="python", platform=None,
                  minimize=True, friction_per_ps=1.0)
         s.update(self.c.sampling)
+        if not isinstance(s["temperatures"], (list, tuple)):  # "temperatures: 300" means one trajectory
+            s["temperatures"] = [s["temperatures"]]
         sysd = dict(self.c.system)
         sysd.setdefault("constraints", None)
         for key in ("constraints", "nonbonded_method"):  # names in the YAML -> OpenMM objects
@@ -385,6 +411,7 @@ class ActiveLearningLoop:
         if frac < self.c.converged_fraction:
             self.log(f"round {r}: converged (uncertain fraction {frac:.3f} < {self.c.converged_fraction})")
             self.state["finished"] = True
+            self.state["reason"] = "converged"
             return False
         if not pick:  # uncertain frames exist, but none is usable: not converged
             raise RuntimeError(

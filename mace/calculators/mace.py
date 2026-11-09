@@ -68,6 +68,10 @@ def _mm_state(atoms):
             None if r is None else np.asarray(r, dtype=float).tobytes())
 
 
+def _load(path, device):
+    return torch_tools.load_model(path, device)
+
+
 def _check_committee(models, paths):
     """All models of a committee must describe the same states, properties and elements."""
     def sig(m):
@@ -96,7 +100,7 @@ class MACECalculator(Calculator):
         model_type: str, type of model to load
                     Options: [MACE, DipoleMACE, EnergyDipoleMACE]
 
-    Dipoles are returned in units of Debye
+    Dipoles are returned in the units of the training labels times length_units_to_A (FieldMACE data: e*Angstrom)
     """
 
     def __init__(
@@ -195,12 +199,21 @@ class MACECalculator(Calculator):
             if str(device).startswith("cuda") and not torch.cuda.is_available():
                 raise RuntimeError(f"device='{device}' requested, but PyTorch sees no CUDA GPU here. "
                                    "Use device='cpu' (or run inside a GPU job).")
-            self.models = [
-                torch.load(f=model_path, map_location=device, weights_only=False)
-                for model_path in model_paths
-            ]
+            self.models = [_load(model_path, device) for model_path in model_paths]
             self.use_compile = False
         _check_committee(self.models, model_paths)
+        if model_type == "MACE" and hasattr(self.models[0], "multipole_max_ell"):
+            # advertise what this model gives (ASE raises "not present" for the rest); QM clusters have no stress
+            m0 = self.models[0]
+            dia = bool(getattr(m0, "diabatic", False))
+            props = ["energy", "free_energy", "forces", "energies", "forces_all", "mm_forces"]
+            props += [] if dia else ["node_energy"]
+            props += ["nacs"] if (dia or getattr(m0, "compute_nacs", False)) else []
+            props += ["dipoles", "dipole"] if getattr(m0, "compute_dipoles", False) else []
+            props += ["socs"] if getattr(m0, "compute_socs", False) and not dia else []
+            if self.num_models > 1:
+                props += ["energy_var", "forces_var", "forces_comm"]
+            self.implemented_properties = props
         for model in self.models:
             model.to(device)  # shouldn't be necessary but seems to help with GPU
         r_maxs = [model.r_max.cpu() for model in self.models]
@@ -221,9 +234,9 @@ class MACECalculator(Calculator):
                 f"No dtype selected, switching to {model_dtype} to match model dtype."
             )
             default_dtype = model_dtype
-        if model_dtype != default_dtype:
+        if any(get_model_dtype(m) != default_dtype for m in self.models):  # every committee member
             print(
-                f"Default dtype {default_dtype} does not match model dtype {model_dtype}, converting models to {default_dtype}."
+                f"Default dtype {default_dtype} does not match the dtype of (some) models, converting models to {default_dtype}."
             )
             if default_dtype == "float64":
                 self.models = [model.double() for model in self.models]
@@ -292,6 +305,18 @@ class MACECalculator(Calculator):
             batch_clone["positions"].requires_grad_(True)
         return batch_clone
 
+    @property
+    def state(self) -> int:
+        """Electronic state returned as energy/forces. Changing it invalidates ASE's cached results."""
+        return getattr(self, "_state", 0)
+
+    @state.setter
+    def state(self, value) -> None:
+        value = int(value)
+        if value != getattr(self, "_state", None):
+            self._state = value
+            self.results = {}
+
     def check_state(self, atoms, tol=1e-15):
         """ASE only compares positions, numbers, cell, pbc, ...: the MM point charges live in atoms.info,
         so a change of the charges alone would otherwise return the cached results of the old field."""
@@ -325,6 +350,10 @@ class MACECalculator(Calculator):
         unknown = sorted(set(int(z) for z in atoms.numbers) - zs)
         if unknown:
             raise ValueError(f"element(s) Z={unknown} are not in the model (it knows Z={sorted(zs)})")
+        if len(atoms) > 1:
+            dq = atoms.get_all_distances(mic=bool(any(atoms.pbc))) + np.eye(len(atoms)) * 1e3
+            if dq.min() < 0.3:
+                raise ValueError(f"two atoms are {dq.min():.3f} A apart (duplicated atoms?): the model would give NaN")
         r_mm = atoms.info.get("mm_positions")
         if r_mm is not None and np.size(r_mm):
             d = np.linalg.norm(atoms.positions[:, None, :] - np.asarray(r_mm, dtype=float).reshape(1, -1, 3), axis=-1)
@@ -335,12 +364,14 @@ class MACECalculator(Calculator):
                               "the MM charges?", stacklevel=2)
         batch_base = self._atoms_to_batch(atoms)
         state = int(getattr(self, "state", 0))
-        energies, forces, mm_forces = [], [], []
+        energies, forces, mm_forces, node_e = [], [], [], []
         props = {"nacs": [], "dipoles": [], "socs": []}
         for model in self.models:
             batch = self._clone_batch(batch_base)
             out = model(batch.to_dict(), compute_hessian=False, training=False)
             energies.append(out["energy"].detach().reshape(-1))
+            if out.get("node_energy") is not None:
+                node_e.append(out["node_energy"].detach().reshape(len(atoms), -1))
             forces.append(out["forces"].detach().reshape(len(atoms), -1, 3))
             if out.get("mm_forces") is not None:
                 mm_forces.append(out["mm_forces"].detach().reshape(-1, energies[-1].shape[0], 3))
@@ -363,6 +394,8 @@ class MACECalculator(Calculator):
         self.results["free_energy"] = self.results["energy"]
         self.results["forces_all"] = f_mean
         self.results["forces"] = f_mean[:, state, :]
+        if node_e and not diabatic:  # per-atom energies of the selected state (sum = energy)
+            self.results["node_energy"] = (torch.stack(node_e).mean(0)[:, state] * e_conv).cpu().numpy()
         if mm_forces:
             fm = torch.stack(mm_forces).mean(0) * f_conv
             self.results["mm_forces"] = fm.cpu().numpy()

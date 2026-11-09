@@ -229,9 +229,9 @@ class MACE(torch.nn.Module):
             )
 
         # Atomic energies
-        node_e0 = self.atomic_energies_fn(data["node_attrs"])[
-            num_atoms_arange, node_heads
-        ]
+        node_e0 = self.atomic_energies_fn(data["node_attrs"])
+        if node_e0.dim() > 1:
+            node_e0 = node_e0[num_atoms_arange, node_heads]
         e0 = scatter_sum(
             src=node_e0, index=data["batch"], dim=0, dim_size=num_graphs
         )  # [n_graphs, n_heads]
@@ -277,9 +277,7 @@ class MACE(torch.nn.Module):
                 node_attrs=data["node_attrs"],
             )
             node_feats_list.append(node_feats)
-            node_energies = readout(node_feats, node_heads)[
-                num_atoms_arange, node_heads
-            ]  # [n_nodes, len(heads)]
+            node_energies = readout(node_feats).reshape(-1)  # [n_nodes]
             energy = scatter_sum(
                 src=node_energies,
                 index=data["batch"],
@@ -299,7 +297,7 @@ class MACE(torch.nn.Module):
 
         # Outputs
         forces, virials, stress, hessian = get_outputs(
-            energy=total_energy,
+            energy=total_energy.unsqueeze(-1),  # [n_graphs, 1]
             positions=data["positions"],
             displacement=displacement,
             cell=data["cell"],
@@ -310,6 +308,8 @@ class MACE(torch.nn.Module):
             compute_hessian=compute_hessian,
         )
 
+        if forces is not None:
+            forces = forces[:, 0]
         return {
             "energy": total_energy,
             "node_energy": node_energy,
@@ -375,13 +375,13 @@ class ScaleShiftMACE(MACE):
                 batch=data["batch"],
             )
 
-        # Atomic energies
-        node_e0 = self.atomic_energies_fn(data["node_attrs"])[
-            num_atoms_arange, node_heads
-        ]
+        # Atomic energies (one set: the 2023 MACE models FieldMACE can load have no heads)
+        node_e0 = self.atomic_energies_fn(data["node_attrs"])
+        if node_e0.dim() > 1:
+            node_e0 = node_e0[num_atoms_arange, node_heads]
         e0 = scatter_sum(
             src=node_e0, index=data["batch"], dim=0, dim_size=num_graphs
-        )  # [n_graphs, num_heads]
+        )  # [n_graphs]
 
         # Embeddings
         node_feats = self.node_embedding(data["node_attrs"])
@@ -417,9 +417,7 @@ class ScaleShiftMACE(MACE):
                 node_feats=node_feats, sc=sc, node_attrs=data["node_attrs"]
             )
             node_feats_list.append(node_feats)
-            node_es_list.append(
-                readout(node_feats, node_heads)[num_atoms_arange, node_heads]
-            )  # {[n_nodes, ], }
+            node_es_list.append(readout(node_feats).reshape(-1))  # {[n_nodes, ], }
 
         # Concatenate node features
         node_feats_out = torch.cat(node_feats_list, dim=-1)
@@ -427,7 +425,7 @@ class ScaleShiftMACE(MACE):
         node_inter_es = torch.sum(
             torch.stack(node_es_list, dim=0), dim=0
         )  # [n_nodes, ]
-        node_inter_es = self.scale_shift(node_inter_es, node_heads)
+        node_inter_es = self.scale_shift(node_inter_es)
 
         # Sum over nodes in graph
         inter_e = scatter_sum(
@@ -438,7 +436,7 @@ class ScaleShiftMACE(MACE):
         total_energy = e0 + inter_e
         node_energy = node_e0 + node_inter_es
         forces, virials, stress, hessian = get_outputs(
-            energy=inter_e,
+            energy=inter_e.unsqueeze(-1),  # get_outputs works with [n_graphs, n_states]
             positions=data["positions"],
             displacement=displacement,
             cell=data["cell"],
@@ -448,6 +446,8 @@ class ScaleShiftMACE(MACE):
             compute_stress=compute_stress,
             compute_hessian=compute_hessian,
         )
+        if forces is not None:
+            forces = forces[:, 0]  # one state
         output = {
             "energy": total_energy,
             "node_energy": node_energy,

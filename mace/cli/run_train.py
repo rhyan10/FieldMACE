@@ -82,8 +82,10 @@ def run(args: argparse.Namespace) -> None:
         try:
             distr_env = DistributedEnvironment()
         except Exception as e:  # pylint: disable=W0703
-            logging.error(f"Failed to initialize distributed environment: {e}")
-            return
+            from mace.tools.data_checks import InputError
+
+            raise InputError(f"--distributed needs a SLURM job (SLURM_JOB_NODELIST, SLURM_PROCID, ...): "
+                             f"failed to set up the distributed environment ({type(e).__name__}: {e})") from None
         world_size = distr_env.world_size
         local_rank = distr_env.local_rank
         rank = distr_env.rank
@@ -95,6 +97,11 @@ def run(args: argparse.Namespace) -> None:
 
     # Setup
     tools.set_seeds(args.seed)
+    if str(args.log_level).upper() not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
+        from mace.tools.data_checks import InputError as _LogLevelError
+
+        raise _LogLevelError(f"--log_level={args.log_level}: use DEBUG, INFO, WARNING or ERROR")
+    args.log_level = str(args.log_level).upper()
     tools.setup_logger(level=args.log_level, tag=tag, directory=args.log_dir, rank=rank)
     logging.info("===========VERIFYING SETTINGS===========")
     for message, loglevel in input_log_messages:
@@ -141,16 +148,21 @@ def run(args: argparse.Namespace) -> None:
             )
             model_foundation = calc.models[0]
         else:
-            model_foundation = torch.load(args.foundation_model, map_location=device, weights_only=False)
+            model_foundation = tools.torch_tools.load_model(args.foundation_model, device)
             logging.info(
                 f"Using foundation model {args.foundation_model} as initial checkpoint."
             )
+        # the training dtype (MACE-MP/OFF files are float64; mixing dtypes fails in the first forward pass)
+        model_foundation = model_foundation.to(tools.torch_tools.dtype_dict[args.default_dtype])
         args.r_max = model_foundation.r_max.item()
 
     if args.statistics_file is not None:
         with open(args.statistics_file, "r") as f:  # pylint: disable=W1514
             statistics = json.load(f)
         logging.info("Using statistics json file")
+        if args.foundation_model is None and float(statistics["r_max"]) != float(args.r_max):
+            logging.warning(f"--r_max={args.r_max} replaced by r_max={statistics['r_max']} of {args.statistics_file} "
+                            "(the statistics, e.g. the average number of neighbours, were computed with it)")
         args.r_max = (
             statistics["r_max"] if args.foundation_model is None else args.r_max
         )
@@ -233,6 +245,8 @@ def run(args: argparse.Namespace) -> None:
 
             first = ase.io.read(args.train_file, index=0)
             first_keys = list(first.info) + [k for k in first.arrays if k not in ("numbers", "positions")]
+            if first.calc is not None:  # ASE puts energy=/forces= of an extxyz file into a calculator
+                first_keys += list(first.calc.results)
         except Exception:  # noqa: BLE001
             first_keys = None
         sets = {f"training set ({args.train_file})": collections.train,
@@ -246,6 +260,7 @@ def run(args: argparse.Namespace) -> None:
             keys={"energy": args.energy_key, "forces": args.forces_key, "nacs": args.nacs_key,
                   "dipoles": args.dipoles_key, "socs": args.socs_key},
             z_table_zs=z_table.zs, first_frame_info=first_keys,
+            atomic_numbers_given=args.atomic_numbers is not None,
         )
     if atomic_energies_dict:  # from IsolatedAtom frames in the training file
         from mace.tools.scripts_utils import normalise_atomic_energies
@@ -269,10 +284,16 @@ def run(args: argparse.Namespace) -> None:
             raise InputError("no atomic reference energies: pass --E0s=average (least squares from the training "
                              "set), explicit values ('{1: -13.6, 6: -1029.8}', eV) or a .json file")
         if args.E0s.lower() == "foundation":
-            assert args.foundation_model is not None
+            from mace.tools.data_checks import InputError
+
+            if args.foundation_model is None:
+                raise InputError("--E0s=foundation needs --foundation_model")
             z_table_foundation = AtomicNumberTable(
                 [int(z) for z in model_foundation.atomic_numbers]
             )
+            unknown = [int(z) for z in z_table.zs if int(z) not in z_table_foundation.zs]
+            if unknown:
+                raise InputError(f"--E0s=foundation: the foundation model has no E0 for Z={unknown}")
             atomic_energies_dict = {
                 z: model_foundation.atomic_energies_fn.atomic_energies[
                     z_table_foundation.z_to_index(z)
@@ -280,7 +301,7 @@ def run(args: argparse.Namespace) -> None:
                 for z in z_table.zs
             }
             logging.info(
-                f"Using Atomic Energies from foundation model [z, eV]: {', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table_foundation.zs])}"
+                f"Using Atomic Energies from foundation model [z, eV]: {', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table.zs])}"
             )
         else:
             if is_xyz(args.train_file):
@@ -352,6 +373,18 @@ def run(args: argparse.Namespace) -> None:
 
         train_set = h5_set(args.train_file)
         valid_set = h5_set(args.valid_file)
+        from mace.tools.data_checks import InputError as _InputError
+
+        n_out = args.n_energies + (args.n_energies * (args.n_energies - 1) // 2 if args.diabatic else 0)
+        for name_, set_ in (("--train_file", train_set), ("--valid_file", valid_set)):
+            if len(set_) == 0:
+                raise _InputError(f"{name_}: the HDF5 data are empty")
+            n_lab = int(set_[0].energy.shape[-1])
+            if n_lab != n_out:
+                from mace.tools.data_checks import _suggest_n_energies
+
+                raise _InputError(f"{name_}: the HDF5 frames have {n_lab} energies but the model has {n_out} energy "
+                                 f"outputs. {_suggest_n_energies(n_lab, args.diabatic)}")
     
     train_sampler, valid_sampler = None, None
     if args.distributed:
@@ -367,8 +400,8 @@ def run(args: argparse.Namespace) -> None:
             valid_set,
             num_replicas=world_size,
             rank=rank,
-            shuffle=True,
-            drop_last=True,
+            shuffle=False,
+            drop_last=False,  # every validation frame is evaluated
             seed=args.seed,
         )
     train_loader = torch_geometric.dataloader.DataLoader(
@@ -489,6 +522,9 @@ def run(args: argparse.Namespace) -> None:
                     "radial_MLP": str(list(fcfg["radial_MLP"])),
                     "num_interactions": fcfg["num_interactions"],
                     "correlation": fcfg["correlation"],
+                    # the first layer's block too, or its skip connection cannot be transferred
+                    "interaction_first": fcfg["interaction_cls_first"].__name__,
+                    "interaction": fcfg["interaction_cls"].__name__,
                 }
                 for key, value in matched.items():
                     current = getattr(args, key)
@@ -763,8 +799,12 @@ def run(args: argparse.Namespace) -> None:
     logging.info("===========RESULTS===========")
     logging.info("Computing metrics for training, validation, and test sets")
 
+    # the training loader drops the last incomplete batch (and shuffles): evaluate every training frame
+    train_eval_loader = train_loader if args.distributed else torch_geometric.dataloader.DataLoader(
+        dataset=train_set, batch_size=args.valid_batch_size, shuffle=False, drop_last=False,
+        num_workers=args.num_workers, pin_memory=args.pin_memory and torch.cuda.is_available())
     all_data_loaders = {
-        "train": train_loader,
+        "train": train_eval_loader,
         "valid": valid_loader,
     }
 
@@ -804,8 +844,8 @@ def run(args: argparse.Namespace) -> None:
                 test_set,
                 num_replicas=world_size,
                 rank=rank,
-                shuffle=True,
-                drop_last=True,
+                shuffle=False,
+                drop_last=False,
                 seed=args.seed,
             )
         test_loader = torch_geometric.dataloader.DataLoader(

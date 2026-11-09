@@ -15,6 +15,25 @@ local_model_path = os.path.join(
 )
 
 
+def _download(url: str, path: str) -> None:
+    """Download to a temporary file and move it into place only when complete and not an HTML page:
+    an interrupted or failed download must not leave a broken file in the cache (it would be used next time)."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = f"{path}.part{os.getpid()}"
+    print(f"Downloading MACE model from {url!r}")
+    try:
+        _, http_msg = urllib.request.urlretrieve(url, tmp)
+        with open(tmp, "rb") as fh:
+            head = fh.read(64).lstrip()
+        if "text/html" in str(http_msg.get("Content-Type", "")) or head[:1] == b"<":
+            raise RuntimeError(f"the server returned a web page instead of the model ({url})")
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    print(f"Cached MACE model to {path}")
+
+
 def mace_mp(
     model: Union[str, Path] = None,
     device: str = "",
@@ -61,11 +80,14 @@ def mace_mp(
     elif model in (None, "small", "medium", "large") or str(model).startswith("https:"):
         try:
             # checkpoints release: https://github.com/ACEsuit/mace-mp/releases/tag/mace_mp_0
+            # direct GitHub release links (URL shorteners are blocked by many cluster firewalls)
+            release = "https://github.com/ACEsuit/mace-mp/releases/download/mace_mp_0/"
             urls = dict(
-                small="https://tinyurl.com/46jrkm3v",  # 2023-12-10-mace-128-L0_energy_epoch-249.model
-                medium="https://tinyurl.com/5yyxdm76",  # 2023-12-03-mace-128-L1_epoch-199.model
-                large="https://tinyurl.com/5f5yavf3",  # MACE_MPtrj_2022.9.model
+                small=release + "2023-12-10-mace-128-L0_energy_epoch-249.model",
+                medium=release + "2023-12-03-mace-128-L1_epoch-199.model",
+                large=release + "MACE_MPtrj_2022.9.model",
             )
+            legacy_cache = dict(small="46jrkm3v", medium="5yyxdm76", large="5f5yavf3")  # earlier tinyurl names
             checkpoint_url = (
                 urls.get(model, urls["medium"])
                 if model in (None, "small", "medium", "large")
@@ -76,24 +98,18 @@ def mace_mp(
                 c for c in os.path.basename(checkpoint_url) if c.isalnum() or c in "_"
             )
             cached_model_path = f"{cache_dir}/{checkpoint_url_name}"
+            old_cache = f"{cache_dir}/{legacy_cache.get(model, '')}"
+            if not os.path.isfile(cached_model_path) and model in legacy_cache and os.path.isfile(old_cache):
+                cached_model_path = old_cache
             if not os.path.isfile(cached_model_path):
-                os.makedirs(cache_dir, exist_ok=True)
-                # download and save to disk
-                print(f"Downloading MACE model from {checkpoint_url!r}")
-                _, http_msg = urllib.request.urlretrieve(
-                    checkpoint_url, cached_model_path
-                )
-                if "Content-Type: text/html" in http_msg:
-                    raise RuntimeError(
-                        f"Model download failed, please check the URL {checkpoint_url}"
-                    )
-                print(f"Cached MACE model to {cached_model_path}")
+                _download(checkpoint_url, cached_model_path)
             model = cached_model_path
             msg = f"Using Materials Project MACE for MACECalculator with {model}"
             print(msg)
         except Exception as exc:
             raise RuntimeError(
-                "Model download failed and no local model found"
+                f"Model download failed and no local model found ({exc}). Download the model file yourself "
+                f"(e.g. from https://github.com/ACEsuit/mace-mp/releases) and pass its path"
             ) from exc
 
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -182,8 +198,7 @@ def mace_off(
             print(
                 "ASL is based on the Gnu Public License, but does not permit commercial use"
             )
-            urllib.request.urlretrieve(checkpoint_url, cached_model_path)
-            print(f"Cached MACE model to {cached_model_path}")
+            _download(checkpoint_url, cached_model_path)
         model = cached_model_path
         msg = f"Using MACE-OFF23 MODEL for MACECalculator with {model}"
         print(msg)
@@ -193,7 +208,9 @@ def mace_off(
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
     if return_raw_model:
-        return torch.load(model, map_location=device)
+        from mace.tools.torch_tools import load_model
+
+        return load_model(model, device)
 
     if default_dtype == "float64":
         print(
@@ -210,7 +227,7 @@ def mace_off(
 
 
 def mace_anicc(
-    device: str = "cuda",
+    device: str = "",
     model_path: str = None,
 ) -> MACECalculator:
     """
@@ -227,4 +244,5 @@ def mace_anicc(
         print(
             "Using ANI couple cluster model for MACECalculator, see https://doi.org/10.1063/5.0155322"
         )
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     return MACECalculator(model_path, device=device, default_dtype="float64")

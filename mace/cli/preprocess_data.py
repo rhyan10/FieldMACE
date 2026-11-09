@@ -209,6 +209,16 @@ def run(args: argparse.Namespace):
         logging.info(f"--num_process={args.num_process} > {len(collections.train)} training frames: using "
                      f"{max(1, len(collections.train))} processes")
         args.num_process = max(1, len(collections.train))
+    # every element of every set must be in the table (otherwise training fails later, deep in a data loader)
+    known = set(int(z) for z in z_table.zs)
+    sets = [("training", collections.train), ("validation", collections.valid)] + \
+        [(f"test ({name})", subset) for name, subset in collections.tests]
+    for set_name, configs in sets:
+        extra = sorted({int(z) for c in configs for z in c.atomic_numbers} - known)
+        if extra:
+            raise SystemExit(f"ERROR: the {set_name} set contains element(s) Z={extra} that are not in "
+                             f"{'--atomic_numbers' if args.atomic_numbers else 'the training/validation sets'} "
+                             f"{sorted(known)}")
     logging.info("Preparing training set")
     if args.shuffle:
         random.shuffle(collections.train)

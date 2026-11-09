@@ -5,6 +5,91 @@ a new minor version adds features, a new major version changes behaviour.
 
 ## [Unreleased]
 
+## [2.4.3] – 2026-11-09
+
+50 more bug fixes from a second systematic search (regression tests in `tests/test_regressions_243.py`;
+numbers as there).
+
+### Fixed – training (`mace_run_train`)
+1. `--distributed`: early stopping ran on rank 0 only, so the other ranks waited forever (hang).
+2. A NaN validation loss counted as an improvement: the diverged model was saved as the best one and every
+   later epoch "improved". NaN epochs are now never saved, with a warning.
+3. `--distributed` outside a SLURM job exited with status 0 after logging an error.
+4. `--distributed`: validation and test frames were dropped (`drop_last`), up to one per GPU.
+6. Inconsistent `--hidden_irreps`, `--num_channels` or `--max_L` ended in bare `AssertionError`s.
+12. `--E0s=foundation` crashed for every MACE-MP/OFF model (`KeyError` in a log line).
+20. `--statistics_file` replaced `--r_max` silently; now with a warning.
+25. An element missing from `--atomic_numbers` was reported as "not in the training set".
+26. A missing `--E0s` JSON file or `--foundation_model` file is reported before anything is loaded.
+35. HDF5 data with the wrong `--n_energies`/`--diabatic` failed as a traceback in the first loss.
+37. The final TRAIN table left out the last incomplete training batch.
+41. `--scheduler` accepted any string; a typo failed after the data were loaded.
+42. Malformed `--radial_MLP`, `--atomic_numbers` or `--config_type_weights`, or an invalid `--log_level`,
+    gave tracebacks after loading the data (or in the logger set-up).
+44. `--max_ell=0` crashed while building the model.
+45. `--num_interactions=0`, `--correlation=0`, `--r_max<=0` gave obscure errors; `--r_max=-1` trained a
+    model without interactions.
+49. `--train_file` and `--valid_file` in different formats gave an `AssertionError` or an h5py error.
+
+### Fixed – fine-tuning and foundation models
+5. From MACE-MP/OFF: the first layer used another block than the foundation's, so its skip connection
+   stayed random (a bare `except: pass` hid it).
+11. An element unknown to the foundation model gave `ValueError: 54 is not in list`.
+13. MACE-MP downloads went through tinyurl.com (blocked by many cluster proxies), and a failed or
+    interrupted download was cached and reused. Direct GitHub links, downloads are atomic.
+16. `mace_off(return_raw_model=True)` failed with PyTorch ≥ 2.6.
+23. The shipped `mace_anicc()` model could not be loaded on a machine without a GPU (e3nn TorchScript
+    buffers loaded without `map_location`); all model loading now maps them to the chosen device.
+24. `mace_mp()`, `mace_off()`, `mace_anicc()` could not compute anything (`IndexError` on non-existent
+    "heads" in `ScaleShiftMACE.forward`).
+30. Fine-tuning with a `--default_dtype` other than the foundation model's crashed.
+
+### Fixed – data
+18. Neighbour lists of QM clusters used a box scaled by the largest coordinate: coordinates ~400 Å from
+    the origin cost 4.5 GB and seconds per frame.
+19. A frame with forces but no energy and the wrong number of states crashed batching (or blamed the
+    dipoles); every frame's state count is now checked.
+39. Two QM atoms on top of each other (NaN energies) were not reported.
+46. `mace_preprocess_data` did not check the elements of validation/test sets or `--atomic_numbers`.
+47. Frames without point charges written by `write_extxyz` were corrupted (an empty `mm_charges=` swallowed
+    the next key, e.g. the energy).
+48. NaN QM positions were not reported (training ran with NaN everywhere).
+50. Data written by ASE with a calculator (`energy=`/`forces=`): the "no energies" message did not show those
+    keys; it now suggests `--energy_key=energy --forces_key=forces`.
+
+### Fixed – ASE calculator and tools
+10. The calculator advertised properties it never computes (stress, node_energy, and NACs/dipoles/SOCs of
+    models without them); `node_energy` is now computed.
+17. A committee of a float32 and a float64 model failed (only the first model's dtype was checked).
+21. `mace_plot_train` wrote empty plots for runs shorter than 50 epochs, into the current directory.
+29. `mace_eval_configs` and the other tools showed tracebacks for `--device=cuda` without a GPU and for
+    missing files.
+34. Changing `calc.state` between calls returned the cached results of the previous state.
+
+### Fixed – OpenMM
+7. CHARMM inputs: triclinic boxes became rectangular; a `.crd` file (no box) with PME failed inside OpenMM.
+8. `load_system`: prmtop without inpcrd (etc.) gave TypeErrors.
+9. `load_system` replaced PME by NoCutoff silently when the input has no box; now a warning.
+14. A serialized System with the FieldMACE force could not be loaded from another directory when the
+    model path was relative (Python crashed with a segmentation fault).
+15. With `cutoff_reference="nearest"`, cutoff + QM radius beyond half the box: charges with two periodic
+    images within the cutoff were embedded once; now a warning.
+36. A topology without the force field's QM–MM bonds (PDB without CONECT records) got no link atom, silently;
+    now a warning.
+38. The all-pairs "static" QM graph was used up to 128 atoms, 1.7–5× slower than the cutoff graph above
+    ~40 atoms; the automatic limit is 32.
+
+### Fixed – active learning and tutorials
+22. A failed step ended in a traceback; now `ERROR: ...`, the status and exit code 1.
+27. A missing or misspelt `system` was found only at sampling, after the first committee was trained.
+28. Misspelt `labeller_args` were ignored (default QM method used).
+31. Misspelt `train_args` were reported only inside a training log.
+32. `temperatures: 300` (a number) crashed sampling.
+33. Tutorial 01 step 3: a frame whose SCF does not converge blocked the labelling forever; an old
+    `data/test.xyz` could survive a re-split.
+40. Raising `rounds` after the loop stopped there did nothing.
+43. `pyyaml` was not a dependency, but `fieldmace_active_learning` and `mace_run_train --config` need it.
+
 ## [2.4.2] – 2026-11-09
 
 50 bug fixes from a systematic search (regression tests in `tests/test_regressions_242.py`). The
@@ -239,7 +324,8 @@ numbers (legacy mode).
 
 The original FieldMACE (tag `v1.0`).
 
-[Unreleased]: https://github.com/rhyan10/FieldMACE/compare/v2.4.2...HEAD
+[Unreleased]: https://github.com/rhyan10/FieldMACE/compare/v2.4.3...HEAD
+[2.4.3]: https://github.com/rhyan10/FieldMACE/compare/v2.4.2...v2.4.3
 [2.4.2]: https://github.com/rhyan10/FieldMACE/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/rhyan10/FieldMACE/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/rhyan10/FieldMACE/compare/v2.3.0...v2.4.0

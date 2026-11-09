@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Sequence
 
 import numpy as np
 
+QM_OVERLAP = 0.3  # Angstrom: two QM atoms this close are a duplicate
 CLOSE_CONTACT = 0.5  # Angstrom: MM charge this close to a QM atom is almost certainly a data error
 
 
@@ -41,10 +42,21 @@ def check_arguments(args) -> None:
         path = getattr(args, opt, None)
         if path and not os.path.exists(path):
             raise InputError(f"--{opt}={path}: file not found (working directory {os.getcwd()})")
+    e0s = getattr(args, "E0s", None)
+    if isinstance(e0s, str) and e0s.lower().endswith(".json") and not os.path.exists(e0s):
+        raise InputError(f"--E0s={e0s}: file not found (working directory {os.getcwd()})")
+    fm = getattr(args, "foundation_model", None)
+    if fm and fm not in ("small", "medium", "large", "small_off", "medium_off", "large_off") and not os.path.exists(fm):
+        raise InputError(f"--foundation_model={fm}: file not found (or use small/medium/large for MACE-MP-0, "
+                         "small_off/medium_off/large_off for MACE-OFF23)")
     tf = getattr(args, "train_file", None)
     if tf and not (is_xyz(tf) or str(tf).lower().endswith((".h5", ".hdf5")) or os.path.isdir(tf)):
         raise InputError(f"--train_file={tf}: use an extended-XYZ file (.xyz / .extxyz) or HDF5 data from "
                          "mace_preprocess_data (.h5 / a directory)")
+    vf_ = getattr(args, "valid_file", None)
+    if tf and vf_ and is_xyz(tf) != is_xyz(vf_):
+        raise InputError(f"--train_file={tf} and --valid_file={vf_}: use the same format for both (extended XYZ, "
+                         "or HDF5 from mace_preprocess_data)")
     if tf and not is_xyz(tf):  # HDF5 from mace_preprocess_data
         if not getattr(args, "valid_file", None):
             raise InputError(f"--train_file={tf} is HDF5: give the validation set too (--valid_file, e.g. the val/ "
@@ -65,6 +77,32 @@ def check_arguments(args) -> None:
         if not torch.cuda.is_available():
             raise InputError(f"--device={dev} but PyTorch sees no CUDA GPU here. Use --device=cpu, or run on a GPU "
                              "node (check `python -c 'import torch; print(torch.cuda.is_available())'`)")
+    import ast
+
+    for opt, kind in (("radial_MLP", "a list of layer widths, e.g. '[64, 64, 64]'"),
+                      ("atomic_numbers", "a list of atomic numbers, e.g. '[1, 6, 7, 8]'"),
+                      ("config_type_weights", "a dictionary, e.g. '{\"Default\": 1.0}'")):
+        val = getattr(args, opt, None)
+        if isinstance(val, str):
+            try:
+                parsed = ast.literal_eval(val)
+            except (ValueError, SyntaxError):
+                raise InputError(f"--{opt}={val}: cannot be read; give {kind}") from None
+            if not isinstance(parsed, dict if opt == "config_type_weights" else list):
+                raise InputError(f"--{opt}={val}: give {kind}")
+    for opt, low in (("r_max", 0.0), ("lr", 0.0)):  # must be > low
+        val = getattr(args, opt, None)
+        if val is not None and not float(val) > low:
+            raise InputError(f"--{opt}={val}: must be positive")
+    for opt, low in (("num_interactions", 1), ("correlation", 1), ("num_radial_basis", 1), ("num_cutoff_basis", 1),
+                     ("num_multipole_basis", 1), ("batch_size", 1), ("valid_batch_size", 1), ("max_num_epochs", 0),
+                     ("eval_interval", 1), ("patience", 1)):
+        val = getattr(args, opt, None)
+        if val is not None and int(val) < low:
+            raise InputError(f"--{opt}={val}: must be at least {low}")
+    level = getattr(args, "log_level", None)
+    if isinstance(level, str) and level.upper() not in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
+        raise InputError(f"--log_level={level}: use DEBUG, INFO, WARNING or ERROR")
     n = int(getattr(args, "n_energies", 1) or 1)
     if n < 1:
         raise InputError("--n_energies must be at least 1")
@@ -107,6 +145,7 @@ def check_datasets(
     keys: Optional[Dict[str, str]] = None,
     z_table_zs: Optional[Sequence[int]] = None,
     first_frame_info: Optional[List[str]] = None,
+    atomic_numbers_given: bool = False,
 ) -> None:
     """sets: {"train": configs, "valid": configs, "test (file)": configs}; raises DataError, logs warnings."""
     keys = keys or {}
@@ -124,8 +163,12 @@ def check_datasets(
         return sum(float(getattr(c, attr, 0.0)) > 0 for c in train)
 
     if labelled("energy_weight") == 0:
+        hint = ""
+        if first_frame_info and "energy" in first_frame_info:
+            hint = (" The file stores 'energy' (and 'forces') as ASE calculator results: use --energy_key=energy "
+                    "--forces_key=forces")
         raise DataError(f"no training frame has energies ('{keys.get('energy', 'REF_energy')}'): check "
-                        f"--energy_key. Energies are needed (atomic reference energies, the loss).{found}")
+                        f"--energy_key. Energies are needed (atomic reference energies, the loss).{found}{hint}")
     if labelled("forces_weight") == 0:
         logging.warning(f"No training frame has forces ('{keys.get('forces', 'REF_forces')}'): training on energies "
                         "only needs much more data. Check --forces_key.")
@@ -148,7 +191,7 @@ def check_datasets(
     if z_table_zs is not None:
         train_zs &= {int(z) for z in z_table_zs}
     for name, configs in sets.items():
-        bad_shape, nonfinite, close, periodic, unknown = [], [], [], [], {}
+        bad_shape, nonfinite, close, periodic, unknown, overlap = [], [], [], [], {}, []
         zs = train_zs
         for k, c in enumerate(configs):
             e = np.asarray(c.energy).reshape(-1)
@@ -159,6 +202,11 @@ def check_datasets(
                 v = getattr(c, label, None)
                 if v is not None and not np.all(np.isfinite(np.asarray(v, dtype=float))):
                     nonfinite.append((where, label))
+            pos = np.asarray(c.positions)
+            if len(pos) > 1:  # two QM atoms on top of each other: the model gives NaN (zero edge length)
+                dq = np.linalg.norm(pos[:, None, :] - pos[None], axis=-1) + np.eye(len(pos)) * 1e3
+                if dq.min() < QM_OVERLAP:
+                    overlap.append((where, float(dq.min())))
             if len(c.mm_charges):
                 d = np.linalg.norm(np.asarray(c.positions)[:, None, :] - np.asarray(c.mm_positions)[None], axis=-1)
                 if d.min() < CLOSE_CONTACT:
@@ -173,12 +221,19 @@ def check_datasets(
             raise DataError(f"{name}: {k} has {n} energies but the model has {n_out} energy outputs "
                             f"(--n_energies={n_energies}{', --diabatic' if diabatic else ''}); "
                             f"{len(bad_shape)} frame(s) affected. {_suggest_n_energies(n, diabatic)}")
+        if overlap:
+            k, d = overlap[0]
+            raise DataError(f"{name}: {k} has two QM atoms {d:.3f} A apart ({len(overlap)} frame(s)): duplicated "
+                            "atoms (or a link atom on a QM atom) make the model give NaN. Fix or remove these frames")
         if nonfinite:
             k, label = nonfinite[0]
             raise DataError(f"{name}: {k} has NaN or infinite values in '{label}' "
                             f"({len(nonfinite)} occurrence(s)); remove or fix these frames")
         if unknown:
             z, ks = next(iter(unknown.items()))
+            if atomic_numbers_given and z_table_zs is not None and z not in {int(x) for x in z_table_zs}:
+                raise DataError(f"{name}: {ks[0]} contains element Z={z}, which is not in --atomic_numbers "
+                                f"{sorted(int(x) for x in z_table_zs)}. Add it, or leave --atomic_numbers out")
             raise DataError(f"{name}: {ks[0]} contains element Z={z}, which is not in the training set "
                             f"(elements {sorted(int(x) for x in zs)}). Add frames with Z={z} to the training data")
         if close:

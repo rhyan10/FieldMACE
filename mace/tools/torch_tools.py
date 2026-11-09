@@ -51,17 +51,19 @@ def to_numpy(t: torch.Tensor) -> np.ndarray:
 
 def init_device(device_str: str) -> torch.device:
     if "cuda" in device_str:
-        assert torch.cuda.is_available(), "No CUDA device available!"
-        if ":" in device_str:
-            # Check if the desired device is available
-            assert int(device_str.split(":")[-1]) < torch.cuda.device_count()
+        if not torch.cuda.is_available():
+            raise RuntimeError(f"device '{device_str}' requested, but PyTorch sees no CUDA GPU here: use --device=cpu, "
+                               "or run on a GPU node")
+        if ":" in device_str and int(device_str.split(":")[-1]) >= torch.cuda.device_count():
+            raise RuntimeError(f"device '{device_str}' requested, but only {torch.cuda.device_count()} GPU(s) are visible")
         logging.info(
             f"CUDA version: {torch.version.cuda}, CUDA device: {torch.cuda.current_device()}"
         )
         torch.cuda.init()
         return torch.device(device_str)
     if device_str == "mps":
-        assert torch.backends.mps.is_available(), "No MPS backend is available!"
+        if not torch.backends.mps.is_available():
+            raise RuntimeError("device 'mps' requested, but the MPS backend is not available")
         logging.info("Using MPS GPU acceleration")
         return torch.device("mps")
 
@@ -136,3 +138,21 @@ def default_dtype(dtype: torch.dtype):
     torch.set_default_dtype(dtype)
     yield
     torch.set_default_dtype(init)
+
+
+def load_model(path, device="cpu"):
+    """torch.load of a whole (pickled) model on ``device``.
+
+    e3nn's code-generated modules keep TorchScript buffers that e3nn reloads with torch.jit.load without a
+    map_location, so a model saved on a GPU failed on a CPU-only machine ("Found no NVIDIA driver"). Those
+    buffers are mapped to ``device`` too."""
+    jit_load = torch.jit.load
+
+    def mapped(f, map_location=None, *args, **kwargs):
+        return jit_load(f, map_location if map_location is not None else device, *args, **kwargs)
+
+    torch.jit.load = mapped
+    try:
+        return torch.load(f=path, map_location=device, weights_only=False)
+    finally:
+        torch.jit.load = jit_load

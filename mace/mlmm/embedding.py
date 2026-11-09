@@ -136,6 +136,17 @@ class EmbeddingFrame:
         q = self.mm_charges.to(dt).to(dev)
         sel = torch.arange(len(q), device=dev)
 
+        if s.cutoff is not None and box is not None and not getattr(self, "_warned_box", False):
+            with torch.no_grad():  # every charge within the cutoff must have a unique image
+                reach = s.cutoff + (float((qm_all - centre).norm(dim=-1).max()) if s.cutoff_reference == "nearest" else 0.0)
+                half = 0.5 * float(torch.min(torch.diagonal(box)))
+            if reach > half:
+                import warnings
+
+                self._warned_box = True
+                warnings.warn(f"embedding cutoff {s.cutoff} A + QM-region radius gives {reach:.1f} A, more than half "
+                              f"the box ({half:.1f} A): some charges are within the cutoff with two periodic images, "
+                              "but only one is embedded. Use a smaller cutoff or a larger box")
         if s.cutoff is not None:
             with torch.no_grad():
                 if s.cutoff_reference == "centroid":

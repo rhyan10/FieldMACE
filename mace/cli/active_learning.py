@@ -73,6 +73,11 @@ def main(argv=None):
     from mace.mlmm.active_learning import ActiveLearningLoop, ALConfig
 
     try:
+        import yaml  # noqa: F401
+    except ImportError:
+        print("ERROR: fieldmace_active_learning reads YAML: pip install pyyaml", file=sys.stderr)
+        return 1
+    try:
         cfg = ALConfig.from_file(a.config)
     except (ValueError, FileNotFoundError) as err:
         print(f"ERROR in the configuration: {err}", file=sys.stderr)
@@ -81,7 +86,13 @@ def main(argv=None):
     if a.status:
         print(loop.status())
         return 0
-    loop.run(max_rounds=a.rounds)
+    try:
+        loop.run(max_rounds=a.rounds)
+    except (RuntimeError, ValueError, FileNotFoundError) as err:  # a failed step: say which, resume later
+        print(f"ERROR: {err}", file=sys.stderr)
+        print(loop.status())
+        print("Fix the problem and run the same command again: finished steps are not repeated.", file=sys.stderr)
+        return 1
     print(loop.status())
     return 0
 

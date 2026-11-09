@@ -52,8 +52,9 @@ What it does to the force-field system (a copy; the original is untouched):
 * **Cutoff.** The cutoff with its switching function and periodic imaging around the QM region are part of
   the computational graph, so the forces are exact derivatives of the energy. The NVE run checks this.
 * **Speed.** Forces on QM atoms, link atoms and all point charges come from **one backward pass** on the
-  GPU. For QM regions up to 128 atoms the model graph is built once ("static graph"), so no neighbour list
-  is rebuilt each step.
+  GPU. For QM regions up to 32 atoms the model graph is built once with all atom pairs ("static graph"), so
+  no neighbour list is rebuilt each step; larger regions use the cutoff graph, which is cheaper there
+  (`model_kwargs=dict(static_graph=True/False)` overrides this).
 * **Same embedding as training.** `setup.json` stores QM atoms, link atoms and their charge scheme,
   cutoff, switching width and origin, as used for the training data. Use it, or the model is evaluated in
   a frame it was not trained in.
@@ -372,7 +373,7 @@ PythonForce, cutoff  None A:  2261 point charges,   33.6 ms/step
 ```
 
 Only the cutoff the model was trained with gives the right physics. The others only show the cost. For
-long runs: use a GPU, a float32 model, and the static graph (automatic for QM regions up to 128 atoms).
+long runs: use a GPU, a float32 model, and the static graph (automatic for QM regions up to 32 atoms).
 Use the TorchForce backend when Python per step becomes the bottleneck, which happens with small
 models on fast GPUs.
 

@@ -88,23 +88,38 @@ def main():
     if a.max_frames:
         frames = frames[: a.max_frames]
     partial = a.partial or os.path.join(a.work, "labelled_partial.xyz")
-    done = ase.io.read(partial, index=":") if os.path.exists(partial) else []
+    # finished frames, by their index in frames.xyz (a frame whose SCF fails is skipped, not retried forever)
+    done = {}
+    if os.path.exists(partial):
+        for at in ase.io.read(partial, index=":"):
+            done[int(at.info.get("frame_id", len(done)))] = at
     print(f"{len(frames)} frames, {len(done)} already labelled; {a.xc}/{a.basis}, {a.threads} threads")
 
-    t0, n0 = time.time(), len(done)
-    for k in range(len(done), len(frames)):
+    t0, n_skip = time.time(), 0
+    todo = [k for k in range(len(frames)) if k not in done]
+    for n, k in enumerate(todo):
         at = frames[k]
-        e, f, fm = pyscf_qmmm(at.get_chemical_symbols(), at.positions, at.info["mm_positions"],
-                              at.info["mm_charges"], a.xc, a.basis, a.charge, a.spin)
+        try:
+            e, f, fm = pyscf_qmmm(at.get_chemical_symbols(), at.positions,
+                                  at.info.get("mm_positions", np.zeros((0, 3))), at.info.get("mm_charges", np.zeros(0)),
+                                  a.xc, a.basis, a.charge, a.spin)
+        except RuntimeError as err:  # SCF not converged
+            print(f"  frame {k} skipped: {err}")
+            n_skip += 1
+            continue
         attach_reference(at, e, f, fm)
         at.info["qm_method"] = f"{a.xc}/{a.basis}"
+        at.info["frame_id"] = k
         compact(at)
         write_extxyz(partial, [at], append=True)
-        done.append(at)
-        if (k + 1) % 10 == 0 or k + 1 == len(frames):
-            per = (time.time() - t0) / (k + 1 - n0)
-            print(f"  {k + 1}/{len(frames)} labelled, {per:.1f} s/frame, "
-                  f"~{per * (len(frames) - k - 1) / 60:.0f} min left")
+        done[k] = at
+        if (n + 1) % 10 == 0 or n + 1 == len(todo):
+            per = (time.time() - t0) / (n + 1)
+            print(f"  {len(done)}/{len(frames)} labelled, {per:.1f} s/frame, "
+                  f"~{per * (len(todo) - n - 1) / 60:.0f} min left")
+    if n_skip:
+        print(f"{n_skip} frame(s) skipped (SCF not converged); run again to retry them")
+    done = [done[k] for k in sorted(done)]
 
     # ---- split -------------------------------------------------------------------------------
     os.makedirs(a.out, exist_ok=True)
@@ -116,6 +131,8 @@ def main():
     write_extxyz(os.path.join(a.out, "train.xyz"), train)
     if test:
         write_extxyz(os.path.join(a.out, "test.xyz"), test)
+    elif os.path.exists(os.path.join(a.out, "test.xyz")):  # never leave the test set of an earlier run
+        os.remove(os.path.join(a.out, "test.xyz"))
     if os.path.exists(os.path.join(a.work, "setup.json")):  # the embedding these data were made with
         shutil.copy(os.path.join(a.work, "setup.json"), os.path.join(a.out, "setup.json"))
     e = np.array([float(np.ravel(x.info["REF_energy"])[0]) for x in done])

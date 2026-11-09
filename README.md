@@ -97,7 +97,7 @@ mace_run_train --name=protein --train_file=train.xyz --valid_fraction=0.1 --mode
 * `PerAtomFieldEMACE` (recommended): expands the MM potential about every QM atom.
 * `FieldEMACE`: a single multipole expansion about the QM centroid.
 
-**Starting from a MACE foundation model.** `--foundation_model` initialises a field model with the MACE layers of a pretrained model: the node embedding, the radial basis, the interaction and product blocks. The field interactions, the readouts and any excited-state heads start from scratch. The architecture options (`r_max`, channels, `max_ell`, layers, correlation order, radial basis) are replaced by the foundation model's, with a warning, and every element of your data must be one the foundation model knows.
+**Starting from a MACE foundation model.** `--foundation_model` initialises a field model with the MACE layers of a pretrained model: the node embedding, the radial basis, the interaction and product blocks. From a MACE foundation model the field interactions, the readouts and any excited-state heads start from scratch; from a FieldMACE model (fine-tuning your own model) they are transferred too, where the shapes match. The architecture options (`r_max`, channels, `max_ell`, layers, correlation order, radial basis) are replaced by the foundation model's, with a warning, and every element of your data must be one the foundation model knows.
 
 | `--foundation_model` | model | where it comes from | status |
 |---|---|---|---|
@@ -341,6 +341,11 @@ sim.context.setParameter("fieldmace_state", 1)        # switch the driving elect
 * **Pipeline bugs.** Fixed the HDF5 pipeline (MM fields missing, wrong keyword), `preprocess_data` (missing arguments, numpy ≥ 2 statistics), E0 averaging over unlabelled frames, and energy statistics with several states.
 * **Attention models removed.** `AttentionFieldEMACE` (could not be constructed) and `AttentionPerAtomFieldEMACE` are gone, since neither is part of the publication. FieldMACE now has `FieldEMACE` (one multipole expansion) and `PerAtomFieldEMACE`.
 * **NACs, dipoles and SOCs.** These were never produced by the field models (the readouts returned `None`). They are now implemented, see [Excited-state properties](#excited-state-properties).
+
+**Version 2.4.3**
+
+* **50 more bug fixes** (see [CHANGELOG.md](CHANGELOG.md)). Among them: fine-tuning from MACE-MP/OFF left the first layer's skip connection random, crashed with `--E0s=foundation` and with a float32 training dtype; `mace_mp()`, `mace_off()` and `mace_anicc()` could not compute anything; a NaN validation loss was saved as the best model; distributed training hung at early stopping; neighbour lists of QM regions far from the origin used gigabytes; a serialized OpenMM system could crash Python when loaded elsewhere; frames without point charges were corrupted when written; changing `calc.state` returned the previous state's cached energy.
+* **Changed.** The static all-pairs QM graph in OpenMM is automatic up to 32 atoms (was 128). Many more wrong inputs now stop with a message before any data are loaded.
 
 **Version 2.4.2**
 

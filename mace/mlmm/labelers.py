@@ -61,7 +61,10 @@ def pyscf_qmmm(symbols, qm_pos, mm_pos, mm_q, xc="b3lyp", basis="6-31g*", charge
 
 
 def pyscf_labeller(frames: Sequence[ase.Atoms], xc="b3lyp", basis="6-31g*", charge=0, spin=0, density_fit=False,
-                   **_) -> List[ase.Atoms]:
+                   **unknown) -> List[ase.Atoms]:
+    if unknown:  # a typo (e.g. basis_set) would silently fall back to the default method
+        raise ValueError(f"labeller_args: unknown option(s) {sorted(unknown)} for the pyscf labeller "
+                         "(known: xc, basis, charge, spin, density_fit)")
     out = []
     for at in frames:
         try:
@@ -75,12 +78,14 @@ def pyscf_labeller(frames: Sequence[ase.Atoms], xc="b3lyp", basis="6-31g*", char
     return out
 
 
-def model_labeller(frames: Sequence[ase.Atoms], model: str = None, device: str = "cpu", **_) -> List[ase.Atoms]:
+def model_labeller(frames: Sequence[ase.Atoms], model: str = None, device: str = "cpu", **unknown) -> List[ase.Atoms]:
     """A FieldMACE model as the reference: all states, forces on atoms and point charges.
 
     For a diabatic model the raw diabatic outputs are the labels (train a diabatic model on them)."""
     from mace.calculators import MACECalculator
 
+    if unknown:
+        raise ValueError(f"labeller_args: unknown option(s) {sorted(unknown)} for the model labeller (known: device)")
     calc = MACECalculator(model, device=device, default_dtype="float64")
     out = []
     for at in frames:

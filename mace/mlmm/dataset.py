@@ -119,7 +119,7 @@ def attach_reference(atoms: ase.Atoms, energy: float, forces: np.ndarray,
         mf = np.asarray(mm_forces, dtype=float)
         if mf.ndim == 2:
             mf = mf[:, None, :]  # (M, n_states, 3)
-        if mf.shape != (len(atoms.info["mm_charges"]), n_states, 3):
+        if mf.shape != (len(atoms.info.get("mm_charges", [])), n_states, 3):
             raise ValueError(f"mm_forces must have shape (M, {n_states}, 3), got {mf.shape}")
         atoms.info["REF_mm_forces"] = mf
     return atoms
@@ -164,7 +164,20 @@ def pad_mm_charges(frames: Sequence[ase.Atoms], n_max: Optional[int] = None,
 
 
 def write_extxyz(path: str, frames: Sequence[ase.Atoms], append: bool = False):
-    ase.io.write(path, list(frames), format="extxyz", append=append)
+    """Write frames in extended XYZ.
+
+    Empty arrays in atoms.info (a frame without point charges: mm_positions, mm_charges, ... of length 0) are left
+    out: ASE writes them as "mm_charges=" with no value, and reading the file back then takes the next key as the
+    value (the energy label is lost or the frame cannot be read). A frame without these keys is a gas-phase frame."""
+    out = []
+    for at in frames:
+        empty = [k for k, v in at.info.items() if isinstance(v, np.ndarray) and v.size == 0]
+        if empty:
+            at = at.copy()
+            for k in empty:
+                del at.info[k]
+        out.append(at)
+    ase.io.write(path, out, format="extxyz", append=append)
 
 
 # ---------------------------------------------------------------------- #

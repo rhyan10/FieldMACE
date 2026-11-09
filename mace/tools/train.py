@@ -205,35 +205,41 @@ def train(
                     }
                     wandb.log(wandb_log_dict)
 
-                if valid_loss >= lowest_loss:
-                    patience_counter += 1
-                    if patience_counter >= patience:
-                        if swa is not None and epoch < swa.start:
-                            logging.info(
-                                f"Stopping optimization after {patience_counter} epochs without improvement and starting Stage Two"
-                            )
-                            epoch = swa.start
-                            patience_counter = 0
-                        else:
-                            logging.info(
-                                f"Stopping optimization after {patience_counter} epochs without improvement"
-                            )
-                            break
-                    if save_all_checkpoints:
-                        param_context = (
-                            ema.average_parameters()
-                            if ema is not None
-                            else nullcontext()
+            # every rank takes the same decisions (the metrics are reduced over ranks); only rank 0 writes
+            improved = bool(np.isfinite(valid_loss)) and valid_loss < lowest_loss
+            if not np.isfinite(valid_loss) and rank == 0:
+                logging.warning(f"Epoch {epoch}: the validation loss is {valid_loss} (training diverged?); "
+                                "this epoch is not saved as the best model. Try a smaller --lr")
+            if not improved:
+                patience_counter += 1
+                if patience_counter >= patience:
+                    if swa is not None and epoch < swa.start:
+                        logging.info(
+                            f"Stopping optimization after {patience_counter} epochs without improvement and starting Stage Two"
                         )
-                        with param_context:
-                            checkpoint_handler.save(
-                                state=CheckpointState(model, optimizer, lr_scheduler),
-                                epochs=epoch,
-                                keep_last=True,
-                            )
-                else:
-                    lowest_loss = valid_loss
-                    patience_counter = 0
+                        epoch = swa.start
+                        patience_counter = 0
+                    else:
+                        logging.info(
+                            f"Stopping optimization after {patience_counter} epochs without improvement"
+                        )
+                        break
+                if save_all_checkpoints and rank == 0:
+                    param_context = (
+                        ema.average_parameters()
+                        if ema is not None
+                        else nullcontext()
+                    )
+                    with param_context:
+                        checkpoint_handler.save(
+                            state=CheckpointState(model, optimizer, lr_scheduler),
+                            epochs=epoch,
+                            keep_last=True,
+                        )
+            else:
+                lowest_loss = valid_loss
+                patience_counter = 0
+                if rank == 0:
                     param_context = (
                         ema.average_parameters() if ema is not None else nullcontext()
                     )
@@ -243,7 +249,7 @@ def train(
                             epochs=epoch,
                             keep_last=keep_last,
                         )
-                        keep_last = False or save_all_checkpoints
+                keep_last = False or save_all_checkpoints
         if distributed:
             torch.distributed.barrier()
         epoch += 1

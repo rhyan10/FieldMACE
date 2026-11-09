@@ -215,6 +215,6 @@ def test_active_learning_config_errors(tmp_path):
     (tmp_path / "a.yaml").write_text("work_dir: w\nsetup: nope.json\ninitial_data: d.xyz\n")
     with pytest.raises(ValueError, match="setup = .*nope.json does not exist"):
         ALConfig.from_file(str(tmp_path / "a.yaml"))
-    (tmp_path / "b.yaml").write_text("work_dir: w\nsetup: d.xyz\ninitial_data: d.xyz\nsampling: {temperature: 300}\n")
+    (tmp_path / "b.yaml").write_text("work_dir: w\nsetup: d.xyz\ninitial_data: d.xyz\nsystem: {pdb: d.xyz}\nsampling: {temperature: 300}\n")
     with pytest.raises(ValueError, match="unknown key.*temperature"):
         ALConfig.from_file(str(tmp_path / "b.yaml"))

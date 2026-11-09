@@ -47,7 +47,9 @@ STATE_PARAMETER = "fieldmace_state"
 def load_fieldmace_model(model: Union[str, os.PathLike, torch.nn.Module], device: str = "cpu",
                          dtype: Optional[torch.dtype] = None) -> torch.nn.Module:
     if not isinstance(model, torch.nn.Module):
-        model = torch.load(model, map_location=device, weights_only=False)
+        from mace.tools.torch_tools import load_model
+
+        model = load_model(model, device)
     model = model.to(device)
     if dtype is not None:
         model = model.to(dtype)
@@ -79,7 +81,8 @@ class FieldMACEComputation:
         subtract_e0: bool = False,
         static_graph: Union[bool, str] = "auto",
     ):
-        self.model_path = model if not isinstance(model, torch.nn.Module) else None
+        # absolute: a serialized System (XmlSerializer) is often loaded from another directory
+        self.model_path = os.path.abspath(model) if not isinstance(model, torch.nn.Module) else None
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.dtype_arg = dtype
         self.model = load_fieldmace_model(model, self.device, dtype)
@@ -112,7 +115,7 @@ class FieldMACEComputation:
         self.batch = torch.zeros(n, dtype=torch.long, device=dev)
         self.ptr = torch.tensor([0, n], dtype=torch.long, device=dev)
         self.cell = torch.zeros(3, 3, dtype=self.dtype, device=dev)
-        self.static_graph = (n <= 128) if static_graph == "auto" else bool(static_graph)
+        self.static_graph = (n <= 32) if static_graph == "auto" else bool(static_graph)  # all pairs: n^2 edges
         self.static_graph_arg = static_graph
         if self.static_graph:
             ii, jj = torch.meshgrid(torch.arange(n), torch.arange(n), indexing="ij")
@@ -215,8 +218,15 @@ class FieldMACEComputation:
         }
 
     def __setstate__(self, d):
-        self.__init__(d["model_path"], d["spec"], d["settings"], d["state"], d["device"], d["dtype"],
-                      d["energy_scale"], d["length_scale"], d["subtract_e0"], d.get("static_graph", "auto"))
+        try:
+            self.__init__(d["model_path"], d["spec"], d["settings"], d["state"], d["device"], d["dtype"],
+                          d["energy_scale"], d["length_scale"], d["subtract_e0"], d.get("static_graph", "auto"))
+        except Exception as err:  # OpenMM's deserializer may crash without showing the reason: say it first
+            import sys
+
+            print(f"FieldMACE force: cannot restore the model {d['model_path']!r}: {type(err).__name__}: {err}",
+                  file=sys.stderr, flush=True)
+            raise
         self.all_particles = d.get("all_particles", False)
 
 

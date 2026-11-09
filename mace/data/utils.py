@@ -42,7 +42,7 @@ class Configuration:
     forces: Optional[Forces] = None  # eV/Angstrom
     stress: Optional[Stress] = None  # eV/Angstrom^3
     virials: Optional[Virials] = None  # eV
-    dipoles: Optional[Vector] = None  # Debye
+    dipoles: Optional[Vector] = None  # [S + P, 3], units of the labels (FieldMACE: e*Angstrom)
     charges: Optional[Charges] = None  # atomic unit
     pc_array: Optional[Charges] = None 
     cell: Optional[Cell] = None
@@ -205,6 +205,8 @@ def config_from_atoms(
         raise ValueError(f"{len(q_mm)} MM charges but {len(r_mm)} MM positions")
     if not (np.all(np.isfinite(q_mm)) and np.all(np.isfinite(r_mm))):
         raise ValueError("non-finite MM charges or positions")
+    if not np.all(np.isfinite(atoms.positions)):
+        raise ValueError("non-finite (NaN/inf) QM atom positions")
     f_mm = atoms.info.get(pc_key, None)
     mm_forces_weight = atoms.info.get("config_mm_forces_weight", 1.0)
     if f_mm is not None:
@@ -265,6 +267,12 @@ def config_from_atoms(
         energy = np.zeros(forces.shape[1])
     if forces.shape[1] != len(energy):
         raise ValueError(f"{len(energy)} energies but forces for {forces.shape[1]} states")
+    if n_outputs and len(energy) != int(n_outputs):  # the labels do not match the model (--n_energies)
+        from mace.tools.data_checks import _suggest_n_energies
+
+        what = f"'{energy_key}'" if energy_weight != 0.0 else f"'{forces_key}' (no energy in this frame)"
+        raise ValueError(f"{what} has {len(energy)} state(s) but the model has {int(n_outputs)} energy outputs. "
+                         f"{_suggest_n_energies(len(energy), bool(n_states))}")
     if f_mm is None:
         f_mm = np.zeros((len(q_mm), len(energy), 3))
     elif f_mm.shape[1] != len(energy):
@@ -371,6 +379,8 @@ def config_for_inference(atoms: ase.Atoms) -> Configuration:
         raise ValueError(f"{len(q_mm)} MM charges but {len(r_mm)} MM positions")
     if not (np.all(np.isfinite(q_mm)) and np.all(np.isfinite(r_mm))):
         raise ValueError("non-finite MM charges or positions")
+    if not np.all(np.isfinite(atoms.positions)):
+        raise ValueError("non-finite (NaN/inf) atom positions")
     pbc = tuple(bool(x) for x in atoms.get_pbc())
     cell = np.array(atoms.get_cell())
     _check_cell(pbc, cell)
