@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
         help="select device",
         type=str,
         choices=["cpu", "cuda"],
-        default="cuda",
+        default="cpu",
     )
     parser.add_argument(
         "--default_dtype",
@@ -81,7 +81,8 @@ def printenergy(dyn, start_time=None):  # store a reference to atoms in the defi
         elapsed_time = 0
     else:
         elapsed_time = time.time() - start_time
-    forces_var = np.var(a.calc.results["forces_comm"], axis=0)
+    res = a.calc.results
+    forces_var = np.var(res["forces_comm"], axis=0) if "forces_comm" in res else np.zeros((len(a), 3))
     print(
         "%.1fs: Energy per atom: Epot = %.3feV  Ekin = %.3feV (T=%3.0fK)  "  # pylint: disable=C0209
         "Etot = %.3feV t=%.1ffs Eerr = %.3feV Ferr = %.3feV/A"
@@ -92,7 +93,7 @@ def printenergy(dyn, start_time=None):  # store a reference to atoms in the defi
             ekin / (1.5 * units.kB),
             epot + ekin,
             dyn.get_time() / units.fs,
-            a.calc.results["energy_var"],
+            float(np.ravel(res.get("energy_var", [0.0]))[getattr(a.calc, "state", 0)]),
             np.max(np.linalg.norm(forces_var, axis=1)),
         ),
         flush=True,
@@ -108,21 +109,22 @@ def save_config(dyn, fname):
         {
             "mlff_energy": ens,
             "time": np.round(dyn.get_time() / units.fs, 5),
-            "mlff_energy_var": atomsi.calc.results["energy_var"],
         }
     )
-    atomsi.arrays.update(
-        {
-            "mlff_forces": frcs,
-            "mlff_forces_var": np.var(atomsi.calc.results["forces_comm"], axis=0),
-        }
-    )
+    res = atomsi.calc.results
+    if "energy_var" in res:
+        atomsi.info["mlff_energy_var"] = res["energy_var"]
+    atomsi.arrays["mlff_forces"] = frcs
+    if "forces_comm" in res:
+        atomsi.arrays["mlff_forces_var"] = np.var(res["forces_comm"], axis=0)
 
     ase.io.write(fname, atomsi, append=True)
 
 
 def stop_error(dyn, threshold, reg=0.2):
     atomsi = dyn.atoms
+    if "forces_comm" not in atomsi.calc.results:  # one model: no committee error estimate
+        return
     force_var = np.var(atomsi.calc.results["forces_comm"], axis=0)
     force = atomsi.get_forces()
     ferr = np.sqrt(np.sum(force_var, axis=1))

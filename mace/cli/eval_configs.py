@@ -30,10 +30,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--default_dtype",
-        help="set default dtype",
         type=str,
         choices=["float32", "float64"],
-        default="float64",
+        default=None,
+        help="dtype to run in (default: the model's own dtype)",
     )
     parser.add_argument("--batch_size", help="batch size", type=int, default=64)
     parser.add_argument(
@@ -63,19 +63,20 @@ def main() -> None:
 
 
 def run(args: argparse.Namespace) -> None:
-    torch_tools.set_default_dtype(args.default_dtype)
     device = torch_tools.init_device(args.device)
 
-    # Load model
+    # Load model, in its own dtype unless --default_dtype is given
     model = torch.load(f=args.model, map_location=args.device, weights_only=False)
-    model = model.to(args.device)
+    dtype = args.default_dtype or {torch.float32: "float32", torch.float64: "float64"}[next(model.parameters()).dtype]
+    torch_tools.set_default_dtype(dtype)
+    model = model.to(args.device).to(torch_tools.dtype_dict[dtype])
     for param in model.parameters():
         param.requires_grad = False
     is_field = hasattr(model, "multipole_max_ell")
 
     # Load data and prepare input (point charges from atoms.info["mm_positions"/"mm_charges"])
     atoms_list = ase.io.read(args.configs, index=":")
-    configs = [data.config_from_atoms(atoms) for atoms in atoms_list]
+    configs = [data.config_for_inference(atoms) for atoms in atoms_list]  # labels in the file are not read
     z_table = utils.AtomicNumberTable([int(z) for z in model.atomic_numbers])
     data_loader = torch_geometric.dataloader.DataLoader(
         dataset=[
@@ -114,9 +115,32 @@ def run(args: argparse.Namespace) -> None:
 
     assert len(atoms_list) == len(energies) == len(forces)
     p = args.info_prefix
+    diabatic = bool(getattr(model, "diabatic", False))
     for i, atoms in enumerate(atoms_list):
         atoms.calc = None  # crucial
         e, f = energies[i], forces[i]
+        if diabatic:  # the model gives the diabatic Hamiltonian: write it, and the adiabatic states
+            from mace.tools.diabatic import adiabatize, unpack
+
+            S = int(model.n_states)
+            H = unpack(e, S)
+            dH = -unpack(np.moveaxis(f, 1, 0), S)
+            dH_pc = -unpack(np.moveaxis(mm_forces[i], 1, 0), S) if mm_forces else None
+            ad = adiabatize(H, dH, dH_pc)
+            atoms.info[p + "diabatic_hamiltonian"] = H
+            atoms.info[p + "diabatic_forces"] = f
+            e = ad["energies"]
+            f = -np.moveaxis(ad["grad"], 0, 1)
+            if mm_forces:
+                mm_forces[i] = -np.moveaxis(ad["grad_pc"], 0, 1)
+            pairs = [(a, b) for a in range(S) for b in range(a + 1, S)]
+            atoms.info[p + "nacs"] = np.stack([ad["nac"][a, b] for a, b in pairs], axis=1)  # [N, P, 3]
+            if props["dipoles"]:  # diabatic dipole matrix -> adiabatic
+                mu = unpack(np.asarray(props["dipoles"][i]), S)
+                mu_ad = np.einsum("ik,ijx,jl->klx", ad["U"], mu, ad["U"])
+                atoms.info[p + "diabatic_dipoles"] = props["dipoles"][i]
+                props["dipoles"][i] = np.concatenate([np.stack([mu_ad[k, k] for k in range(S)]),
+                                                      np.stack([mu_ad[a, b] for a, b in pairs])])
         if len(e) == 1:
             atoms.info[p + "energy"] = float(e[0])
             atoms.arrays[p + "forces"] = f[:, 0, :]

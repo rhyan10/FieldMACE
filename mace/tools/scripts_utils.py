@@ -49,6 +49,7 @@ def get_dataset_from_xyz(
     socs_key: str = "REF_socs",
     soc_num: Optional[int] = None,
     n_states: Optional[int] = None,
+    n_outputs: Optional[int] = None,
 ) -> Tuple[SubsetCollection, Optional[Dict[int, float]]]:
     """Load training and test dataset from xyz file"""
     atomic_energies_dict, all_train_configs = data.load_from_xyz(
@@ -64,6 +65,7 @@ def get_dataset_from_xyz(
         socs_key=socs_key,
         soc_num=soc_num,
         n_states=n_states,
+        n_outputs=n_outputs,
         pc_key=pc_key,
         extract_atomic_energies=True,
         keep_isolated_atoms=keep_isolated_atoms,
@@ -81,6 +83,7 @@ def get_dataset_from_xyz(
             socs_key=socs_key,
         soc_num=soc_num,
         n_states=n_states,
+        n_outputs=n_outputs,
             charges_key=charges_key,
             pc_key=pc_key,
             extract_atomic_energies=False,
@@ -104,6 +107,7 @@ def get_dataset_from_xyz(
             socs_key=socs_key,
         soc_num=soc_num,
         n_states=n_states,
+        n_outputs=n_outputs,
             virials_key=virials_key,
             charges_key=charges_key,
             pc_key=pc_key,
@@ -303,6 +307,8 @@ def load_from_json(f: str, map_location: str = "cpu") -> torch.nn.Module:
 
 
 def get_atomic_energies(E0s, train_collection, z_table, n_diagonal=None) -> dict:
+    if isinstance(E0s, str) and not E0s.strip():
+        E0s = None
     if E0s is not None:
         logging.info(
             "Isolated Atomic Energies (E0s) not in training file, using command line argument"
@@ -318,8 +324,11 @@ def get_atomic_energies(E0s, train_collection, z_table, n_diagonal=None) -> dict
                     train_collection, z_table, n_diagonal=n_diagonal
                 )
             except Exception as e:
-                raise RuntimeError(
-                    f"Could not compute average E0s if no training xyz given, error {e} occured"
+                from mace.tools.data_checks import InputError
+
+                raise InputError(
+                    f"--E0s=average needs the training XYZ frames ({e or 'none given'}): pass explicit --E0s or "
+                    "--statistics_file"
                 ) from e
         else:
             if E0s.endswith(".json"):
@@ -331,71 +340,30 @@ def get_atomic_energies(E0s, train_collection, z_table, n_diagonal=None) -> dict
                     atomic_energies_dict = ast.literal_eval(E0s)
                     assert isinstance(atomic_energies_dict, dict)
                 except Exception as e:
-                    raise RuntimeError(
-                        f"E0s specified invalidly, error {e} occured"
+                    from mace.tools.data_checks import InputError
+
+                    raise InputError(
+                        f"--E0s={E0s!r} is not valid: use 'average', a dictionary such as "
+                        "'{1: -13.6, 6: -1029.8}' (eV), or a .json file"
                     ) from e
     else:
-        raise RuntimeError(
-            "E0s not found in training file and not specified in command line"
-        )
-    return atomic_energies_dict
+        from mace.tools.data_checks import InputError
+
+        raise InputError("no atomic reference energies: no IsolatedAtom frames in the training file and no --E0s "
+                         "(use --E0s=average, explicit values or a .json file)")
+    return normalise_atomic_energies(atomic_energies_dict)
 
 
-def get_loss_fn(
-    loss: str,
-    energy_weight: float,
-    forces_weight: float,
-    stress_weight: float,
-    virials_weight: float,
-    dipole_weight: float,
-    nacs_weight: float,
-    dipole_only: bool,
-    compute_dipole: bool,
-) -> torch.nn.Module:
-    if loss == "weighted":
-        loss_fn = modules.WeightedEnergyForcesLoss(
-            energy_weight=energy_weight, forces_weight=forces_weight
-        )
-    elif loss == "forces_only":
-        loss_fn = modules.WeightedForcesLoss(forces_weight=forces_weight)
-    elif loss == "virials":
-        loss_fn = modules.WeightedEnergyForcesVirialsLoss(
-            energy_weight=energy_weight,
-            forces_weight=forces_weight,
-            virials_weight=virials_weight,
-        )
-    elif loss == "stress":
-        loss_fn = modules.WeightedEnergyForcesStressLoss(
-            energy_weight=energy_weight,
-            forces_weight=forces_weight,
-            stress_weight=stress_weight,
-        )
-    elif loss == "dipole":
-        assert (
-            dipole_only is True
-        ), "dipole loss can only be used with AtomicDipolesMACE model"
-        loss_fn = modules.DipoleSingleLoss(
-            dipole_weight=dipole_weight,
-        )
-    elif loss == "energy_forces_dipole":
-        assert dipole_only is False and compute_dipole is True
-        loss_fn = modules.WeightedEnergyForcesDipoleLoss(
-            energy_weight=energy_weight,
-            forces_weight=forces_weight,
-            dipole_weight=dipole_weight,
-        )
-    elif loss == "energy_forces_dipole":
-            loss_fn_energy = modules.WeightedEnergyForcesNacsDipoleLoss(
-                energy_weight=energy_weight,
-                forces_weight=forces_weight,
-                dipole_weight=dipole_weight,
-                nacs_weight=nacs_weight,
-            )
-    else:
-        loss_fn = modules.EnergyForcesLoss(
-            energy_weight=energy_weight, forces_weight=forces_weight
-        )
-    return loss_fn
+def normalise_atomic_energies(atomic_energies_dict) -> Dict[int, float]:
+    """{Z: E0} with int keys (JSON files have string keys) and one float per element.
+
+    An isolated-atom frame of a multi-state data set carries one energy per state; the atomic
+    reference energy is that of the first state (the shift is the same for all states)."""
+    out = {}
+    for z, e in atomic_energies_dict.items():
+        e = np.ravel(np.asarray(e, dtype=float))
+        out[int(z)] = float(e[0]) if e.size else 0.0
+    return out
 
 
 def get_files_with_suffix(dir_path: str, suffix: str) -> List[str]:
@@ -452,6 +420,31 @@ class LRScheduler:
         return getattr(self.lr_scheduler, name)
 
 
+# columns of every error table: (header, metric key, scale, format); a metric that was not computed
+# (no labels of that kind in the set, e.g. an unlabelled test set) is shown as "-"
+_E_ATOM_RMSE = ("RMSE E / meV / atom", "rmse_e_per_atom", 1000.0, "8.1f")
+_E_ATOM_MAE = ("MAE E / meV / atom", "mae_e_per_atom", 1000.0, "8.1f")
+_F_RMSE = ("RMSE F / meV / A", "rmse_f", 1000.0, "8.1f")
+_F_MAE = ("MAE F / meV / A", "mae_f", 1000.0, "8.1f")
+_FMM_RMSE = ("RMSE F_mm / meV / A", "rmse_mm_f", 1000.0, "8.1f")
+_FMM_MAE = ("MAE F_mm / meV / A", "mae_mm_f", 1000.0, "8.1f")
+ERROR_TABLES = {
+    "TotalRMSE": [("RMSE E / meV", "rmse_e", 1000.0, "8.1f"), _F_RMSE, ("relative F RMSE %", "rel_rmse_f", 1.0, "8.2f"),
+                  _FMM_RMSE],
+    "PerAtomRMSE": [_E_ATOM_RMSE, _F_RMSE, ("relative F RMSE %", "rel_rmse_f", 1.0, "8.2f"), _FMM_RMSE],
+    "TotalMAE": [("MAE E / meV", "mae_e", 1000.0, "8.1f"), _F_MAE, ("relative F MAE %", "rel_mae_f", 1.0, "8.2f"),
+                 _FMM_MAE],
+    "PerAtomMAE": [_E_ATOM_MAE, _F_MAE, ("relative F MAE %", "rel_mae_f", 1.0, "8.2f"), _FMM_MAE],
+    "DipoleRMSE": [("RMSE MU / e A", "rmse_mu", 1.0, "8.4f"), ("relative MU RMSE %", "rel_rmse_mu", 1.0, "8.1f")],
+    "DipoleMAE": [("MAE MU / e A", "mae_mu", 1.0, "8.4f"), ("relative MU MAE %", "rel_mae_mu", 1.0, "8.1f")],
+    "EnergyDipoleRMSE": [_E_ATOM_RMSE, _F_RMSE, ("rel F RMSE %", "rel_rmse_f", 1.0, "8.1f"),
+                         ("RMSE MU / e A", "rmse_mu", 1.0, "8.4f"), ("rel MU RMSE %", "rel_rmse_mu", 1.0, "8.1f")],
+    "EnergyNacsDipoleMAE": [_E_ATOM_MAE, _F_MAE, ("rel F MAE %", "rel_mae_f", 1.0, "8.1f"), _FMM_MAE,
+                            ("MAE NACs", "mae_nacs", 1.0, ".4f"), ("MAE dipoles", "mae_mu", 1.0, ".4f"),
+                            ("MAE SOCs", "mae_socs", 1.0, ".4g")],
+}
+
+
 def create_error_table(
     table_type: str,
     all_data_loaders: dict,
@@ -464,95 +457,9 @@ def create_error_table(
 ) -> PrettyTable:
     if log_wandb:
         import wandb
+    columns = ERROR_TABLES[table_type]
     table = PrettyTable()
-    if table_type == "TotalRMSE":
-        table.field_names = [
-            "config_type",
-            "RMSE E / meV",
-            "RMSE F / meV / A",
-            "relative F RMSE %",
-        ]
-    elif table_type == "PerAtomRMSE":
-        table.field_names = [
-            "config_type",
-            "RMSE E / meV / atom",
-            "RMSE F / meV / A",
-            "relative F RMSE %",
-        ]
-    elif table_type == "PerAtomRMSEstressvirials":
-        table.field_names = [
-            "config_type",
-            "RMSE E / meV / atom",
-            "RMSE F / meV / A",
-            "relative F RMSE %",
-            "RMSE Stress (Virials) / meV / A (A^3)",
-        ]
-    elif table_type == "PerAtomMAEstressvirials":
-        table.field_names = [
-            "config_type",
-            "MAE E / meV / atom",
-            "MAE F / meV / A",
-            "relative F MAE %",
-            "MAE Stress (Virials) / meV / A (A^3)",
-        ]
-    elif table_type == "TotalMAE":
-        table.field_names = [
-            "config_type",
-            "MAE E / meV",
-            "MAE F / meV / A",
-            "relative F MAE %",
-        ]
-    elif table_type == "PerAtomMAE":
-        table.field_names = [
-            "config_type",
-            "MAE E / meV / atom",
-            "MAE F / meV / A",
-            "relative F MAE %",
-        ]
-    elif table_type == "DipoleRMSE":
-        table.field_names = [
-            "config_type",
-            "RMSE MU / mDebye / atom",
-            "relative MU RMSE %",
-        ]
-    elif table_type == "DipoleMAE":
-        table.field_names = [
-            "config_type",
-            "MAE MU / mDebye / atom",
-            "relative MU MAE %",
-        ]
-    elif table_type == "EnergyDipoleRMSE":
-        table.field_names = [
-            "config_type",
-            "RMSE E / meV / atom",
-            "RMSE F / meV / A",
-            "rel F RMSE %",
-            "RMSE MU / mDebye / atom",
-            "rel MU RMSE %",
-        ]
-    elif table_type == "EnergyNacsDipoleRMSE":
-        table.field_names = [
-            "config_type",
-            "RMSE E / meV / atom",
-            "RMSE F / meV / A",
-            "rel F RMSE %",
-            "RMSE MU / mDebye / atom",
-            "rel MU RMSE %",
-            "rel nacs RMSE %",
-            "RMSE nacs / mDebye / atom",
-            "rel nacs RMSE %",
-        ]
-    elif table_type == "EnergyNacsDipoleMAE":
-        table.field_names = [
-            "config_type",
-            "MAE E / meV / atom",
-            "MAE F / meV / A",
-            "rel F MAE %",
-            "MAE F_mm / meV / A",
-            "MAE NACs",
-            "MAE dipoles",
-            "MAE SOCs",
-        ]
+    table.field_names = ["config_type"] + [c[0] for c in columns]
 
     for name in sorted(all_data_loaders, key=custom_key):
         data_loader = all_data_loaders[name]
@@ -570,156 +477,8 @@ def create_error_table(
         del data_loader
         torch.cuda.empty_cache()
         if log_wandb:
-            wandb_log_dict = {
-                name
-                + "_final_rmse_e_per_atom": metrics["rmse_e_per_atom"]
-                * 1e3,  # meV / atom
-                name + "_final_rmse_f": metrics["rmse_f"] * 1e3,  # meV / A
-                name + "_final_rel_rmse_f": metrics["rel_rmse_f"],
-            }
-            wandb.log(wandb_log_dict)
-        if table_type == "TotalRMSE":
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['rmse_e'] * 1000:8.1f}",
-                    f"{metrics['rmse_f'] * 1000:8.1f}",
-                    f"{metrics['rel_rmse_f']:8.2f}",
-                ]
-            )
-        elif table_type == "PerAtomRMSE":
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['rmse_e_per_atom'] * 1000:8.1f}",
-                    f"{metrics['rmse_f'] * 1000:8.1f}",
-                    f"{metrics['rel_rmse_f']:8.2f}",
-                ]
-            )
-        elif (
-            table_type == "PerAtomRMSEstressvirials"
-            and metrics["rmse_stress"] is not None
-        ):
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['rmse_e_per_atom'] * 1000:8.1f}",
-                    f"{metrics['rmse_f'] * 1000:8.1f}",
-                    f"{metrics['rel_rmse_f']:8.2f}",
-                    f"{metrics['rmse_stress'] * 1000:8.1f}",
-                ]
-            )
-        elif (
-            table_type == "PerAtomRMSEstressvirials"
-            and metrics["rmse_virials"] is not None
-        ):
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['rmse_e_per_atom'] * 1000:8.1f}",
-                    f"{metrics['rmse_f'] * 1000:8.1f}",
-                    f"{metrics['rel_rmse_f']:8.2f}",
-                    f"{metrics['rmse_virials'] * 1000:8.1f}",
-                ]
-            )
-        elif (
-            table_type == "PerAtomMAEstressvirials"
-            and metrics["mae_stress"] is not None
-        ):
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['mae_e_per_atom'] * 1000:8.1f}",
-                    f"{metrics['mae_f'] * 1000:8.1f}",
-                    f"{metrics['rel_mae_f']:8.2f}",
-                    f"{metrics['mae_stress'] * 1000:8.1f}",
-                ]
-            )
-        elif (
-            table_type == "PerAtomMAEstressvirials"
-            and metrics["mae_virials"] is not None
-        ):
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['mae_e_per_atom'] * 1000:8.1f}",
-                    f"{metrics['mae_f'] * 1000:8.1f}",
-                    f"{metrics['rel_mae_f']:8.2f}",
-                    f"{metrics['mae_virials'] * 1000:8.1f}",
-                ]
-            )
-        elif table_type == "TotalMAE":
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['mae_e'] * 1000:8.1f}",
-                    f"{metrics['mae_f'] * 1000:8.1f}",
-                    f"{metrics['rel_mae_f']:8.2f}",
-                ]
-            )
-        elif table_type == "PerAtomMAE":
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['mae_e_per_atom'] * 1000:8.1f}",
-                    f"{metrics['mae_f'] * 1000:8.1f}",
-                    f"{metrics['rel_mae_f']:8.2f}",
-                ]
-            )
-        elif table_type == "DipoleRMSE":
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['rmse_mu_per_atom'] * 1000:8.2f}",
-                    f"{metrics['rel_rmse_mu']:8.1f}",
-                ]
-            )
-        elif table_type == "DipoleMAE":
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['mae_mu_per_atom'] * 1000:8.2f}",
-                    f"{metrics['rel_mae_mu']:8.1f}",
-                ]
-            )
-        elif table_type == "EnergyDipoleRMSE":
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['rmse_e_per_atom'] * 1000:8.1f}",
-                    f"{metrics['rmse_f'] * 1000:8.1f}",
-                    f"{metrics['rel_rmse_f']:8.1f}",
-                    f"{metrics['rmse_mu_per_atom'] * 1000:8.1f}",
-                    f"{metrics['rel_rmse_mu']:8.1f}",
-                ]
-            )
-        elif table_type == "EnergyNacsDipoleRMSE":
-            table.add_row(
-                [
-                    name,
-                    f"{metrics['rmse_e_per_atom'] * 1000:8.1f}",
-                    f"{metrics['rmse_f'] * 1000:8.1f}",
-                    f"{metrics['rel_rmse_f']:8.1f}",
-                    f"{metrics['rmse_mu_per_atom'] * 1000:8.1f}",
-                    f"{metrics['rel_rmse_mu']:8.1f}",
-                    f"{metrics['rmse_nacs_per_atom'] * 1000:8.1f}",
-                    f"{metrics['rel_rmse_nacs']:8.1f}",
-                ]
-            )
-        elif table_type == "EnergyNacsDipoleMAE":
-            def fmt(key, scale=1.0, f="8.1f"):
-                return format(metrics[key] * scale, f) if key in metrics else "-"
-
-            table.add_row(
-                [
-                    name,
-                    fmt("mae_e_per_atom", 1000),
-                    fmt("mae_f", 1000),
-                    fmt("rel_mae_f"),
-                    fmt("mae_mm_f", 1000),
-                    fmt("mae_nacs", 1.0, ".4f"),
-                    fmt("mae_mu", 1.0, ".4f"),
-                    fmt("mae_socs", 1.0, ".4g"),
-                ]
-            )
+            wandb.log({f"{name}_final_{k}": metrics[k] for k in ("rmse_e_per_atom", "rmse_f", "rel_rmse_f")
+                       if k in metrics})
+        table.add_row([name] + [format(metrics[key] * scale, f) if key in metrics else "-"
+                                for _, key, scale, f in columns])
     return table

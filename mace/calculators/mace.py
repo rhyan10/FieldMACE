@@ -6,6 +6,7 @@
 ###########################################################################################
 
 
+import sys
 from glob import glob
 from pathlib import Path
 from typing import Union
@@ -41,6 +42,21 @@ def _phase_aligned_mean(values, pair_axis: int) -> torch.Tensor:
         dot = torch.sum(v * ref, dim=dims, keepdim=True)
         aligned.append(torch.where(dot < 0, -v, v))
     return torch.stack(aligned).mean(0)
+
+
+class _Results(dict):
+    """calc.results. "energies" holds the energies of all electronic states, while ASE's file writers
+    (ase.io.extxyz) treat a result called "energies" as per-atom energies: writing Atoms with this calculator
+    attached crashed for several states, or wrote the total energy as every atom's energy. items() leaves
+    "energies" out for callers inside ase.io only; everywhere else results behave as a normal dict."""
+
+    _HIDDEN = ("energies",)
+
+    def items(self):
+        caller = sys._getframe(1).f_globals.get("__name__", "")  # pylint: disable=protected-access
+        if caller.startswith("ase.io"):
+            return [(k, v) for k, v in super().items() if k not in self._HIDDEN]
+        return super().items()
 
 
 def _mm_state(atoms):
@@ -162,6 +178,9 @@ class MACECalculator(Calculator):
             elif model_type == "DipoleMACE":
                 self.implemented_properties.extend(["dipole_var"])
         if compile_mode is not None:
+            raise NotImplementedError("compile_mode (torch.compile) is not supported for FieldMACE models; "
+                                      "leave it unset (TorchScript: mace.mlmm.torchforce.export_torchscript)")
+        if compile_mode is not None:
             print(f"Torch compile is enabled with mode: {compile_mode}")
             self.models = [
                 torch.compile(
@@ -186,9 +205,8 @@ class MACECalculator(Calculator):
             model.to(device)  # shouldn't be necessary but seems to help with GPU
         r_maxs = [model.r_max.cpu() for model in self.models]
         r_maxs = np.array(r_maxs)
-        assert np.all(
-            r_maxs == r_maxs[0]
-        ), "committee r_max are not all the same {' '.join(r_maxs)}"
+        if not np.all(r_maxs == r_maxs[0]):
+            raise ValueError(f"committee models have different r_max: {[float(r) for r in r_maxs]}")
         self.r_max = float(r_maxs[0])
         self.device = torch_tools.init_device(device)
         self.energy_units_to_eV = energy_units_to_eV
@@ -246,7 +264,14 @@ class MACECalculator(Calculator):
         return dict_of_tensors
 
     def _atoms_to_batch(self, atoms):
-        config = data.config_from_atoms(atoms, charges_key=self.charges_key)
+        L = float(self.length_units_to_A)
+        if L != 1.0:  # the model works in its own length unit: Angstrom -> model unit
+            atoms = atoms.copy()
+            atoms.set_cell(np.array(atoms.get_cell()) / L)
+            atoms.positions = atoms.positions / L
+            if atoms.info.get("mm_positions") is not None:
+                atoms.info["mm_positions"] = np.asarray(atoms.info["mm_positions"], dtype=float) / L
+        config = data.config_for_inference(atoms)  # labels in atoms.info are not needed (nor parsed)
         data_loader = torch_geometric.dataloader.DataLoader(
             dataset=[
                 data.AtomicData.from_config(
@@ -330,7 +355,7 @@ class MACECalculator(Calculator):
             raise ValueError(f"state={state} but the model predicts {n_states} state(s)")
         e_conv = self.energy_units_to_eV
         f_conv = self.energy_units_to_eV / self.length_units_to_A
-        self.results = {}
+        self.results = _Results()
         e_mean = (e.mean(0) * e_conv).cpu().numpy()
         f_mean = (f.mean(0) * f_conv).cpu().numpy()
         self.results["energies"] = e_mean
@@ -343,14 +368,15 @@ class MACECalculator(Calculator):
             self.results["mm_forces"] = fm.cpu().numpy()
         # excited-state properties; committee members are phase-aligned to the first model
         # (couplings between two states are only defined up to a sign)
+        L = float(self.length_units_to_A)
         if props["nacs"]:
             n = _phase_aligned_mean([x.reshape(len(atoms), -1, 3) for x in props["nacs"]], pair_axis=1)
-            self.results["nacs"] = n.cpu().numpy()  # [n_atoms, n_pairs, 3]
+            self.results["nacs"] = n.cpu().numpy() / L  # [n_atoms, n_pairs, 3], 1/A
         if props["dipoles"]:
             d = [x.reshape(-1, 3) for x in props["dipoles"]]  # [S + P, 3]
             perm = torch.stack([x[:n_states] for x in d]).mean(0)
             trans = _phase_aligned_mean([x[n_states:] for x in d], pair_axis=0)
-            dip = torch.cat([perm, trans], 0).cpu().numpy()
+            dip = torch.cat([perm, trans], 0).cpu().numpy() * L  # e*A
             self.results["dipoles"] = dip
             self.results["dipole"] = dip[state]  # ASE: permanent dipole of the selected state
         if props["socs"]:
@@ -365,8 +391,23 @@ class MACECalculator(Calculator):
         if diabatic:
             self._diabatic_to_adiabatic(n_states, state)
         if self.num_models > 1:
-            self.results["energy_var"] = (e.var(0, unbiased=False) * e_conv**2).cpu().numpy()
-            self.results["forces_var"] = (f.var(0, unbiased=False) * f_conv**2).cpu().numpy()
+            if diabatic:  # spread of the adiabatic energies and forces (what the results hold), not of H
+                from mace.tools.diabatic import adiabatize, unpack
+
+                ea, fa = [], []
+                for k in range(self.num_models):
+                    H = unpack(e[k].cpu().numpy() * e_conv, n_states)
+                    dH = -unpack(np.moveaxis(f[k].cpu().numpy() * f_conv, 1, 0), n_states)
+                    ad = adiabatize(H, dH, blocks=self.diabatic_blocks)
+                    ea.append(ad["energies"])
+                    fa.append(-np.moveaxis(ad["grad"], 0, 1))
+                self.results["energy_var"] = np.var(np.array(ea), axis=0)
+                self.results["forces_var"] = np.var(np.array(fa), axis=0)
+            else:
+                self.results["energy_var"] = (e.var(0, unbiased=False) * e_conv**2).cpu().numpy()
+                self.results["forces_var"] = (f.var(0, unbiased=False) * f_conv**2).cpu().numpy()
+            self.results["forces_comm"] = np.asarray(
+                [x[:, state, :] for x in (fa if diabatic else (f * f_conv).cpu().numpy())])  # [n_models, N, 3]
         return self.results
 
     def _diabatic_to_adiabatic(self, n_states: int, state: int):
@@ -406,6 +447,9 @@ class MACECalculator(Calculator):
             r["diabatic_socs"] = r.pop("socs")
 
     def get_hessian(self, atoms=None):
+        """Hessian d2E/dR2 of the calculator's state (adiabatic for diabatic models), [3N, N, 3] (eV/A^2).
+
+        The MM point charges are kept fixed. A committee returns one Hessian per model."""
         if atoms is None and self.atoms is None:
             raise ValueError("atoms not set")
         if atoms is None:
@@ -413,16 +457,23 @@ class MACECalculator(Calculator):
         if self.model_type != "MACE":
             raise NotImplementedError("Only implemented for MACE models")
         batch = self._atoms_to_batch(atoms)
-        hessians = [
-            model(
-                self._clone_batch(batch).to_dict(),
-                compute_hessian=True,
-                compute_stress=False,
-                training=self.use_compile,
-            )["hessian"]
-            for model in self.models
-        ]
-        hessians = [hessian.detach().cpu().numpy() for hessian in hessians]
+        state = int(getattr(self, "state", 0))
+        hessians = []
+        for model in self.models:
+            d = self._clone_batch(batch).to_dict()
+            pos = d["positions"].detach().requires_grad_(True)
+            d["positions"] = pos
+            out = model(d, training=True, compute_force=False, compute_pc_grads=False)
+            e = out["energy"]
+            if bool(getattr(model, "diabatic", False)):
+                from mace.tools.diabatic import adiabatic_energies_torch
+
+                e = adiabatic_energies_torch(e, int(model.n_states))
+            (g,) = torch.autograd.grad(e[0, state], pos, create_graph=True)
+            g = g.reshape(-1)
+            rows = [torch.autograd.grad(g[k], pos, retain_graph=True)[0] for k in range(g.numel())]
+            h = torch.stack(rows) * self.energy_units_to_eV / self.length_units_to_A**2  # [3N, N, 3]
+            hessians.append(h.detach().cpu().numpy())
         if self.num_models == 1:
             return hessians[0]
         return hessians
@@ -444,19 +495,23 @@ class MACECalculator(Calculator):
             num_layers = int(self.models[0].num_interactions)
         batch = self._atoms_to_batch(atoms)
         descriptors = [model(batch.to_dict())["node_feats"] for model in self.models]
-        if invariants_only:
-            irreps_out = self.models[0].products[0].linear.__dict__["irreps_out"]
-            l_max = irreps_out.lmax
-            num_features = irreps_out.dim // (l_max + 1) ** 2
-            descriptors = [
-                extract_invariant(
-                    descriptor,
-                    num_layers=num_layers,
-                    num_features=num_features,
-                    l_max=l_max,
-                )
-                for descriptor in descriptors
-            ]
+        if invariants_only:  # the scalar (0e) channels of every layer, whatever each layer's irreps
+            from e3nn import o3
+
+            def invariants(model, x):
+                out, offset = [], 0
+                for i, product in enumerate(model.products):
+                    irreps = o3.Irreps(str(product.linear.irreps_out))
+                    if i < num_layers:
+                        start = offset
+                        for mul, ir in irreps:
+                            if ir == o3.Irrep(0, 1):
+                                out.append(x[:, start:start + mul])
+                            start += mul * ir.dim
+                    offset += irreps.dim
+                return torch.cat(out, dim=-1)
+
+            descriptors = [invariants(m, d) for m, d in zip(self.models, descriptors)]
         descriptors = [descriptor.detach().cpu().numpy() for descriptor in descriptors]
 
         if self.num_models == 1:

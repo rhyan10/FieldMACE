@@ -114,6 +114,7 @@ def config_from_atoms_list(
     config_type_weights: Dict[str, float] = None,
     soc_num: Optional[int] = None,
     n_states: Optional[int] = None,
+    n_outputs: Optional[int] = None,
 ) -> Configurations:
     """Convert list of ase.Atoms into Configurations"""
     if config_type_weights is None:
@@ -136,6 +137,7 @@ def config_from_atoms_list(
                 config_type_weights=config_type_weights,
                 soc_num=soc_num,
                 n_states=n_states,
+                n_outputs=n_outputs,
             ))
         except ValueError as err:
             raise ValueError(f"frame {k}: {err}") from None
@@ -165,6 +167,7 @@ def config_from_atoms(
     socs_key="REF_socs",
     soc_num: Optional[int] = None,
     n_states: Optional[int] = None,
+    n_outputs: Optional[int] = None,
 ) -> Configuration:
     """Convert ase.Atoms to Configuration.
 
@@ -218,6 +221,7 @@ def config_from_atoms(
     )
     pbc = tuple(atoms.get_pbc())
     cell = np.array(atoms.get_cell())
+    _check_cell(pbc, cell)
     config_type = atoms.info.get("config_type", "Default")
     weight = atoms.info.get("config_weight", 1.0) * config_type_weights.get(
         config_type, 1.0
@@ -251,7 +255,10 @@ def config_from_atoms(
         raise ValueError(f"'{forces_key}' has shape {forces.shape}, expected ({len(atoms)}, [n_states,] 3) "
                          f"for {len(atoms)} atoms")
     forces = forces.reshape(len(atoms), -1, 3)
-    n_out = len(energy) if energy_weight != 0.0 or forces_weight == 0.0 else forces.shape[1]
+    if energy_weight == 0.0 and forces_weight == 0.0 and n_outputs:  # unlabelled frame: the model's layout
+        n_out = int(n_outputs)
+    else:
+        n_out = len(energy) if energy_weight != 0.0 or forces_weight == 0.0 else forces.shape[1]
     if forces_weight == 0.0:
         forces = np.zeros((len(atoms), n_out, 3))
     if energy_weight == 0.0:
@@ -340,6 +347,52 @@ def config_from_atoms(
     )
 
 
+def _check_cell(pbc, cell) -> None:
+    """Periodic directions need a lattice vector (a zero cell would silently become a 1 A box)."""
+    cell = np.asarray(cell, dtype=float).reshape(3, 3)
+    for k in range(3):
+        if pbc[k] and np.linalg.norm(cell[k]) < 1e-8:
+            raise ValueError(f"pbc={tuple(bool(x) for x in pbc)} but lattice vector {k} of the cell is zero: set "
+                             "pbc=False for a QM cluster in point charges (the usual case), or give the cell")
+
+
+def config_for_inference(atoms: ase.Atoms) -> Configuration:
+    """Configuration with only what a model needs (positions, elements, cell, point charges).
+
+    Reference labels in atoms.info / atoms.arrays (REF_energy, dipoles, ...) are ignored, whatever their
+    layout: inference must not depend on them."""
+    q_mm = atoms.info.get("mm_charges", None)
+    r_mm = atoms.info.get("mm_positions", None)
+    if (q_mm is None) != (r_mm is None):
+        raise ValueError("'mm_charges' and 'mm_positions' must be given together")
+    q_mm = np.zeros(0) if q_mm is None else np.asarray(q_mm, dtype=float).reshape(-1)
+    r_mm = np.zeros((0, 3)) if r_mm is None else np.asarray(r_mm, dtype=float).reshape(-1, 3)
+    if len(q_mm) != len(r_mm):
+        raise ValueError(f"{len(q_mm)} MM charges but {len(r_mm)} MM positions")
+    if not (np.all(np.isfinite(q_mm)) and np.all(np.isfinite(r_mm))):
+        raise ValueError("non-finite MM charges or positions")
+    pbc = tuple(bool(x) for x in atoms.get_pbc())
+    cell = np.array(atoms.get_cell())
+    _check_cell(pbc, cell)
+    n = len(atoms)
+    return Configuration(
+        atomic_numbers=np.asarray(atoms.get_atomic_numbers()),
+        positions=atoms.get_positions(),
+        energy=np.zeros(1),
+        forces=np.zeros((n, 1, 3)),
+        mm_charges=q_mm,
+        mm_positions=r_mm,
+        pbc=pbc,
+        cell=cell,
+        energy_weight=0.0,
+        forces_weight=0.0,
+        mm_forces_weight=0.0,
+        dipoles_weight=0.0,
+        nacs_weight=0.0,
+        socs_weight=0.0,
+    )
+
+
 def test_config_types(
     test_configs: Configurations,
 ) -> List[Tuple[Optional[str], List[Configuration]]]:
@@ -369,6 +422,7 @@ def load_from_xyz(
     socs_key: str = "REF_socs",
     soc_num: Optional[int] = None,
     n_states: Optional[int] = None,
+    n_outputs: Optional[int] = None,
     pc_key = "REF_mm_forces",
     extract_atomic_energies: bool = False,
     keep_isolated_atoms: bool = False,
@@ -438,7 +492,8 @@ def load_from_xyz(
 
     try:
         configs = _configs_from_file(atoms_list, config_type_weights, energy_key, forces_key, stress_key, virials_key,
-                                     dipoles_key, nacs_key, socs_key, soc_num, n_states, charges_key, pc_key)
+                                     dipoles_key, nacs_key, socs_key, soc_num, n_states, charges_key, pc_key,
+                                     n_outputs)
     except ValueError as err:
         from mace.tools.data_checks import DataError
 
@@ -449,7 +504,8 @@ def load_from_xyz(
 
 
 def _configs_from_file(atoms_list, config_type_weights, energy_key, forces_key, stress_key, virials_key,
-                       dipoles_key, nacs_key, socs_key, soc_num, n_states, charges_key, pc_key):
+                       dipoles_key, nacs_key, socs_key, soc_num, n_states, charges_key, pc_key,
+                       n_outputs=None):
     configs = config_from_atoms_list(
         atoms_list,
         config_type_weights=config_type_weights,
@@ -462,6 +518,7 @@ def _configs_from_file(atoms_list, config_type_weights, energy_key, forces_key, 
         socs_key=socs_key,
         soc_num=soc_num,
         n_states=n_states,
+        n_outputs=n_outputs,
         charges_key=charges_key,
         pc_key = pc_key,
     )

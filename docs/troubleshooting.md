@@ -19,6 +19,14 @@ to see, what they mean and what to do.
 | `the validation set is empty` | too few frames for `--valid_fraction` | more data, a larger `--valid_fraction`, or `--valid_file` |
 | `--E0s has no atomic energy for element(s) Z=[6]` | an incomplete `--E0s` dictionary | add the element, or `--E0s=average` |
 | `--compute_nacs=True needs --n_energies >= 2`, `--diabatic=True and --compute_nacs=True` | inconsistent options | as the message says; diabatic models get NACs from H |
+| `--E0s=... is not valid` / `no atomic reference energies` | a malformed or missing `--E0s` | `--E0s=average`, `'{1: -13.6, 6: -1029.8}'` (eV) or a `.json` file |
+| warning: `IsolatedAtom frames give E0s for Z=[1] but not for Z=[6]` | isolated-atom frames for some elements only | `--E0s` is used for all elements; add the missing isolated atoms to use theirs |
+| `--valid_fraction=1.0: must be between 0 and 1` | no frames left for training (or validation) | e.g. `--valid_fraction=0.1`, or `--valid_file` |
+| `--train_file=... is HDF5: give the validation set too` / `--E0s=average needs the XYZ frames` | HDF5 input | `--valid_file` (the `val/` folder or a file) and `--statistics_file` from `mace_preprocess_data --compute_statistics` |
+| `hidden_irreps=32x0e has no vectors (1o)` | NACs/dipoles need vector features | e.g. `--hidden_irreps='32x0e + 32x1o'` |
+| `multipole_max_ell=4 but field_irreps=... stops at l=3` | the higher multipoles would be dropped | add `4x4e` to `--field_irreps`, or a smaller `--multipole_max_ell` |
+| `pbc=(True, True, True) but lattice vector 0 of the cell is zero` | periodic frames without a cell | `pbc=False` for a QM cluster in point charges |
+| `--device=cuda but PyTorch sees no CUDA GPU` | no GPU on this node | `--device=cpu`, or a GPU node |
 | warning: `MM charge within 0.5 A of a QM atom` | usually a QM atom is also in the MM charge list | remove QM atoms from `mm_positions` / `mm_charges` |
 | warning: `frame(s) are periodic (pbc=True)` | frames from a periodic code | set `pbc=False` for a QM cluster in point charges |
 | warning: `No training frame has MM point charges` | gas-phase data only | the model cannot learn a field response without charges |
@@ -37,6 +45,9 @@ Training files can be `.xyz` or `.extxyz` (extended XYZ), or HDF5 from `mace_pre
 | `Elements [16] of the QM region are not in the model's z_table` | the model was trained without that element | retrain with it |
 | `GBSAOBCForce: implicit solvent is not part of the FieldMACE embedding` | implicit solvent or a polarisable force field | use explicit solvent with a fixed-charge force field |
 | `PythonForce requires OpenMM >= 8.3` | old OpenMM | `pip install -U openmm` |
+| `the system is periodic: pass the box vectors` | `frame_to_atoms` without the box of a periodic system | pass `state.getPeriodicBoxVectors()` |
+| warning: `link_atoms=False but the QM region cuts ... covalent bond(s)` | QM atoms with dangling bonds | `link_atoms="auto"` (default) |
+| `selection '...': incomplete clause` / `index range 30-20 is reversed` | a typo in the selection | complete the clause / write `20-30` |
 
 ## ASE calculator
 
@@ -59,4 +70,9 @@ Training files can be `.xyz` or `.extxyz` (extended XYZ), or HDF5 from `mace_pre
 ## Active learning (`fieldmace_active_learning`)
 
 Unknown keys, misspelled keys in `sampling` / `selection`, and missing files are reported with the key name
-before anything runs. Paths in the YAML file are relative to the YAML file.
+before anything runs. Paths in the YAML file, including files in `train_args`
+(`E0s`, `valid_file`, `statistics_file`, `foundation_model`), are relative to the YAML file.
+
+| message | fix |
+|---|---|
+| `... of the frames are uncertain but none lies in [force_std_min, force_std_max]` | the model leaves its training domain during sampling: a smaller time step or temperature, a larger `force_std_max`, or more training data near the start structure |

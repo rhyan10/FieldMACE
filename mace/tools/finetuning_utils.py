@@ -49,7 +49,9 @@ def load_foundations(
         model.interactions[i].avg_num_neighbors = model_foundations.interactions[
             i
         ].avg_num_neighbors
-        for j in range(4):  # Assuming 4 layers in conv_tp_weights,
+        n_layers = sum(1 for name, _ in model.interactions[i].conv_tp_weights.named_children()
+                       if name.startswith("layer"))
+        for j in range(n_layers):
             layer_name = f"layer{j}"
             if j == 0:
                 getattr(model.interactions[i].conv_tp_weights, layer_name).weight = (
@@ -107,9 +109,10 @@ def load_foundations(
             except:
                 pass
 
-    for i in range(2):  # Assuming 2 products modules
-        max_range = max_L if i == 0 else 1
-        for j in range(max_range):  # Assuming 3 contractions in symmetric_contractions
+    for i in range(min(len(model.products), len(model_foundations.products))):
+        n_contr = min(len(model.products[i].symmetric_contractions.contractions),
+                      len(model_foundations.products[i].symmetric_contractions.contractions))
+        for j in range(n_contr):
             model.products[i].symmetric_contractions.contractions[j].weights_max = (
                 torch.nn.Parameter(
                     model_foundations.products[i]
@@ -119,7 +122,7 @@ def load_foundations(
                 )
             )
 
-            for k in range(2):  # Assuming 2 weights in each contraction
+            for k in range(len(model.products[i].symmetric_contractions.contractions[j].weights)):
                 model.products[i].symmetric_contractions.contractions[j].weights[k] = (
                     torch.nn.Parameter(
                         model_foundations.products[i]
@@ -132,6 +135,30 @@ def load_foundations(
         model.products[i].linear.weight = torch.nn.Parameter(
             model_foundations.products[i].linear.weight.clone()
         )
-    print("Foundational model transfered")
+    if hasattr(model_foundations, "multipole_max_ell"):  # a FieldMACE model: also its field and readout layers
+        _transfer_field_layers(model, model_foundations)
+    logging.info("Foundation model transferred")
     logging.debug(model)
     return model
+
+
+# element-independent parts of a field model; copied when the shapes match
+_FIELD_PARTS = ("multipole_radial_embedding.", "linear_up.", "field_interactions.", "readouts.", "property_readouts.",
+                "odd_readouts.", "odd_dipole_readouts.")
+
+
+def _transfer_field_layers(model: torch.nn.Module, foundation: torch.nn.Module) -> None:
+    src = foundation.state_dict()
+    dst = model.state_dict()
+    copied, skipped = 0, []
+    for name, value in dst.items():
+        if not name.startswith(_FIELD_PARTS):
+            continue
+        if name in src and src[name].shape == value.shape:
+            dst[name] = src[name].clone().to(value.dtype)
+            copied += 1
+        else:
+            skipped.append(name)
+    model.load_state_dict(dst)
+    logging.info(f"Field layers of the foundation model transferred ({copied} tensors)"
+                 + (f"; not transferred (shape differs): {skipped}" if skipped else ""))

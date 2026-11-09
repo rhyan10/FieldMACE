@@ -164,7 +164,7 @@ mace_run_train --train_file=h5/train/train_0.h5 --valid_file=h5/val/val_0.h5 --s
 mace_eval_configs --configs=test.xyz --model=protein.model --output=pred.xyz
 ```
 
-`pred.xyz` contains `MACE_energy` (plus `MACE_energies` for several states), `MACE_forces`, `MACE_mm_forces` and, if the model predicts them, `MACE_nacs`, `MACE_dipoles` and `MACE_socs`. For a diabatic model these are the raw outputs (the elements of H); the ASE calculator below gives the adiabatic quantities.
+`pred.xyz` contains `MACE_energy` (plus `MACE_energies` for several states), `MACE_forces`, `MACE_mm_forces` and, if the model predicts them, `MACE_nacs`, `MACE_dipoles` and `MACE_socs`. For a diabatic model these are the adiabatic quantities (NACs from the diabatic Hamiltonian), plus `MACE_diabatic_hamiltonian` and `MACE_diabatic_forces`. The model runs in its own dtype (`--default_dtype` to override); reference labels in the input file are not read.
 
 **ASE**
 
@@ -341,6 +341,11 @@ sim.context.setParameter("fieldmace_state", 1)        # switch the driving elect
 * **Pipeline bugs.** Fixed the HDF5 pipeline (MM fields missing, wrong keyword), `preprocess_data` (missing arguments, numpy ≥ 2 statistics), E0 averaging over unlabelled frames, and energy statistics with several states.
 * **Attention models removed.** `AttentionFieldEMACE` (could not be constructed) and `AttentionPerAtomFieldEMACE` are gone, since neither is part of the publication. FieldMACE now has `FieldEMACE` (one multipole expansion) and `PerAtomFieldEMACE`.
 * **NACs, dipoles and SOCs.** These were never produced by the field models (the readouts returned `None`). They are now implemented, see [Excited-state properties](#excited-state-properties).
+
+**Version 2.4.2**
+
+* **50 bug fixes** from a systematic hunt (see [CHANGELOG.md](CHANGELOG.md)). The ones you are most likely to have met: early stopping (`--patience`) and Stage Two (`--swa`) crashed; `--E0s=file.json` was rejected; HDF5 test sets were never evaluated; the final model was written only after the error tables, so an error there lost it; `mace_eval_configs` failed for float32 models and gave diabatic elements as energies; fine-tuning from a FieldMACE model (`--foundation_model`) crashed or restarted the field layers from random; the TorchForce backend applied the cutoff in the wrong unit for `length_scale != 1`; writing Atoms with the ASE calculator attached crashed for several states.
+* **Changed.** `--loss` accepts only `weighted` (other values were ignored); `--interaction_first` now takes effect (its default is the block that was always used); `--scaling`, `--mean` and `--std` are not used by the field models and say so; `mace_eval_configs` runs in the model's dtype and does not read reference labels.
 
 **Version 2.4.1**
 

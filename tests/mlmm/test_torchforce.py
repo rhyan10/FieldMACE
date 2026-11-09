@@ -136,3 +136,19 @@ def test_dynamic_graph(solvated, model_files):
     box_nm = np.array([v.value_in_unit(unit.nanometer) for v in system.getDefaultPeriodicBoxVectors()])
     e_ref, _ = comp.evaluate(pos_nm[comp.frame.particles] * 10, box_nm * 10)
     assert float(mod(torch.tensor(pos_nm), torch.tensor(box_nm))) / KJ_PER_EV == pytest.approx(e_ref, abs=1e-9)
+
+
+def test_length_scale_and_state_checks(solvated, model_files):
+    """2.4.2: the cutoff is applied in Angstrom for any length_scale; an invalid state is an error."""
+    system, pdb = solvated
+    settings = EmbeddingSettings(cutoff=8.0)
+    _, spec, comp = create_fieldmace_mm_system(system, SIDECHAIN, model_files["adiabatic"], topology=pdb.topology,
+                                               settings=settings, model_kwargs=dict(device="cpu", length_scale=1.8897))
+    mod = build_torch_module(model_files["adiabatic"], spec, settings, length_scale=1.8897)
+    pos_nm = np.asarray(pdb.positions.value_in_unit(unit.nanometer))
+    box_nm = np.array([v.value_in_unit(unit.nanometer) for v in system.getDefaultPeriodicBoxVectors()])
+    e_ref, _ = comp.evaluate(pos_nm[comp.frame.particles] * 10, box_nm * 10)
+    e = float(mod(torch.tensor(pos_nm), torch.tensor(box_nm), torch.tensor([0.0])))
+    assert abs(e / KJ_PER_EV - e_ref) < 1e-8
+    with pytest.raises(Exception, match="outside the model's states"):
+        mod(torch.tensor(pos_nm), torch.tensor(box_nm), torch.tensor([5.0]))

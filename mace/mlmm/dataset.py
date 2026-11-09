@@ -58,6 +58,9 @@ def frame_to_atoms(frame: EmbeddingFrame, positions, box=None, extra_info: Optio
     positions = _to_angstrom(positions)
     if box is not None:
         box = _to_angstrom(box)
+    elif frame.spec.periodic:
+        raise ValueError("the system is periodic: pass the box vectors (without them the QM region is not made whole "
+                         "and the charges are not taken at their minimum image)")
     qm, mmp, q, sel = frame.numpy(np.asarray(positions, dtype=float), box)
     atoms = ase.Atoms(numbers=frame.spec.model_atomic_numbers, positions=qm, pbc=False)
     atoms.info["mm_positions"] = mmp

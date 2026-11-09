@@ -58,6 +58,7 @@ CHANGELOGSTRING = """
 2.4  diabatic models: diagonalised every step (per multiplicity), NACs on point charges (nacdr_pc),
      wave-function overlaps (coupling overlap); tutorial: tutorials/05_diabatic_states
 2.4.1 unknown template keywords reported, units validated
+2.4.2 bug-fix release (CHANGELOG.md); the calculator no longer reads labels from the frames
 """
 PREV_FILE = "FIELDMACE_previous.npz"
 

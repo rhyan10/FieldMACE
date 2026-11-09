@@ -309,6 +309,21 @@ class _FieldMACEBase(torch.nn.Module):
             raise ValueError("diabatic models have no NAC outputs: NACs follow from the diabatic Hamiltonian")
         if diabatic and n_energies < 2:
             raise ValueError("a diabatic model needs at least 2 states")
+        if multipole_max_ell > o3.Irreps(field_irreps).lmax:
+            raise ValueError(f"multipole_max_ell={multipole_max_ell} but field_irreps={field_irreps} stops at "
+                             f"l={o3.Irreps(field_irreps).lmax}: the higher multipoles would be dropped. Add them to "
+                             f"--field_irreps (e.g. '+ 4x{multipole_max_ell}{'e' if multipole_max_ell % 2 == 0 else 'o'}') "
+                             "or lower --multipole_max_ell")
+        # the layers assume the scalars come first ("8x1o + 8x0e" would leave the last layer without scalars)
+        hidden_irreps = o3.Irreps(hidden_irreps).sort().irreps.simplify()
+        if (compute_nacs or compute_dipoles) and hidden_irreps.count(o3.Irrep(1, -1)) == 0:
+            raise ValueError(f"hidden_irreps={hidden_irreps} has no vectors (1o): NACs and dipoles are vectors and "
+                             "would be identically zero. Use e.g. --hidden_irreps='32x0e + 32x1o' (or --max_L=1)")
+        if diabatic and hidden_irreps.count(o3.Irrep(1, -1)) == 0:
+            import warnings
+
+            warnings.warn(f"hidden_irreps={hidden_irreps} has no vectors (1o): the diabatic couplings get no "
+                          "pseudoscalar part (couplings between states of opposite mirror symmetry stay zero)")
         self.register_buffer("atomic_numbers", torch.tensor(atomic_numbers, dtype=torch.int64))
         self.register_buffer("r_max", torch.tensor(r_max, dtype=torch.get_default_dtype()))
         self.register_buffer("num_interactions", torch.tensor(num_interactions, dtype=torch.int64))
@@ -661,7 +676,7 @@ class _FieldMACEBase(torch.nn.Module):
                 if padded:
                     mm_forces = mm_forces.reshape(num_graphs, -1, self.n_energies, 3)
             if compute_hessian:
-                hessian = compute_hessians_vmap(forces[:, 0], positions)
+                hessian = compute_hessians_vmap(forces[:, 0].contiguous(), positions)
 
         return {
             "energy": total_energy,

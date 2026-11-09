@@ -45,6 +45,16 @@ from mace.tools.slurm_distributed import DistributedEnvironment
 from mace.tools.utils import AtomicNumberTable
 
 
+def _build_field_model(name, **kwargs):
+    """Settings the model rejects (e.g. vector outputs without vector features) are input errors."""
+    from mace.tools.data_checks import InputError
+
+    try:
+        return getattr(modules, name)(**kwargs)
+    except ValueError as err:
+        raise InputError(str(err)) from None
+
+
 def main() -> None:
     """
     This script runs the training/fine tuning for mace
@@ -92,6 +102,7 @@ def run(args: argparse.Namespace) -> None:
     from mace.tools.data_checks import check_arguments, is_xyz
 
     check_arguments(args)
+    user_scaling = args.scaling != "rms_forces_scaling" or args.mean is not None or args.std is not None
 
     if args.distributed:
         torch.cuda.set_device(local_rank)
@@ -175,6 +186,7 @@ def run(args: argparse.Namespace) -> None:
             socs_key=args.socs_key,
             soc_num=args.soc_num if args.compute_socs else None,
             n_states=args.n_energies if args.diabatic else None,
+            n_outputs=args.n_energies + (args.n_energies * (args.n_energies - 1) // 2 if args.diabatic else 0),
             keep_isolated_atoms=args.keep_isolated_atoms,
         )
         if len(collections.train) < args.batch_size:
@@ -235,7 +247,27 @@ def run(args: argparse.Namespace) -> None:
                   "dipoles": args.dipoles_key, "socs": args.socs_key},
             z_table_zs=z_table.zs, first_frame_info=first_keys,
         )
+    if atomic_energies_dict:  # from IsolatedAtom frames in the training file
+        from mace.tools.scripts_utils import normalise_atomic_energies
+
+        atomic_energies_dict = normalise_atomic_energies(atomic_energies_dict)
+        missing = [int(z) for z in z_table.zs if z not in atomic_energies_dict]
+        if missing and args.E0s is not None:
+            logging.warning(f"IsolatedAtom frames give E0s for Z={sorted(atomic_energies_dict)} but not for "
+                            f"Z={missing}: using --E0s={args.E0s} for all elements instead")
+            atomic_energies_dict = None
+        elif missing:
+            from mace.tools.data_checks import InputError
+
+            raise InputError(f"IsolatedAtom frames in the training file give E0s for Z={sorted(atomic_energies_dict)} "
+                             f"but not for Z={missing}: add IsolatedAtom frames for them, or pass --E0s "
+                             "(e.g. --E0s=average) to use that for all elements")
     if atomic_energies_dict is None or len(atomic_energies_dict) == 0:
+        if args.E0s is None or not str(args.E0s).strip():
+            from mace.tools.data_checks import InputError
+
+            raise InputError("no atomic reference energies: pass --E0s=average (least squares from the training "
+                             "set), explicit values ('{1: -13.6, 6: -1029.8}', eV) or a .json file")
         if args.E0s.lower() == "foundation":
             assert args.foundation_model is not None
             z_table_foundation = AtomicNumberTable(
@@ -312,16 +344,14 @@ def run(args: argparse.Namespace) -> None:
             data.AtomicData.from_config(config, z_table=z_table, cutoff=args.r_max)
             for config in collections.valid
         ]
-    elif args.train_file.endswith(".h5"):
-        train_set = data.HDF5Dataset(args.train_file, r_max=args.r_max, z_table=z_table)
-        valid_set = data.HDF5Dataset(args.valid_file, r_max=args.r_max, z_table=z_table)
-    else:  # This case would be for when the file path is to a directory of multiple .h5 files
-        train_set = data.dataset_from_sharded_hdf5(
-            args.train_file, r_max=args.r_max, z_table=z_table
-        )
-        valid_set = data.dataset_from_sharded_hdf5(
-            args.valid_file, r_max=args.r_max, z_table=z_table
-        )
+    else:  # HDF5: one file, or a directory of shards (each of train/valid independently)
+        def h5_set(path):
+            if os.path.isdir(path):
+                return data.dataset_from_sharded_hdf5(path, r_max=args.r_max, z_table=z_table)
+            return data.HDF5Dataset(path, r_max=args.r_max, z_table=z_table)
+
+        train_set = h5_set(args.train_file)
+        valid_set = h5_set(args.valid_file)
     
     train_sampler, valid_sampler = None, None
     if args.distributed:
@@ -353,7 +383,7 @@ def run(args: argparse.Namespace) -> None:
     )
     valid_loader = torch_geometric.dataloader.DataLoader(
         dataset=valid_set,
-        batch_size=args.batch_size,
+        batch_size=args.valid_batch_size,
         sampler=valid_sampler,
         shuffle=False,
         drop_last=False,
@@ -395,14 +425,7 @@ def run(args: argparse.Namespace) -> None:
         logging.info(f"Average number of neighbors: {args.avg_num_neighbors:.1f}")
 
     # Selecting outputs
-    compute_virials = False
-    if args.loss in ("stress", "virials", "huber", "universal"):
-        compute_virials = True
-        args.compute_stress = True
-        if "MAE" in args.error_table:
-            args.error_table = "PerAtomMAEstressvirials"
-        else:
-            args.error_table = "PerAtomRMSEstressvirials"
+    compute_virials = False  # field models: QM clusters in point charges, no stress/virials
 
     output_args = {
         "energy": compute_energy,
@@ -418,13 +441,9 @@ def run(args: argparse.Namespace) -> None:
         f"During training the following quantities will be reported: {', '.join([f'{report}' for report, value in output_args.items() if value])}"
     )
 
-    if args.scaling == "no_scaling":
-        args.std = 1.0
-        logging.info("No scaling selected")
-    elif (args.mean is None or args.std is None) and args.model != "AtomicDipolesMACE":
-        args.mean, args.std = modules.scaling_classes[args.scaling](
-            train_loader, atomic_energies
-        )
+    # field models have no scale/shift block: --scaling, --mean and --std do not apply
+    if user_scaling:
+        logging.warning("--scaling, --mean and --std are not used by the field models (no scale/shift); ignored")
     # Build model
     if args.foundation_model is not None and args.model in ["MACE", "ScaleShiftMACE"]:
         logging.info("Loading FOUNDATION model")
@@ -530,7 +549,8 @@ def run(args: argparse.Namespace) -> None:
             compute_dipoles=args.compute_dipoles,
         )
     elif args.model in ("FieldEMACE", "PerAtomFieldEMACE"):
-        model = getattr(modules, args.model)(
+        model = _build_field_model(
+            args.model,
             **model_config,
             pair_repulsion=args.pair_repulsion,
             n_energies=args.n_energies,
@@ -538,9 +558,7 @@ def run(args: argparse.Namespace) -> None:
             multipole_max_ell=args.multipole_max_ell,
             correlation=args.correlation,
             gate=modules.gate_dict[args.gate],
-            interaction_cls_first=modules.interaction_classes[
-                "RealAgnosticInteractionBlock"
-            ],
+            interaction_cls_first=modules.interaction_classes[args.interaction_first],
             MLP_irreps=o3.Irreps(args.MLP_irreps),
             field_irreps=o3.Irreps(args.field_irreps),
             radial_MLP=ast.literal_eval(args.radial_MLP),
@@ -613,7 +631,7 @@ def run(args: argparse.Namespace) -> None:
             from schedulefree import adamw_schedulefree
         except ImportError as exc:
             raise ImportError(
-                "`schedulefree` is not installed. Please install it via `pip install schedulefree` or `pip install mace-torch[schedulefree]`"
+                "`schedulefree` is not installed. Please install it via `pip install schedulefree` (not mace-torch: that would replace FieldMACE's `mace` package)"
             ) from exc
         _param_options = {k: v for k, v in param_options.items() if k != "amsgrad"}
         optimizer = adamw_schedulefree.AdamWScheduleFree(**_param_options)
@@ -629,40 +647,24 @@ def run(args: argparse.Namespace) -> None:
     swa: Optional[tools.SWAContainer] = None
     swas = [False]
     if args.swa:
-        assert dipole_only is False, "Stage Two for dipole fitting not implemented"
         swas.append(True)
         if args.start_swa is None:
             args.start_swa = max(1, args.max_num_epochs // 4 * 3)
         logging.info(
             f"Stage Two will start after {args.start_swa} epochs with loss function:"
         )
-        if args.loss == "forces_only":
-            raise ValueError("Can not select Stage Two with forces only loss.")
-        if args.loss == "virials":
-            loss_fn_energy = modules.WeightedEnergyForcesVirialsLoss(
-                energy_weight=args.swa_energy_weight,
-                forces_weight=args.swa_forces_weight,
-                virials_weight=args.swa_virials_weight,
-            )
-        elif args.loss == "stress":
-            loss_fn_energy = modules.WeightedEnergyForcesStressLoss(
-                energy_weight=args.swa_energy_weight,
-                forces_weight=args.swa_forces_weight,
-                stress_weight=args.swa_stress_weight,
-            )
-        elif args.loss == "energy_forces_dipole":
-            loss_fn_energy = modules.WeightedEnergyForcesDipoleLoss(
-                args.swa_energy_weight,
-                forces_weight=args.swa_forces_weight,
-                dipole_weight=args.swa_dipole_weight,
-            )
-        elif args.loss == "energy_forces_dipole_nacs":
-            loss_fn_energy = modules.WeightedEnergyForcesNacsDipoleLoss(
-                energy_weight=args.swa_energy_weight,
-                forces_weight=args.swa_forces_weight,
-                dipole_weight=args.swa_dipoles_weight,
-                nacs_weight=args.swa_nacs_weight
-            )
+        # same loss as Stage One with the Stage Two weights (energies weighted up, smaller learning rate)
+        loss_fn_energy = modules.WeightedEnergyForcesNacsDipoleLoss(
+            energy_weight=args.swa_energy_weight,
+            forces_weight=args.swa_forces_weight,
+            dipoles_weight=args.swa_dipole_weight,
+            nacs_weight=args.nacs_weight,
+            # MM forces keep their ratio to the QM forces
+            mm_forces_weight=float(loss_fn.mm_forces_weight) * (
+                args.swa_forces_weight / args.forces_weight if args.forces_weight > 0 else 1.0),
+            socs_weight=args.socs_weight,
+            output_weights=loss_fn.output_weights.tolist(),
+        )
         logging.info(loss_fn_energy)
         swa = tools.SWAContainer(
             model=AveragedModel(model),
@@ -685,13 +687,14 @@ def run(args: argparse.Namespace) -> None:
 
     start_epoch = 0
     if args.restart_latest:
-        try:
+        opt_start_epoch = None
+        if args.swa:  # a Stage Two checkpoint, if training got that far
             opt_start_epoch = checkpoint_handler.load_latest(
                 state=tools.CheckpointState(model, optimizer, lr_scheduler),
                 swa=True,
                 device=device,
             )
-        except Exception:  # pylint: disable=W0703
+        if opt_start_epoch is None:
             opt_start_epoch = checkpoint_handler.load_latest(
                 state=tools.CheckpointState(model, optimizer, lr_scheduler),
                 swa=False,
@@ -772,20 +775,27 @@ def run(args: argparse.Namespace) -> None:
                 data.AtomicData.from_config(config, z_table=z_table, cutoff=args.r_max)
                 for config in subset
             ]
-    elif not args.multi_processed_test:
-        test_files = get_files_with_suffix(args.test_dir, "_test.h5")
-        for test_file in test_files:
-            name = os.path.splitext(os.path.basename(test_file))[0]
-            test_sets[name] = data.HDF5Dataset(
-                test_file, r_max=args.r_max, z_table=z_table
-            )
-    else:
-        test_folders = glob(args.test_dir + "/*")
-        for folder in test_folders:
-            name = os.path.splitext(os.path.basename(test_file))[0]
-            test_sets[name] = data.dataset_from_sharded_hdf5(
-                folder, r_max=args.r_max, z_table=z_table
-            )
+    elif args.test_dir is not None and not args.multi_processed_test:
+        # mace_preprocess_data writes test/<config_type>_<k>.h5 (one file per process): one test set per config_type
+        import re
+        from torch.utils.data import ConcatDataset
+
+        groups = {}
+        for test_file in sorted(glob.glob(os.path.join(args.test_dir, "*.h5"))):
+            stem = os.path.splitext(os.path.basename(test_file))[0]
+            name = re.sub(r"(_test)?(_\d+)?$", "", stem) or stem
+            groups.setdefault(name, []).append(
+                data.HDF5Dataset(test_file, r_max=args.r_max, z_table=z_table))
+        if not groups:
+            logging.warning(f"--test_dir={args.test_dir}: no .h5 files found, no test set")
+        for name, sets in groups.items():
+            test_sets[name] = sets[0] if len(sets) == 1 else ConcatDataset(sets)
+    elif args.test_dir is not None:
+        for folder in sorted(glob.glob(os.path.join(args.test_dir, "*"))):
+            if os.path.isdir(folder):
+                test_sets[os.path.basename(folder)] = data.dataset_from_sharded_hdf5(
+                    folder, r_max=args.r_max, z_table=z_table
+                )
 
     for test_name, test_set in test_sets.items():
         test_sampler = None
@@ -798,15 +808,12 @@ def run(args: argparse.Namespace) -> None:
                 drop_last=True,
                 seed=args.seed,
             )
-        try:
-            drop_last = test_set.drop_last
-        except AttributeError as e:  # pylint: disable=W0612
-            drop_last = False
         test_loader = torch_geometric.dataloader.DataLoader(
             test_set,
             batch_size=args.valid_batch_size,
-            shuffle=(test_sampler is None),
-            drop_last=drop_last,
+            sampler=test_sampler,
+            shuffle=False,
+            drop_last=False,  # every test frame is evaluated
             num_workers=args.num_workers,
             pin_memory=args.pin_memory and torch.cuda.is_available(),
         )
@@ -825,6 +832,10 @@ def run(args: argparse.Namespace) -> None:
             swa=swa_eval,
             device=device,
         )
+        if swa_eval and epoch is None:
+            logging.warning("Stage Two wrote no checkpoint (it never improved on the validation loss): "
+                            "no _stagetwo.model is saved")
+            continue
         model.to(device)
         if args.distributed:
             distributed_model = DDP(model, device_ids=[local_rank])
@@ -837,29 +848,9 @@ def run(args: argparse.Namespace) -> None:
         for param in model.parameters():
             param.requires_grad = False
 
-        table_train = create_error_table(
-            table_type=args.error_table,
-            all_data_loaders=train_valid_data_loader,
-            model=model_to_evaluate,
-            loss_fn=loss_fn,
-            output_args=output_args,
-            log_wandb=args.wandb,
-            device=device,
-            distributed=args.distributed,
-        )
-        table_test = create_error_table(
-            table_type=args.error_table,
-            all_data_loaders=test_data_loader,
-            model=model_to_evaluate,
-            loss_fn=loss_fn,
-            output_args=output_args,
-            log_wandb=args.wandb,
-            device=device,
-            distributed=args.distributed,
-        )
-        logging.info("Error-table on TRAIN and VALID:\n" + str(table_train))
-        logging.info("Error-table on TEST:\n" + str(table_test))
-
+        if epoch is None:
+            logging.warning("No checkpoint was written (no training epoch): saving the initial model")
+            os.makedirs(args.checkpoints_dir, exist_ok=True)
         if rank == 0:
             # Save entire model
             if swa_eval:
@@ -867,25 +858,24 @@ def run(args: argparse.Namespace) -> None:
             else:
                 model_path = Path(args.checkpoints_dir) / (tag + ".model")
             logging.info(f"Saving model to {model_path}")
-            if args.save_cpu:
-                model = model.to("cpu")
-            torch.save(model, model_path)
+            model_to_save = deepcopy(model).to("cpu") if args.save_cpu else model
+            torch.save(model_to_save, model_path)
             extra_files = {
                 "commit.txt": commit.encode("utf-8") if commit is not None else b"",
                 "config.yaml": json.dumps(
-                    convert_to_json_format(extract_config_mace_model(model))
+                    convert_to_json_format(extract_config_mace_model(model_to_save))
                 ),
             }
             if swa_eval:
                 torch.save(
-                    model, Path(args.model_dir) / (args.name + "_stagetwo.model")
+                    model_to_save, Path(args.model_dir) / (args.name + "_stagetwo.model")
                 )
                 try:
                     path_complied = Path(args.model_dir) / (
                         args.name + "_stagetwo_compiled.model"
                     )
                     logging.info(f"Compiling model, saving metadata {path_complied}")
-                    model_compiled = jit.compile(deepcopy(model))
+                    model_compiled = jit.compile(deepcopy(model_to_save))
                     torch.jit.save(
                         model_compiled,
                         path_complied,
@@ -894,13 +884,13 @@ def run(args: argparse.Namespace) -> None:
                 except Exception as e:  # pylint: disable=W0703
                     logging.warning(f"Could not save a TorchScript-compiled model: {e}")
             else:
-                torch.save(model, Path(args.model_dir) / (args.name + ".model"))
+                torch.save(model_to_save, Path(args.model_dir) / (args.name + ".model"))
                 try:
                     path_complied = Path(args.model_dir) / (
                         args.name + "_compiled.model"
                     )
                     logging.info(f"Compiling model, saving metadata to {path_complied}")
-                    model_compiled = jit.compile(deepcopy(model))
+                    model_compiled = jit.compile(deepcopy(model_to_save))
                     torch.jit.save(
                         model_compiled,
                         path_complied,
@@ -909,6 +899,33 @@ def run(args: argparse.Namespace) -> None:
                 except Exception as e:  # pylint: disable=W0703
                     logging.warning(f"Could not save a TorchScript-compiled model: {e}")
 
+        # the model is saved first: a failure while evaluating must not lose it
+        try:
+            table_train = create_error_table(
+                table_type=args.error_table,
+                all_data_loaders=train_valid_data_loader,
+                model=model_to_evaluate,
+                loss_fn=loss_fn,
+                output_args=output_args,
+                log_wandb=args.wandb,
+                device=device,
+                distributed=args.distributed,
+            )
+            table_test = create_error_table(
+                table_type=args.error_table,
+                all_data_loaders=test_data_loader,
+                model=model_to_evaluate,
+                loss_fn=loss_fn,
+                output_args=output_args,
+                log_wandb=args.wandb,
+                device=device,
+                distributed=args.distributed,
+            )
+            logging.info("Error-table on TRAIN and VALID:\n" + str(table_train))
+            if test_data_loader:
+                logging.info("Error-table on TEST:\n" + str(table_test))
+        except Exception as err:  # pylint: disable=broad-except
+            logging.error(f"Evaluating the final model failed ({type(err).__name__}: {err}); the model was saved")
         if args.distributed:
             torch.distributed.barrier()
 

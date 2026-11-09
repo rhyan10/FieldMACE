@@ -105,7 +105,10 @@ def select_atoms(topology: app.Topology, selection: str) -> List[int]:
     atoms = list(topology.atoms())
 
     def clause(text):
-        key, *vals = text.split()
+        words = text.split()
+        if not words or words[-1].lower() in ("and", "or") or words[0].lower() in ("and", "or"):
+            raise ValueError(f"selection '{selection}': incomplete clause '{text.strip()}'")
+        key, *vals = words
         key = key.lower()
         if not vals:
             raise ValueError(f"selection clause '{text}' has no values")
@@ -122,6 +125,8 @@ def select_atoms(topology: app.Topology, selection: str) -> List[int]:
             for v in vals:
                 if "-" in v:
                     lo, hi = map(int, v.split("-"))
+                    if hi < lo:
+                        raise ValueError(f"selection '{selection}': index range {v} is reversed (use {hi}-{lo})")
                     out |= set(range(lo, hi + 1))
                 else:
                     out.add(int(v))
@@ -129,8 +134,8 @@ def select_atoms(topology: app.Topology, selection: str) -> List[int]:
         raise ValueError(f"unknown selection keyword '{key}' (resname, resid, index, name, element)")
 
     out = set()
-    for term in selection.split(" or "):
-        parts = [clause(c) for c in term.split(" and ")]
+    for term in (" " + selection + " ").split(" or "):
+        parts = [clause(c) for c in (" " + term + " ").split(" and ")]
         out |= set.intersection(*parts)
     if not out:
         raise ValueError(f"selection '{selection}' matched no atoms")

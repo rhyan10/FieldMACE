@@ -45,6 +45,26 @@ def check_arguments(args) -> None:
     if tf and not (is_xyz(tf) or str(tf).lower().endswith((".h5", ".hdf5")) or os.path.isdir(tf)):
         raise InputError(f"--train_file={tf}: use an extended-XYZ file (.xyz / .extxyz) or HDF5 data from "
                          "mace_preprocess_data (.h5 / a directory)")
+    if tf and not is_xyz(tf):  # HDF5 from mace_preprocess_data
+        if not getattr(args, "valid_file", None):
+            raise InputError(f"--train_file={tf} is HDF5: give the validation set too (--valid_file, e.g. the val/ "
+                             "folder written by mace_preprocess_data); --valid_fraction only splits XYZ files")
+        e0s = getattr(args, "E0s", None)
+        if not getattr(args, "statistics_file", None) and (e0s is None or str(e0s).lower() == "average"):
+            raise InputError("HDF5 training data: --E0s=average needs the XYZ frames. Pass --statistics_file "
+                             "(written by mace_preprocess_data --compute_statistics) or explicit --E0s "
+                             "('{1: -13.6, 6: -1029.8}' or a .json file)")
+    elif tf and not getattr(args, "valid_file", None):
+        vf = getattr(args, "valid_fraction", 0.1)
+        if vf is not None and not 0.0 < float(vf) < 1.0:
+            raise InputError(f"--valid_fraction={vf}: must be between 0 and 1 (exclusive), or give --valid_file")
+    dev = str(getattr(args, "device", "cpu") or "cpu")
+    if dev.startswith("cuda"):
+        import torch
+
+        if not torch.cuda.is_available():
+            raise InputError(f"--device={dev} but PyTorch sees no CUDA GPU here. Use --device=cpu, or run on a GPU "
+                             "node (check `python -c 'import torch; print(torch.cuda.is_available())'`)")
     n = int(getattr(args, "n_energies", 1) or 1)
     if n < 1:
         raise InputError("--n_energies must be at least 1")
@@ -123,9 +143,13 @@ def check_datasets(
         logging.warning("No training frame has MM point charges (mm_positions / mm_charges): this is a gas-phase "
                         "data set, and the model will not learn any response to a field.")
 
+    # elements the model can learn: those in the training set (the z_table may also hold validation elements)
+    train_zs = {int(z) for c in train for z in c.atomic_numbers}
+    if z_table_zs is not None:
+        train_zs &= {int(z) for z in z_table_zs}
     for name, configs in sets.items():
         bad_shape, nonfinite, close, periodic, unknown = [], [], [], [], {}
-        zs = set(z_table_zs) if z_table_zs is not None else None
+        zs = train_zs
         for k, c in enumerate(configs):
             e = np.asarray(c.energy).reshape(-1)
             where = getattr(c, "source", None) or f"frame {k}"

@@ -94,8 +94,6 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         choices=[
             "PerAtomRMSE",
             "TotalRMSE",
-            "PerAtomRMSEstressvirials",
-            "PerAtomMAEstressvirials",
             "PerAtomMAE",
             "TotalMAE",
             "DipoleRMSE",
@@ -195,9 +193,9 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--interaction_first",
-        help="name of interaction block",
+        help="interaction block of the first layer",
         type=str,
-        default="RealAgnosticResidualInteractionBlock",
+        default="RealAgnosticInteractionBlock",
         choices=[
             "RealAgnosticResidualInteractionBlock",
             "RealAgnosticInteractionBlock",
@@ -453,18 +451,11 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     # Loss and optimization
     parser.add_argument(
         "--loss",
-        help="type of loss",
+        help="loss function: 'weighted' (the only choice for the field models) weights energies, forces, "
+        "forces on the MM charges and the excited-state properties you enable with --*_weight",
         default="weighted",
         choices=[
-            "ef",
             "weighted",
-            "forces_only",
-            "virials",
-            "stress",
-            "dipole",
-            "huber",
-            "universal",
-            "energy_forces_dipole",
         ],
     )
     parser.add_argument(

@@ -85,7 +85,10 @@ class HDF5Dataset(Dataset):
 
 
 def dataset_from_sharded_hdf5(files: List, z_table: AtomicNumberTable, r_max: float):
-    files = glob(files + "/*")
+    folder = files
+    files = sorted(glob(folder + "/*.h5")) or sorted(glob(folder + "/*"))
+    if not files:
+        raise FileNotFoundError(f"no HDF5 files in {folder}")
     datasets = []
     for file in files:
         datasets.append(HDF5Dataset(file, z_table=z_table, r_max=r_max))

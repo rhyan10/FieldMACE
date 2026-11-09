@@ -134,10 +134,8 @@ class FieldMACETorchModule(torch.nn.Module):
         if s is None:
             return self.state
         k = int(torch.round(s.reshape(-1)[0]).item())
-        if k < 0:
-            k = 0
-        if k >= self.n_states:
-            k = self.n_states - 1
+        if k < 0 or k >= self.n_states:
+            raise ValueError("fieldmace_state is outside the model's states")
         return k
 
     def forward(self, positions: torch.Tensor, arg1: Optional[torch.Tensor] = None,
@@ -150,10 +148,11 @@ class FieldMACETorchModule(torch.nn.Module):
         else:
             st = arg1
         dt = self.node_attrs.dtype
-        ls = 10.0 * self.length_scale  # nm -> Angstrom -> model length unit
-        pos = positions.index_select(0, self.particles).to(dt) * ls
+        # the embedding frame (cutoff, switching) works in Angstrom, like the PythonForce; the model input
+        # is converted to the model's length unit at the end
+        pos = positions.index_select(0, self.particles).to(dt) * 10.0
         if box is not None:
-            box = box.to(dt) * ls
+            box = box.to(dt) * 10.0
         qm = pos[: self.n_qm]
         qm = qm[0] + _min_image(qm - qm[0], box)
         if self.origin == 1:
@@ -178,11 +177,11 @@ class FieldMACETorchModule(torch.nn.Module):
             r_on = self.cutoff - self.switch_width
             q = q[keep] * _switch((d[keep] - r_on) / self.switch_width)
         if self.origin == 2:
-            qm_in = qm_all
-            mm_in = mm_rel + centre
+            qm_in = qm_all * self.length_scale
+            mm_in = (mm_rel + centre) * self.length_scale
         else:
-            qm_in = qm_all - centre
-            mm_in = mm_rel
+            qm_in = (qm_all - centre) * self.length_scale
+            mm_in = mm_rel * self.length_scale
         if self.static_graph:
             edge_index = self.edge_index_static
         else:

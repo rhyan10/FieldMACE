@@ -64,7 +64,7 @@ class CheckpointIO:
         self._filename_extension = "pt"
 
     def _get_checkpoint_filename(self, epochs: int, swa_start=None) -> str:
-        if swa_start is not None and epochs > swa_start:
+        if swa_start is not None and epochs >= swa_start:  # Stage Two starts at epoch swa_start (train.py)
             return (
                 self.tag
                 + self._epochs_string
@@ -145,6 +145,7 @@ class CheckpointIO:
                 logging.warning(
                     "No SWA checkpoint found, while SWA is enabled. Compare the swa_start parameter and the latest checkpoint."
                 )
+                return None
         else:
             latest_checkpoint_info = max(
                 selected_checkpoint_info_list_no_swa, key=lambda info: info.epochs

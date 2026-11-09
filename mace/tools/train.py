@@ -52,7 +52,7 @@ def valid_err_log(valid_loss, eval_metrics, logger, log_errors, epoch=None):
     else:
         inintial_phrase = f"Epoch {epoch}"
 
-    error_e = eval_metrics["mae_e"] * 1e3
+    error_e = eval_metrics.get("mae_e", float("nan")) * 1e3  # no energy labels in the validation set
     if "mae_f" in eval_metrics: 
         error_f = eval_metrics["mae_f"] * 1e3
     else:
@@ -171,7 +171,7 @@ def train(
             torch.distributed.barrier()
 
         # Validate
-        if epoch % eval_interval == 0:
+        if epoch % eval_interval == 0 or epoch == max_num_epochs - 1:  # the last epoch is always evaluated
             model_to_evaluate = (
                 model if distributed_model is None else distributed_model
             )
@@ -200,23 +200,25 @@ def train(
                     wandb_log_dict = {
                         "epoch": epoch,
                         "valid_loss": valid_loss,
-                        "valid_rmse_e_per_atom": eval_metrics["rmse_e_per_atom"],
-                        "valid_rmse_f": eval_metrics["rmse_f"],
+                        "valid_rmse_e_per_atom": eval_metrics.get("rmse_e_per_atom"),
+                        "valid_rmse_f": eval_metrics.get("rmse_f"),
                     }
                     wandb.log(wandb_log_dict)
 
                 if valid_loss >= lowest_loss:
                     patience_counter += 1
-                    if patience_counter >= patience and epoch < swa.start:
-                        logging.info(
-                            f"Stopping optimization after {patience_counter} epochs without improvement and starting Stage Two"
-                        )
-                        epoch = swa.start
-                    elif patience_counter >= patience and epoch >= swa.start:
-                        logging.info(
-                            f"Stopping optimization after {patience_counter} epochs without improvement"
-                        )
-                        break
+                    if patience_counter >= patience:
+                        if swa is not None and epoch < swa.start:
+                            logging.info(
+                                f"Stopping optimization after {patience_counter} epochs without improvement and starting Stage Two"
+                            )
+                            epoch = swa.start
+                            patience_counter = 0
+                        else:
+                            logging.info(
+                                f"Stopping optimization after {patience_counter} epochs without improvement"
+                            )
+                            break
                     if save_all_checkpoints:
                         param_context = (
                             ema.average_parameters()

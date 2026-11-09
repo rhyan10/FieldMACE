@@ -53,6 +53,8 @@ def pyscf_qmmm(symbols, qm_pos, mm_pos, mm_q, xc="b3lyp", basis="6-31g*", charge
     g_mm = None
     if len(mm_q):
         dm = mf.make_rdm1()
+        if dm.ndim == 3:  # unrestricted (spin != 0): alpha + beta density
+            dm = dm[0] + dm[1]
         g_mm = g.grad_hcore_mm(dm) + g.grad_nuc_mm()
     conv = HARTREE_TO_EV / BOHR_TO_A
     return e * HARTREE_TO_EV, -g_qm * conv, None if g_mm is None else -g_mm * conv

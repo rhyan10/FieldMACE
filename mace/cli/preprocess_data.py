@@ -23,7 +23,7 @@ from mace import data, tools
 from mace.data.utils import save_configurations_as_HDF5
 from mace.modules import compute_statistics
 from mace.tools import torch_geometric
-from mace.tools.scripts_utils import get_atomic_energies, get_dataset_from_xyz
+from mace.tools.scripts_utils import get_atomic_energies, get_dataset_from_xyz, normalise_atomic_energies
 from mace.tools.utils import AtomicNumberTable
 
 
@@ -42,8 +42,10 @@ def compute_stats_target(
         drop_last=False,
     )
 
+    if len(train_dataset) == 0:
+        return None
     avg_num_neighbors, mean, std = compute_statistics(train_loader, atomic_energies)
-    output = [avg_num_neighbors, mean, std]
+    output = [avg_num_neighbors, mean, std, len(train_dataset)]
     return output
 
 
@@ -69,7 +71,10 @@ def pool_compute_stats(inputs: List):
         pool.join()
 
     results = [r.get() for r in tqdm.tqdm(re)]
-    return np.average(results, axis=0)
+    results = [r for r in results if r is not None]  # empty shards
+    weights = [r[3] for r in results]
+    # avg_num_neighbors and mean: averages weighted by the number of configurations of each shard
+    return np.average([r[:3] for r in results], axis=0, weights=weights)
 
 
 def split_array(a: np.ndarray, max_size: int):
@@ -155,6 +160,12 @@ def run(args: argparse.Namespace):
     for sub_dir in folders:
         if not os.path.exists(args.h5_prefix + sub_dir):
             os.makedirs(args.h5_prefix + sub_dir)
+        # shards of an earlier run (e.g. with more processes) would be read together with the new ones
+        stale = glob(os.path.join(args.h5_prefix + sub_dir, "*.h5"))
+        if stale:
+            logging.warning(f"removing {len(stale)} HDF5 file(s) of an earlier run from {args.h5_prefix + sub_dir}")
+            for f in stale:
+                os.remove(f)
 
     # Data preparation
     collections, atomic_energies_dict = get_dataset_from_xyz(
@@ -174,6 +185,8 @@ def run(args: argparse.Namespace):
         socs_key=getattr(args, "socs_key", "REF_socs"),
         soc_num=getattr(args, "soc_num", None),
         n_states=args.n_energies if getattr(args, "diabatic", False) else None,
+        n_outputs=args.n_energies + (args.n_energies * (args.n_energies - 1) // 2
+                                     if getattr(args, "diabatic", False) else 0),
         charges_key=args.charges_key,
     )
 
@@ -192,6 +205,10 @@ def run(args: argparse.Namespace):
         assert isinstance(zs_list, list)
         z_table = tools.get_atomic_number_table_from_zs(zs_list)
 
+    if args.num_process > len(collections.train):
+        logging.info(f"--num_process={args.num_process} > {len(collections.train)} training frames: using "
+                     f"{max(1, len(collections.train))} processes")
+        args.num_process = max(1, len(collections.train))
     logging.info("Preparing training set")
     if args.shuffle:
         random.shuffle(collections.train)
@@ -214,7 +231,9 @@ def run(args: argparse.Namespace):
 
     if args.compute_statistics:
         logging.info("Computing statistics")
-        if len(atomic_energies_dict) == 0:
+        if len(atomic_energies_dict) > 0:  # IsolatedAtom frames (one float per element)
+            atomic_energies_dict = normalise_atomic_energies(atomic_energies_dict)
+        else:
             atomic_energies_dict = get_atomic_energies(
                 args.E0s, collections.train, z_table,
                 n_diagonal=args.n_energies if getattr(args, "diabatic", False) else None)
@@ -245,14 +264,14 @@ def run(args: argparse.Namespace):
     logging.info("Preparing validation set")
     if args.shuffle:
         random.shuffle(collections.valid)
-    split_valid = np.array_split(collections.valid, args.num_process)
+    split_valid = [x for x in np.array_split(collections.valid, args.num_process) if len(x)]
     drop_last = False
     if len(collections.valid) % 2 == 1:
         drop_last = True
 
     multi_valid_hdf5_ = partial(multi_valid_hdf5, args=args, split_valid=split_valid, drop_last=drop_last)
     processes = []
-    for i in range(args.num_process):
+    for i in range(len(split_valid)):
         p = mp.Process(target=multi_valid_hdf5_, args=[i])
         p.start()
         processes.append(p)
@@ -266,11 +285,11 @@ def run(args: argparse.Namespace):
             drop_last = False
             if len(subset) % 2 == 1:
                 drop_last = True
-            split_test = np.array_split(subset, args.num_process)
+            split_test = [x for x in np.array_split(subset, args.num_process) if len(x)]
             multi_test_hdf5_ = partial(multi_test_hdf5, args=args, split_test=split_test, drop_last=drop_last)
 
             processes = []
-            for i in range(args.num_process):
+            for i in range(len(split_test)):
                 p = mp.Process(target=multi_test_hdf5_, args=[i, name])
                 p.start()
                 processes.append(p)

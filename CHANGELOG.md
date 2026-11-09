@@ -5,6 +5,81 @@ a new minor version adds features, a new major version changes behaviour.
 
 ## [Unreleased]
 
+## [2.4.2] – 2026-11-09
+
+50 bug fixes from a systematic search (regression tests in `tests/test_regressions_242.py`). The
+numbers are those of the tests.
+
+### Fixed – training (`mace_run_train`)
+1. Early stopping (`--patience`) crashed without `--swa` (`'NoneType' object has no attribute 'start'`).
+2. `--swa` (Stage Two) crashed at start-up (undefined `dipole_only`, no loss for `--loss=weighted`); it now
+   uses the field-model loss with the Stage Two weights.
+3. `--loss` was ignored (the field-model loss was always used); only `weighted` is accepted now.
+4. `--error_table` `DipoleRMSE`, `EnergyDipoleRMSE`, `PerAtom*stressvirials` crashed at the end of training;
+   every table now shows what was computed and `-` otherwise (the stress tables are gone).
+12. `--interaction_first` was ignored (its default is now the block that was always used); `--scaling`,
+    `--mean`, `--std` were computed but never used and now say so.
+13. `--radial_type=gaussian` crashed (it built the legacy multipole basis).
+14. `--valid_fraction` of 0 or 1 ended in a bare `AssertionError`.
+15. The `schedulefree` hint suggested `pip install mace-torch[...]`, which replaces FieldMACE's `mace` package.
+16. `--E0s=file.json` was rejected (JSON keys are strings).
+17. `IsolatedAtom` frames for only some elements silently overrode `--E0s`, then failed.
+19. Multi-state (or `(1, 1)`-shaped) `IsolatedAtom` energies crashed (`AssertionError`).
+25. `--device=cuda` without a GPU, 29. HDF5 data without `--valid_file` or with `--E0s=average`, and
+    35. an invalid or empty `--E0s` ended in tracebacks; they are now clear messages.
+26. The final model was written after the error tables: an error while evaluating lost it. It is now
+    saved first.
+33. With `--eval_interval` larger than the number of epochs (or `--max_num_epochs=0`) no checkpoint was
+    written and the run crashed at the end; the last epoch is always evaluated.
+34. Stage Two checkpoints were named from the epoch after `--start_swa`; a short Stage Two crashed at the end.
+37. HDF5 test sets (`--test_dir`) were never found (wrong file pattern); 38. `--multi_processed_test`
+    crashed; 39. the last partial batch of a test set was dropped; 40. `--valid_batch_size` was ignored;
+    41. a shard folder for training with a single validation file failed.
+44. Frames without energies and forces in a multi-state data set (e.g. an unlabelled test set) broke the
+    evaluation (one-state dummy labels).
+47. An element present only in the validation set was not reported.
+
+### Fixed – models and data
+18. Fine-tuning from a FieldMACE model (`--foundation_model`) crashed for correlation ≠ 3 and transferred
+    only the MACE layers; the field interactions, multipole embedding and readouts are now transferred too.
+27. Scalar-only hidden irreps with NACs or dipoles gave identically zero outputs; this is an error now
+    (and a warning for diabatic couplings).
+28. Unsorted `--hidden_irreps` (e.g. `8x1o + 8x0e`) left the last layer without scalars.
+30. Periodic frames without a cell were given a 1 Å box (thousands of bogus edges); this is an error now.
+31. `mace_preprocess_data` crashed with more processes than frames, and averaged shard statistics
+    without weights; 32. shards of an earlier run in the same `--h5_prefix` were trained on.
+36. `--multipole_max_ell` above the largest l of `--field_irreps` was silently dropped; this is an error now.
+
+### Fixed – ASE calculator and tools
+5. `mace_eval_configs` failed for float32 models; it now runs in the model's dtype.
+6. `mace_eval_configs` wrote a diabatic model's H elements as energies; it now writes adiabatic energies,
+   forces and NACs, plus `MACE_diabatic_hamiltonian`. Reference labels in the file are not read.
+7. `get_hessian` crashed for multi-state models and ignored `state` (diabatic: H_00); it now returns the
+   Hessian of the calculator's (adiabatic) state.
+8. The calculator parsed reference labels in `atoms.info` and failed on layouts it does not need.
+9. Committee variances of diabatic models were those of the diabatic elements.
+11. A committee r_max error message was broken; `compile_mode` now says it is unsupported.
+20. `mace_active_learning_md` crashed at its first report (`forces_comm`); it works with one model or a
+    committee and defaults to the CPU.
+21. `mace_create_lammps_model` failed to load any model (PyTorch ≥ 2.6) and now explains that field
+    models cannot run in LAMMPS.
+43. `length_units_to_A` ≠ 1 passed Ångström positions to the model; positions, charges and cell are now
+    converted, and NACs and dipoles too.
+45. `ase.io.write` of Atoms with the calculator attached crashed for several states, or wrote the total
+    energy as every atom's energy.
+46. `get_descriptors` returned vector components as "invariants" for models with NAC or dipole outputs.
+
+### Fixed – OpenMM, active learning, labellers
+10. The active-learning loop declared convergence when every frame was beyond `force_std_max`.
+22. Active learning: paths in `train_args` were not relative to the YAML file; a committee of one could
+    slip through; on/off flags with a default of True were passed inverted.
+23. TorchForce backend with `length_scale` ≠ 1: the cutoff was applied in model units.
+24. TorchForce backend: an invalid `fieldmace_state` was silently clamped; it is an error now.
+42. PySCF labeller with `spin` ≠ 0 crashed computing the point-charge forces.
+48. `link_atoms=False` on a QM region that cuts bonds now warns (dangling bonds).
+49. `frame_to_atoms` on a periodic system without box vectors tore the QM region apart; it is an error now.
+50. `select_atoms` ignored a dangling `and` and reversed index ranges.
+
 ## [2.4.1] – 2026-11-09
 
 Robustness: wrong inputs now stop with a clear message (file, frame, option to change) instead of
@@ -164,7 +239,8 @@ numbers (legacy mode).
 
 The original FieldMACE (tag `v1.0`).
 
-[Unreleased]: https://github.com/rhyan10/FieldMACE/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/rhyan10/FieldMACE/compare/v2.4.2...HEAD
+[2.4.2]: https://github.com/rhyan10/FieldMACE/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/rhyan10/FieldMACE/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/rhyan10/FieldMACE/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/rhyan10/FieldMACE/compare/v1.0...v2.3.0

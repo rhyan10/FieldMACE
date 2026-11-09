@@ -64,6 +64,8 @@ PHASES = ["train", "sample", "select", "label", "merge"]
 SAMPLING_KEYS = ("temperatures", "n_frames", "every", "dt_fs", "state", "backend", "platform", "minimize",
                  "friction_per_ps")
 SELECTION_KEYS = ("n_select", "force_std_min", "force_std_max", "min_separation")
+TRAIN_PATH_ARGS = ("valid_file", "statistics_file", "E0s", "foundation_model", "config")
+FOUNDATION_NAMES = ("small", "medium", "large", "small_off", "medium_off", "large_off")
 
 
 @dataclass
@@ -106,7 +108,8 @@ class ALConfig:
         sysd["charmm_params"] = [rel(p) for p in sysd.get("charmm_params", []) or []]
         sysd["forcefield"] = [p if not os.path.exists(rel(p)) else rel(p) for p in sysd.get("forcefield", []) or []]
         d["system"] = sysd
-        lab = d.get("labeller", "external")
+        lab = str(d.get("labeller") or "external")
+        d["labeller"] = lab
         if lab.startswith("model:"):
             d["labeller"] = "model:" + rel(lab[len("model:"):])
         elif ".py:" in lab:
@@ -131,8 +134,20 @@ class ALConfig:
             bad = set(d.get(sub) or {}) - set(allowed)
             if bad:
                 raise ValueError(f"{path}: unknown key(s) {sorted(bad)} in '{sub}' (known: {sorted(allowed)})")
-        if int(d.get("committee_size", 3)) < 2 and len(d["initial_models"]) < 2:
+        if int(d.get("committee_size", 3)) < 2:
             raise ValueError(f"{path}: committee_size must be at least 2 (the disagreement needs a committee)")
+        if d["initial_models"] and len(d["initial_models"]) < 2:
+            raise ValueError(f"{path}: initial_models must list at least 2 models (the disagreement needs a committee)")
+        # file arguments of mace_run_train are relative to the YAML file too
+        ta = dict(d.get("train_args", {}) or {})
+        for k in TRAIN_PATH_ARGS:
+            v = ta.get(k)
+            if isinstance(v, str) and v and not (k == "E0s" and not v.lower().endswith(".json")) \
+                    and not (k == "foundation_model" and v in FOUNDATION_NAMES):
+                ta[k] = rel(v)
+                if not os.path.exists(ta[k]):
+                    raise ValueError(f"{path}: train_args.{k} = {ta[k]} does not exist (paths are relative to the YAML file)")
+        d["train_args"] = ta
         return cls(**d)
 
 
@@ -140,14 +155,16 @@ def train_flags(args: Dict) -> List[str]:
     """{key: value} -> mace_run_train flags; True for an on/off flag (e.g. ema: true) gives just --ema."""
     from mace.tools import build_default_arg_parser
 
-    switches = {a.dest for a in build_default_arg_parser()._actions if a.nargs == 0}
+    actions = {a.dest: a for a in build_default_arg_parser()._actions if a.nargs == 0}
     out = []
     for k, v in args.items():
         if v is None:
             continue
-        if k in switches:
-            if v is True or str(v).lower() == "true":
-                out.append(f"--{k}")
+        if k in actions:  # on/off flag: give it only when the value differs from its default
+            on = v is True or str(v).lower() == "true"
+            sets = bool(actions[k].const)  # store_true sets True, store_false sets False
+            if on == sets and on != bool(actions[k].default):
+                out.append(actions[k].option_strings[0])
             continue
         out.append(f"--{k}={v}")
     return out
@@ -365,10 +382,16 @@ class ActiveLearningLoop:
         self.log(f"round {r}: committee force std median {1000 * np.median(fs):.0f} meV/A, max {1000 * fs.max():.0f}; "
                  f"{100 * frac:.1f}% of frames uncertain, {n_wild} beyond force_std_max; selected {len(pick)}")
         write_extxyz(os.path.join(self.rdir(r), "candidates.xyz"), [frames[i] for i in pick])
-        if frac < self.c.converged_fraction or not pick:
+        if frac < self.c.converged_fraction:
             self.log(f"round {r}: converged (uncertain fraction {frac:.3f} < {self.c.converged_fraction})")
             self.state["finished"] = True
             return False
+        if not pick:  # uncertain frames exist, but none is usable: not converged
+            raise RuntimeError(
+                f"round {r}: {100 * frac:.1f}% of the frames are uncertain but none lies in [force_std_min, "
+                f"force_std_max] = [{sel['force_std_min']}, {sel['force_std_max']}] eV/A ({n_wild} above the maximum): "
+                "the model leaves its training domain. Use a smaller time step or temperature, raise force_std_max, "
+                "or add training data near the start structure, then run again")
         return True
 
     def _label(self, r: int):

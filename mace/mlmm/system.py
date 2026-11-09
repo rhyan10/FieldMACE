@@ -309,6 +309,11 @@ def prepare_qmmm_system(
         pairs = sorted({(i, j) for i in qm for j in graph[i] if j not in qm_set})
     elif not link_atoms:
         pairs = []
+        cut = sorted({(i, j) for i in qm for j in graph[i] if j not in qm_set})
+        if cut:
+            warnings.warn(f"link_atoms=False but the QM region cuts {len(cut)} covalent bond(s) {cut}: FieldMACE sees "
+                          "these atoms with dangling bonds (no H caps). Use link_atoms='auto' unless the training data "
+                          "were made the same way.")
     else:
         pairs = [(int(i), int(j)) for i, j in link_atoms]
     if str(link_charge_scheme).upper() not in ("Z0", "Z1", "Z2", "Z3"):
