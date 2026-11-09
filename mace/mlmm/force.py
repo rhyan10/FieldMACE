@@ -28,6 +28,7 @@ evaluation are available in ``computation.last`` and can be written with
 from __future__ import annotations
 
 import os
+import warnings
 from typing import Optional, Union
 
 import numpy as np
@@ -219,6 +220,21 @@ class FieldMACEComputation:
         self.all_particles = d.get("all_particles", False)
 
 
+def check_cutoff_vs_box(settings: EmbeddingSettings, system: mm.System) -> None:
+    """With periodic boundaries every charge is taken at its minimum image around the QM region; that is
+    unique only within half the box, so the embedding cutoff (plus the QM region's extent) must fit."""
+    if settings.cutoff is None or not system.usesPeriodicBoundaryConditions():
+        if settings.cutoff is None and system.usesPeriodicBoundaryConditions():
+            warnings.warn("Periodic system without an embedding cutoff: FieldMACE sees every charge at its minimum "
+                          "image, i.e. a box-shaped field around the QM region. Use the cutoff of your training data.")
+        return
+    box = np.array([v.value_in_unit(unit.angstrom) for v in system.getDefaultPeriodicBoxVectors()])
+    half = 0.5 * min(box[0, 0], box[1, 1], box[2, 2])
+    if settings.cutoff > half:
+        raise ValueError(f"embedding cutoff {settings.cutoff} A is larger than half the box ({half:.1f} A): "
+                         "charges beyond half the box are not uniquely defined. Use a smaller cutoff or a larger box")
+
+
 def create_fieldmace_force(
     model, spec: QMMMSpec, settings: EmbeddingSettings = EmbeddingSettings(), force_group: int = 0, **kwargs
 ) -> mm.PythonForce:
@@ -262,6 +278,7 @@ def create_fieldmace_mm_system(
     ``prepare_kwargs`` are passed to :func:`prepare_qmmm_system` (link_atoms, link_charge_scheme, ...).
     """
     new, spec = prepare_qmmm_system(system, qm_atoms, topology=topology, **prepare_kwargs)
+    check_cutoff_vs_box(settings, new)
     if backend == "torch":
         from .torchforce import create_fieldmace_torchforce
 

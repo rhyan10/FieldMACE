@@ -63,6 +63,7 @@ class Configuration:
     nacs_weight: float = 1.0
     socs_weight: float = 1.0
     config_type: Optional[str] = DEFAULT_CONFIG_TYPE  # config_type of config
+    source: Optional[str] = None  # "file, frame k" - for error messages
 
 
 Configurations = List[Configuration]
@@ -119,9 +120,9 @@ def config_from_atoms_list(
         config_type_weights = DEFAULT_CONFIG_TYPE_WEIGHTS
 
     all_configs = []
-    for atoms in tqdm(atoms_list):
-        all_configs.append(
-            config_from_atoms(
+    for k, atoms in enumerate(tqdm(atoms_list)):
+        try:
+            all_configs.append(config_from_atoms(
                 atoms,
                 energy_key=energy_key,
                 forces_key=forces_key,
@@ -135,8 +136,10 @@ def config_from_atoms_list(
                 config_type_weights=config_type_weights,
                 soc_num=soc_num,
                 n_states=n_states,
-            )
-        )
+            ))
+        except ValueError as err:
+            raise ValueError(f"frame {k}: {err}") from None
+        all_configs[-1].source = f"frame {k}"
     return all_configs
 
 def _info_or_array(atoms: ase.Atoms, key: str):
@@ -243,7 +246,11 @@ def config_from_atoms(
 
     # label layout: energy [n_states], forces [n_atoms, n_states, 3]
     energy = np.atleast_1d(np.asarray(energy, dtype=float)).reshape(-1)
-    forces = np.asarray(forces, dtype=float).reshape(len(atoms), -1, 3)
+    forces = np.asarray(forces, dtype=float)
+    if forces.size % (3 * len(atoms)) != 0 or forces.shape[0] != len(atoms):
+        raise ValueError(f"'{forces_key}' has shape {forces.shape}, expected ({len(atoms)}, [n_states,] 3) "
+                         f"for {len(atoms)} atoms")
+    forces = forces.reshape(len(atoms), -1, 3)
     n_out = len(energy) if energy_weight != 0.0 or forces_weight == 0.0 else forces.shape[1]
     if forces_weight == 0.0:
         forces = np.zeros((len(atoms), n_out, 3))
@@ -429,6 +436,20 @@ def load_from_xyz(
         if not keep_isolated_atoms:
             atoms_list = atoms_without_iso_atoms
 
+    try:
+        configs = _configs_from_file(atoms_list, config_type_weights, energy_key, forces_key, stress_key, virials_key,
+                                     dipoles_key, nacs_key, socs_key, soc_num, n_states, charges_key, pc_key)
+    except ValueError as err:
+        from mace.tools.data_checks import DataError
+
+        raise DataError(f"{file_path}, {err}") from None
+    for c in configs:
+        c.source = f"{file_path}, {c.source}"
+    return atomic_energies_dict, configs
+
+
+def _configs_from_file(atoms_list, config_type_weights, energy_key, forces_key, stress_key, virials_key,
+                       dipoles_key, nacs_key, socs_key, soc_num, n_states, charges_key, pc_key):
     configs = config_from_atoms_list(
         atoms_list,
         config_type_weights=config_type_weights,
@@ -444,7 +465,7 @@ def load_from_xyz(
         charges_key=charges_key,
         pc_key = pc_key,
     )
-    return atomic_energies_dict, configs
+    return configs
 
 
 def compute_average_E0s(

@@ -39,11 +39,29 @@ python -m venv venv && source venv/bin/activate       # or a conda env, Python >
 pip install torch --index-url https://download.pytorch.org/whl/cu128   # pick the CUDA build for your driver
 pip install -e ".[mlmm,test]"     # mlmm: OpenMM >= 8.3 interface, test: pytest + openmmtools
 python scripts/check_env.py       # add --gpu inside a GPU job
-pytest -q tests/                  # ~5 min on CPU
+pytest -q tests/                  # ~10 min on 2 CPU cores
 ```
 
 The `mlmm` extra installs OpenMM. For GPU MD you also need the OpenMM CUDA plugin, e.g. `pip install "openmm[cuda12]"`.
 Without `mlmm`, everything except `mace.mlmm` works.
+
+## Quick start
+
+About 10 minutes on a laptop CPU, with the data that ship with tutorial 01 (DFT labels of an alanine
+side chain in water):
+
+```bash
+cd tutorials/01_data_and_training
+python 01_prepare_system.py                          # solvated system, QM region = side chain (~2 min)
+MODELS=PerAtomFieldEMACE EPOCHS=20 bash 04_train.sh  # train on the shipped data (~2 min; the tutorial uses 200 epochs)
+python 05_evaluate.py                                # errors on the test set, results/parity_ground_state.png
+cd ../03_openmm_mlmm_md
+python 01_mlmm_md.py --nvt-ps 0.5 --nve-ps 0.2       # ML/MM MD in OpenMM with the new model
+```
+
+Then follow [the tutorials](tutorials/) for your own system. If something is wrong with your data or
+settings, FieldMACE stops with a message that names the file, the frame and the option to change; see
+[Troubleshooting](docs/troubleshooting.md) for the common ones.
 
 ---
 
@@ -103,6 +121,9 @@ mace_run_train --name=protein --train_file=train.xyz --valid_fraction=0.1 --mode
 | `--compute_nacs` / `--compute_dipoles` / `--compute_socs` | `False` | excited-state properties, see below |
 | `--nacs_weight` / `--dipoles_weight` / `--socs_weight` | 100 / 1 / 1 | their loss weights |
 | `--nacs_key` / `--dipoles_key` / `--socs_key` | `smooth_nacs` / `REF_dipoles` / `REF_socs` | their keys in `atoms.info` |
+| `--soc_num` | – | SOCs as a free-form vector of this length (X-MACE layout), see below |
+| `--diabatic` / `--diabatic_coupling_weight` | `False` / 10 | diabatic model, see [Diabatic models](#diabatic-models) |
+| `--energy_key` / `--forces_key` | `REF_energy` / `REF_forces` | label keys (`REF_mm_forces` is fixed) |
 
 ### Excited-state properties
 
@@ -143,7 +164,7 @@ mace_run_train --train_file=h5/train/train_0.h5 --valid_file=h5/val/val_0.h5 --s
 mace_eval_configs --configs=test.xyz --model=protein.model --output=pred.xyz
 ```
 
-`pred.xyz` contains `MACE_energy` (plus `MACE_energies` for several states), `MACE_forces`, `MACE_mm_forces` and, if the model predicts them, `MACE_nacs`, `MACE_dipoles` and `MACE_socs`.
+`pred.xyz` contains `MACE_energy` (plus `MACE_energies` for several states), `MACE_forces`, `MACE_mm_forces` and, if the model predicts them, `MACE_nacs`, `MACE_dipoles` and `MACE_socs`. For a diabatic model these are the raw outputs (the elements of H); the ASE calculator below gives the adiabatic quantities.
 
 **ASE**
 
@@ -243,7 +264,7 @@ Noise between exactly degenerate M_S components would otherwise mix them and cau
 
 **Smooth NACs.** With `nac_type smooth` the interface divides the model's (E_j − E_i) · NAC_ij by the model's own energy gap.
 
-**What the interface answers.** `h` (with SOCs if `soc` is requested), `grad`, `grad_pc`, `nacdr`, `dm` (zeros and a warning without a dipole model) and `phases`. Requests the model cannot answer (`nacdr` without NACs, SOCs between multiplicities without a SOC model) fail with a clear error.
+**What the interface answers.** `h` (with SOCs if `soc` is requested), `grad`, `grad_pc`, `nacdr`, `dm` (zeros and a warning without a dipole model) and `phases`; diabatic models also `nacdr_pc` and `overlap`. Requests the model cannot answer (`nacdr` without NACs, SOCs between multiplicities without a SOC model) fail with a clear error.
 
 **Phases.** FieldMACE aligns the signs of NACs, transition dipoles and SOCs with the previous step itself, so it reports all phases as +1. The reference is kept in memory and in `SAVE/FIELDMACE_previous.npz`, so file-based runs and restarts continue with consistent signs.
 
@@ -283,8 +304,8 @@ qm = [a.index for a in prm.topology.atoms() if a.residue.name == "LIG"]
 
 system, spec, comp = create_fieldmace_mm_system(
     system, qm, "protein.model", topology=prm.topology,
-    settings=EmbeddingSettings(cutoff=None),          # must match how the training data was made
-    model_kwargs=dict(device="cuda", state=0))
+    settings=EmbeddingSettings(cutoff=10.0, switch_width=2.0),   # the same as for the training data
+    model_kwargs=dict(device="cuda", state=0))                   # (save_setup / load_setup keep them together)
 
 sim = app.Simulation(prm.topology, system, mm.LangevinMiddleIntegrator(300*unit.kelvin, 1/unit.picosecond, 0.5*unit.femtosecond))
 sim.context.setPositions(crd.positions); sim.context.setPeriodicBoxVectors(*crd.boxVectors)
@@ -320,6 +341,11 @@ sim.context.setParameter("fieldmace_state", 1)        # switch the driving elect
 * **Pipeline bugs.** Fixed the HDF5 pipeline (MM fields missing, wrong keyword), `preprocess_data` (missing arguments, numpy ≥ 2 statistics), E0 averaging over unlabelled frames, and energy statistics with several states.
 * **Attention models removed.** `AttentionFieldEMACE` (could not be constructed) and `AttentionPerAtomFieldEMACE` are gone, since neither is part of the publication. FieldMACE now has `FieldEMACE` (one multipole expansion) and `PerAtomFieldEMACE`.
 * **NACs, dipoles and SOCs.** These were never produced by the field models (the readouts returned `None`). They are now implemented, see [Excited-state properties](#excited-state-properties).
+
+**Version 2.4.1**
+
+* **Input checks.** Mistakes in data, settings, QM/MM set-ups and SHARC templates stop with a message that names the file, frame and option to change; see [Troubleshooting](docs/troubleshooting.md).
+* **Fix.** The ASE calculator recomputes when only the MM charges change (before, ASE's cache returned the old field's results).
 
 **Version 2.4**
 

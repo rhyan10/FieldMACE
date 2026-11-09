@@ -43,6 +43,30 @@ def _phase_aligned_mean(values, pair_axis: int) -> torch.Tensor:
     return torch.stack(aligned).mean(0)
 
 
+def _mm_state(atoms):
+    """Hashable fingerprint of the MM point charges in atoms.info (None without charges)."""
+    q, r = atoms.info.get("mm_charges"), atoms.info.get("mm_positions")
+    if q is None and r is None:
+        return None
+    return (None if q is None else np.asarray(q, dtype=float).tobytes(),
+            None if r is None else np.asarray(r, dtype=float).tobytes())
+
+
+def _check_committee(models, paths):
+    """All models of a committee must describe the same states, properties and elements."""
+    def sig(m):
+        return (int(getattr(m, "n_energies", 1)), bool(getattr(m, "diabatic", False)),
+                tuple(int(z) for z in m.atomic_numbers), bool(getattr(m, "compute_nacs", False)),
+                bool(getattr(m, "compute_dipoles", False)), bool(getattr(m, "compute_socs", False)))
+    if len(models) > 1:
+        sigs = [sig(m) for m in models]
+        if any(x != sigs[0] for x in sigs[1:]):
+            names = ("outputs", "diabatic", "elements", "NACs", "dipoles", "SOCs")
+            k = next(i for i in range(len(sigs)) if sigs[i] != sigs[0])
+            diff = [f"{n}: {a} vs {b}" for n, a, b in zip(names, sigs[0], sigs[k]) if a != b]
+            raise ValueError(f"committee models differ ({paths[0]} vs {paths[k]}): {'; '.join(diff)}")
+
+
 class MACECalculator(Calculator):
     """MACE ASE Calculator
     args:
@@ -149,11 +173,15 @@ class MACECalculator(Calculator):
             ]
             self.use_compile = True
         else:
+            if str(device).startswith("cuda") and not torch.cuda.is_available():
+                raise RuntimeError(f"device='{device}' requested, but PyTorch sees no CUDA GPU here. "
+                                   "Use device='cpu' (or run inside a GPU job).")
             self.models = [
                 torch.load(f=model_path, map_location=device, weights_only=False)
                 for model_path in model_paths
             ]
             self.use_compile = False
+        _check_committee(self.models, model_paths)
         for model in self.models:
             model.to(device)  # shouldn't be necessary but seems to help with GPU
         r_maxs = [model.r_max.cpu() for model in self.models]
@@ -239,6 +267,14 @@ class MACECalculator(Calculator):
             batch_clone["positions"].requires_grad_(True)
         return batch_clone
 
+    def check_state(self, atoms, tol=1e-15):
+        """ASE only compares positions, numbers, cell, pbc, ...: the MM point charges live in atoms.info,
+        so a change of the charges alone would otherwise return the cached results of the old field."""
+        changes = super().check_state(atoms, tol=tol)
+        if _mm_state(atoms) != getattr(self, "_last_mm_state", None):
+            changes = list(changes) + ["mm_charges"]
+        return changes
+
     # pylint: disable=dangerous-default-value
     def calculate(self, atoms=None, properties=None, system_changes=all_changes):
         """
@@ -259,6 +295,19 @@ class MACECalculator(Calculator):
         Pairs are ordered (0,1), (0,2), ..., (1,2), ... (see mace.modules.state_pairs).
         """
         Calculator.calculate(self, atoms)
+        self._last_mm_state = _mm_state(atoms)
+        zs = set(int(z) for z in self.z_table.zs)
+        unknown = sorted(set(int(z) for z in atoms.numbers) - zs)
+        if unknown:
+            raise ValueError(f"element(s) Z={unknown} are not in the model (it knows Z={sorted(zs)})")
+        r_mm = atoms.info.get("mm_positions")
+        if r_mm is not None and np.size(r_mm):
+            d = np.linalg.norm(atoms.positions[:, None, :] - np.asarray(r_mm, dtype=float).reshape(1, -1, 3), axis=-1)
+            if d.min() < 0.5:
+                import warnings
+
+                warnings.warn(f"an MM charge is {d.min():.3f} A from a QM atom - is a QM atom also listed among "
+                              "the MM charges?", stacklevel=2)
         batch_base = self._atoms_to_batch(atoms)
         state = int(getattr(self, "state", 0))
         energies, forces, mm_forces = [], [], []

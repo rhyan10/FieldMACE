@@ -5,6 +5,45 @@ a new minor version adds features, a new major version changes behaviour.
 
 ## [Unreleased]
 
+## [2.4.1] – 2026-11-09
+
+Robustness: wrong inputs now stop with a clear message (file, frame, option to change) instead of
+training silently on nonsense or failing with a traceback. One real bug fixed.
+
+### Fixed
+- ASE calculator: when only the MM charges changed between two calls (same QM geometry), ASE's
+  cache returned the energy and forces of the old field. The calculator now also compares
+  `mm_positions` and `mm_charges`.
+- `--model=ExcitedMACE` (X-MACE's model, not part of FieldMACE) crashed during training; it is no
+  longer offered.
+- Training files with the `.extxyz` extension were treated as HDF5.
+- A batch size larger than the training set crashed; it is now reduced, with a warning.
+
+### Added
+- Checks of the training data before training (`mace/tools/data_checks.py`): wrong number of
+  states (with the right `--n_energies`), NaN/inf labels, missing labels for requested properties
+  (wrong `--*_key`, with the keys found in the file), unknown elements in validation/test sets, an
+  empty validation set, an incomplete `--E0s`; warnings for MM charges within 0.5 Å of a QM atom,
+  periodic frames, data without point charges or without point-charge forces. All errors name the
+  file and frame.
+- Checks of the settings: missing files, `--compute_nacs` with one state, `--diabatic` with
+  `--compute_nacs`, SOCs without pairs or `--soc_num`.
+- ASE calculator: clear errors for elements the model does not know, committees of different
+  models and CUDA requested without a GPU; a warning for a charge on top of a QM atom.
+- OpenMM: errors when the QM region cuts a bond to a hydrogen, for an unknown link scheme, an
+  embedding cutoff larger than half the box, and invalid cutoff/switching settings; warnings for
+  boundaries that are not at an sp3 carbon, for the Z0 link scheme and for periodic systems without
+  a cutoff.
+- SHARC: unknown keywords in `FIELDMACE.template` are reported; invalid units give a clear error.
+- Active learning: missing files, unknown keys (also inside `sampling`/`selection`) and a committee
+  of one are reported before anything runs.
+- README: a quick start; `docs/troubleshooting.md` lists the messages and their fixes.
+
+### Changed
+- Known harmless PyTorch/e3nn warnings (TorchScript deprecation, e3nn annotations) are no longer
+  printed (dozens of lines per run); `pin_memory` is only used with a GPU.
+- `scripts/check_env.py` no longer prints the pymbar banner.
+
 ## [2.4.0] – 2026-11-08
 
 Diabatic models, a TorchScript backend for OpenMM, automated active learning, two new tutorials,
@@ -125,7 +164,8 @@ numbers (legacy mode).
 
 The original FieldMACE (tag `v1.0`).
 
-[Unreleased]: https://github.com/rhyan10/FieldMACE/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/rhyan10/FieldMACE/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/rhyan10/FieldMACE/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/rhyan10/FieldMACE/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/rhyan10/FieldMACE/compare/v1.0...v2.3.0
 [1.0]: https://github.com/rhyan10/FieldMACE/releases/tag/v1.0

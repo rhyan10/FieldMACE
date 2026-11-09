@@ -72,7 +72,12 @@ def main(argv=None):
         p.error("--config is required")
     from mace.mlmm.active_learning import ActiveLearningLoop, ALConfig
 
-    loop = ActiveLearningLoop(ALConfig.from_file(a.config), log=lambda m: print(m, flush=True))
+    try:
+        cfg = ALConfig.from_file(a.config)
+    except (ValueError, FileNotFoundError) as err:
+        print(f"ERROR in the configuration: {err}", file=sys.stderr)
+        return 1
+    loop = ActiveLearningLoop(cfg, log=lambda m: print(m, flush=True))
     if a.status:
         print(loop.status())
         return 0

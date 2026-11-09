@@ -34,6 +34,7 @@
 
 import datetime
 import os
+import sys
 import shutil
 from io import TextIOWrapper
 
@@ -56,6 +57,7 @@ CHANGELOGSTRING = """
      (float32 models gave zero gradients in pysharc); tutorial: tutorials/04_sharc_dynamics
 2.4  diabatic models: diagonalised every step (per multiplicity), NACs on point charges (nacdr_pc),
      wave-function overlaps (coupling overlap); tutorial: tutorials/05_diabatic_states
+2.4.1 unknown template keywords reported, units validated
 """
 PREV_FILE = "FIELDMACE_previous.npz"
 
@@ -188,6 +190,17 @@ class SHARC_FIELDMACE(SHARC_FAST):
 
     def read_template(self, template_file="FIELDMACE.template", kw_whitelist=None):
         super().read_template(template_file, kw_whitelist)
+        # SHARC ignores unknown keywords silently; a typo (e.g. "energy_units") would quietly use the default
+        known = {k.lower() for k in self.QMin.template.keys()}
+        if os.path.isfile(template_file):
+            with open(template_file) as fh:
+                for line in fh:
+                    words = line.split("#")[0].split()
+                    if words and words[0].lower() not in known:
+                        msg = (f"{template_file}: unknown keyword '{words[0]}' is ignored "
+                               f"(known: {', '.join(sorted(known))})")
+                        self.log.warning(msg)
+                        print("WARNING: " + msg, file=sys.stderr)
 
     # ----- run -----
     def setup_interface(self):

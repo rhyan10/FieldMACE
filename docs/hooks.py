@@ -30,6 +30,8 @@ def _rewrite(text, src_dir, dst_dir):
             page = os.path.join(DOCS, rel_to_root, "index.md") if rel_to_root != "." else os.path.join(DOCS, "index.md")
         elif target.endswith("README.md"):
             page = os.path.join(DOCS, os.path.dirname(rel_to_root), "index.md")
+        elif rel_to_root.startswith("docs" + os.sep) and rel_to_root.endswith(".md"):
+            page = os.path.join(ROOT, rel_to_root)  # a hand-written docs page
         elif rel_to_root == "CHANGELOG.md":
             page = os.path.join(DOCS, "changelog.md")
         elif m.group(1).startswith("!") and os.path.exists(target):  # images are copied

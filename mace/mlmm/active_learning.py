@@ -61,6 +61,9 @@ import numpy as np
 from .dataset import write_extxyz
 
 PHASES = ["train", "sample", "select", "label", "merge"]
+SAMPLING_KEYS = ("temperatures", "n_frames", "every", "dt_fs", "state", "backend", "platform", "minimize",
+                 "friction_per_ps")
+SELECTION_KEYS = ("n_select", "force_std_min", "force_std_max", "min_separation")
 
 
 @dataclass
@@ -111,7 +114,25 @@ class ALConfig:
             d["labeller"] = rel(f) + ":" + fn
         unknown = set(d) - set(cls.__dataclass_fields__)
         if unknown:
-            raise ValueError(f"unknown keys in {path}: {sorted(unknown)}")
+            raise ValueError(f"unknown keys in {path}: {sorted(unknown)} (known: {sorted(cls.__dataclass_fields__)})")
+        missing_req = [k for k in ("work_dir", "setup", "initial_data") if not d.get(k)]
+        if missing_req:
+            raise ValueError(f"{path}: required key(s) {missing_req} missing (fieldmace_active_learning --example)")
+        checks = [("setup", d.get("setup")), ("initial_data", d.get("initial_data")), ("test_file", d.get("test_file"))]
+        checks += [("initial_models", m) for m in d["initial_models"]]
+        checks += [(f"system.{k}", v) for k, v in sysd.items()
+                   if k in ("pdb", "prmtop", "inpcrd", "top", "gro", "psf", "crd", "system_xml") and v]
+        if str(d.get("labeller", "")).startswith("model:"):
+            checks.append(("labeller", d["labeller"][len("model:"):]))
+        for key, p_ in checks:
+            if p_ and not os.path.exists(p_):
+                raise ValueError(f"{path}: {key} = {p_} does not exist (paths are relative to the YAML file)")
+        for sub, allowed in (("sampling", SAMPLING_KEYS), ("selection", SELECTION_KEYS)):
+            bad = set(d.get(sub) or {}) - set(allowed)
+            if bad:
+                raise ValueError(f"{path}: unknown key(s) {sorted(bad)} in '{sub}' (known: {sorted(allowed)})")
+        if int(d.get("committee_size", 3)) < 2 and len(d["initial_models"]) < 2:
+            raise ValueError(f"{path}: committee_size must be at least 2 (the disagreement needs a committee)")
         return cls(**d)
 
 

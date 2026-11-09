@@ -109,10 +109,11 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     # Model
     parser.add_argument(
         "--model",
-        help="model type",
+        help="PerAtomFieldEMACE (recommended: multipole expansion of the MM field about every QM atom) or "
+        "FieldEMACE (one expansion about the QM centroid; cheaper, only for small QM regions). X-MACE's "
+        "ExcitedMACE is not part of FieldMACE",
         default="FieldEMACE",
         choices=[
-            "ExcitedMACE",
             "FieldEMACE",
             "PerAtomFieldEMACE",
         ],

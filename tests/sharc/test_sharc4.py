@@ -489,3 +489,16 @@ def test_pysharc_qmmm_fieldmace_openmm(tmp_path, sharc_models):
     lis = run_sharc(traj, timeout=3600, pysharc="QMMM")
     assert lis.shape[0] == 3 and np.isfinite(lis).all()
     assert np.ptp(lis[:, 6]) < 0.05
+
+
+@requires_sharc
+def test_template_typos_and_units_are_reported(tmp_path, sharc_models, capsys):
+    d = setup_dir(tmp_path, sharc_models["plain"], ["energy", "forces"], [4], ["h", "grad"], pc=False)
+    with open(d / "FIELDMACE.template", "a") as fh:
+        fh.write("energy_units eV\n")  # typo: SHARC itself would ignore it silently
+    interface(d)
+    assert "unknown keyword 'energy_units'" in capsys.readouterr().err
+    (d / "FIELDMACE.template").write_text(f"model_file {sharc_models['plain']}\nproperties energy forces\n"
+                                          "device cpu\nenergy_unit kcal\n")
+    with pytest.raises(ValueError, match="energy_unit 'kcal'"):
+        interface(d)

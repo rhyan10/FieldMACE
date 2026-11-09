@@ -41,6 +41,18 @@ class EmbeddingSettings:
     switch_width: float = 1.0  # Angstrom
     cutoff_reference: str = "centroid"  # "centroid" | "nearest"
 
+    def __post_init__(self):
+        if self.origin not in ("centroid", "com", "none"):
+            raise ValueError(f"origin '{self.origin}': use 'centroid', 'com' or 'none'")
+        if self.cutoff_reference not in ("centroid", "nearest"):
+            raise ValueError(f"cutoff_reference '{self.cutoff_reference}': use 'centroid' or 'nearest'")
+        if self.cutoff is not None:
+            if self.cutoff <= 0:
+                raise ValueError(f"cutoff={self.cutoff}: give a positive distance in Angstrom, or None for no cutoff")
+            if not 0 <= self.switch_width < self.cutoff:
+                raise ValueError(f"switch_width={self.switch_width} must be >= 0 and smaller than cutoff={self.cutoff} "
+                                 "(charges are switched off between cutoff - switch_width and cutoff)")
+
     def to_dict(self):
         return asdict(self)
 

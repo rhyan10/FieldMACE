@@ -311,16 +311,37 @@ def prepare_qmmm_system(
         pairs = []
     else:
         pairs = [(int(i), int(j)) for i, j in link_atoms]
+    if str(link_charge_scheme).upper() not in ("Z0", "Z1", "Z2", "Z3"):
+        raise ValueError(f"link_charge_scheme '{link_charge_scheme}': use Z0, Z1 (default), Z2 or Z3")
     links = []
+    mm_z = dict(zip([j for _, j in pairs], _atomic_numbers(system, [j for _, j in pairs], topology, None))) \
+        if pairs else {}
+    odd_cuts = []
     for i, j in pairs:
         if i not in qm_set or j in qm_set:
             raise ValueError(f"link pair ({i}, {j}) must be (QM atom, MM atom)")
+        if mm_z.get(j) == 1:
+            raise ValueError(f"the QM region cuts the bond {i}-{j} to a hydrogen ({j} is MM): put that hydrogen "
+                             "in the QM region (link atoms replace heavy MM atoms, never hydrogens)")
+        if z_of[i] == 1:
+            raise ValueError(f"QM hydrogen {i} is bonded to MM atom {j}: the QM region cuts an X-H bond; include "
+                             f"atom {j} in the QM region, or remove hydrogen {i} from it")
+        # good boundaries: the QM side an sp3 carbon (4 bonds), the MM side C or N (e.g. CA-CB, CA-C, CA-N)
+        if z_of[i] != 6 or len(graph[i]) != 4 or mm_z.get(j) not in (6, 7):
+            odd_cuts.append((i, j))
         r0 = _equilibrium_bond_length(system, i, j) or 1.53
         d_xh = LINK_XH_DISTANCE.get(z_of[i], 1.09)
         links.append(LinkAtom(i, j, d_xh / r0))
     if pairs and link_atoms == "auto":
         warnings.warn(f"{len(pairs)} covalent QM-MM bond(s) found; capping with H link atoms: {pairs}. "
                       "Your training data must be generated with the same QMMMSpec.")
+    if odd_cuts:
+        warnings.warn(f"QM-MM boundary through bond(s) {odd_cuts} (QM atom, MM atom): hydrogen link atoms are "
+                      "reliable when the QM atom is an sp3 carbon bonded to an MM C or N; cutting at heteroatoms, "
+                      "double, aromatic or amide bonds distorts the QM region. Move the boundary if you can.")
+    if links and str(link_charge_scheme).upper() == "Z0":
+        warnings.warn("link_charge_scheme Z0 keeps the MM link host's charge, ~0.4 A from the link hydrogen: "
+                      "this strongly over-polarises the QM region. Z1 (default) or Z2 is usually better.")
 
     # MM charges hidden from FieldMACE next to links
     hidden = set()

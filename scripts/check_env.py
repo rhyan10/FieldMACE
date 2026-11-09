@@ -27,7 +27,11 @@ def check(name, fn):
 
 
 def ver(mod):
-    m = importlib.import_module(mod)
+    import contextlib
+    import io
+
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):  # pymbar banner
+        m = importlib.import_module(mod)
     return getattr(m, "__version__", "?")
 
 
@@ -84,7 +88,7 @@ def tiny_run():
     import torch
     from openmm import unit
 
-    from mace.mlmm import create_fieldmace_mm_system
+    from mace.mlmm import EmbeddingSettings, create_fieldmace_mm_system
     from mace.tools.testing import build_field_model
 
     torch.set_default_dtype(torch.float32)
@@ -92,6 +96,7 @@ def tiny_run():
     model = build_field_model("PerAtomFieldEMACE")
     ts = T.AlanineDipeptideExplicit()
     s, spec, comp = create_fieldmace_mm_system(ts.system, range(22), model, topology=ts.topology,
+                                               settings=EmbeddingSettings(cutoff=10.0, switch_width=2.0),
                                                model_kwargs=dict(device=dev))
     plat = "CUDA" if GPU else "CPU"
     ctx = mm.Context(s, mm.VerletIntegrator(0.5 * unit.femtosecond), mm.Platform.getPlatformByName(plat))

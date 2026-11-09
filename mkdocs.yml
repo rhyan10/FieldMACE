@@ -43,6 +43,7 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Python API: api.md
+  - Troubleshooting: troubleshooting.md
   - Tutorials:
       - Overview: tutorials/index.md
       - 01 Data and training: tutorials/01_data_and_training/index.md

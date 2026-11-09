@@ -6,6 +6,7 @@
 ###########################################################################################
 
 import argparse
+import sys
 import ast
 import glob
 import json
@@ -49,7 +50,16 @@ def main() -> None:
     This script runs the training/fine tuning for mace
     """
     args = tools.build_default_arg_parser().parse_args()
-    run(args)
+    from mace.tools.data_checks import DataError, InputError
+
+    try:
+        run(args)
+    except InputError as err:  # a problem with the settings or the data: a clear message, no traceback
+        what = "the training data" if isinstance(err, DataError) else "the input"
+        if not logging.getLogger().handlers:
+            logging.basicConfig(level=logging.INFO)
+        logging.error(f"Problem with {what}: {err}")
+        sys.exit(1)
 
 
 def run(args: argparse.Namespace) -> None:
@@ -79,6 +89,9 @@ def run(args: argparse.Namespace) -> None:
     logging.info("===========VERIFYING SETTINGS===========")
     for message, loglevel in input_log_messages:
         logging.log(level=loglevel, msg=message)
+    from mace.tools.data_checks import check_arguments, is_xyz
+
+    check_arguments(args)
 
     if args.distributed:
         torch.cuda.set_device(local_rank)
@@ -140,11 +153,9 @@ def run(args: argparse.Namespace) -> None:
     logging.info("")
     logging.info("===========LOADING INPUT DATA===========")
     # Data preparation
-    if args.train_file.endswith(".xyz"):
+    if is_xyz(args.train_file):
         if args.valid_file is not None:
-            assert args.valid_file.endswith(
-                ".xyz"
-            ), "valid_file if given must be same format as train_file"
+            assert is_xyz(args.valid_file), "valid_file if given must be same format as train_file"
         config_type_weights = get_config_type_weights(args.config_type_weights)
         collections, atomic_energies_dict = get_dataset_from_xyz(
             work_dir=args.work_dir,
@@ -167,9 +178,11 @@ def run(args: argparse.Namespace) -> None:
             keep_isolated_atoms=args.keep_isolated_atoms,
         )
         if len(collections.train) < args.batch_size:
-            logging.error(
-                f"Batch size ({args.batch_size}) is larger than the number of training data ({len(collections.train)})"
+            logging.warning(
+                f"Batch size ({args.batch_size}) is larger than the number of training frames "
+                f"({len(collections.train)}); using --batch_size={len(collections.train)}"
             )
+            args.batch_size = len(collections.train)
         if len(collections.valid) < args.valid_batch_size:
             logging.warning(
                 f"Validation batch size ({args.valid_batch_size}) is larger than the number of validation data ({len(collections.valid)})"
@@ -182,7 +195,7 @@ def run(args: argparse.Namespace) -> None:
     # Atomic number table
     # yapf: disable
     if args.atomic_numbers is None:
-        assert args.train_file.endswith(".xyz"), "Must specify atomic_numbers when using .h5 train_file input"
+        assert is_xyz(args.train_file), "Must specify atomic_numbers when using .h5 train_file input"
         z_table = tools.get_atomic_number_table_from_zs(
             z
             for configs in (collections.train, collections.valid)
@@ -200,6 +213,28 @@ def run(args: argparse.Namespace) -> None:
     # yapf: enable
     logging.info(f"Atomic Numbers used: {z_table.zs}")
     logging.info(f"Model: {args.model}")
+    if is_xyz(args.train_file):  # catch data mistakes before training, with file and frame numbers
+        from mace.tools.data_checks import check_datasets
+
+        try:
+            import ase.io
+
+            first = ase.io.read(args.train_file, index=0)
+            first_keys = list(first.info) + [k for k in first.arrays if k not in ("numbers", "positions")]
+        except Exception:  # noqa: BLE001
+            first_keys = None
+        sets = {f"training set ({args.train_file})": collections.train,
+                "valid": collections.valid}
+        for name, configs in collections.tests:
+            sets[f"test set '{name}'"] = configs
+        check_datasets(
+            {("train" if k.startswith("training") else k): v for k, v in sets.items()},
+            n_energies=args.n_energies, diabatic=args.diabatic, compute_nacs=args.compute_nacs,
+            compute_dipoles=args.compute_dipoles, compute_socs=args.compute_socs,
+            keys={"energy": args.energy_key, "forces": args.forces_key, "nacs": args.nacs_key,
+                  "dipoles": args.dipoles_key, "socs": args.socs_key},
+            z_table_zs=z_table.zs, first_frame_info=first_keys,
+        )
     if atomic_energies_dict is None or len(atomic_energies_dict) == 0:
         if args.E0s.lower() == "foundation":
             assert args.foundation_model is not None
@@ -216,13 +251,20 @@ def run(args: argparse.Namespace) -> None:
                 f"Using Atomic Energies from foundation model [z, eV]: {', '.join([f'{z}: {atomic_energies_dict[z]}' for z in z_table_foundation.zs])}"
             )
         else:
-            if args.train_file.endswith(".xyz"):
+            if is_xyz(args.train_file):
                 atomic_energies_dict = get_atomic_energies(
                     args.E0s, collections.train, z_table,
                     n_diagonal=args.n_energies if args.diabatic else None,
                 )
             else:
                 atomic_energies_dict = get_atomic_energies(args.E0s, None, z_table)
+    if atomic_energies_dict is not None:
+        missing = [int(z) for z in z_table.zs if z not in atomic_energies_dict]
+        if missing:
+            from mace.tools.data_checks import InputError
+
+            raise InputError(f"--E0s has no atomic energy for element(s) Z={missing} (given: "
+                             f"{sorted(int(z) for z in atomic_energies_dict)}). Add them, or use --E0s=average")
   
     if args.model == "ExcitedMACE":
         atomic_energies = None
@@ -261,7 +303,7 @@ def run(args: argparse.Namespace) -> None:
                 f"dipoles={compute_dipole} (key {args.dipoles_key}), SOCs={compute_socs} (key {args.socs_key})"
             )
 
-    if args.train_file.endswith(".xyz"):
+    if is_xyz(args.train_file):
         train_set = [
             data.AtomicData.from_config(config, z_table=z_table, cutoff=args.r_max)
             for config in collections.train
@@ -305,7 +347,7 @@ def run(args: argparse.Namespace) -> None:
         sampler=train_sampler,
         shuffle=(train_sampler is None),
         drop_last=(train_sampler is None),
-        pin_memory=args.pin_memory,
+        pin_memory=args.pin_memory and torch.cuda.is_available(),
         num_workers=args.num_workers,
         generator=torch.Generator().manual_seed(args.seed),
     )
@@ -315,7 +357,7 @@ def run(args: argparse.Namespace) -> None:
         sampler=valid_sampler,
         shuffle=False,
         drop_last=False,
-        pin_memory=args.pin_memory,
+        pin_memory=args.pin_memory and torch.cuda.is_available(),
         num_workers=args.num_workers,
         generator=torch.Generator().manual_seed(args.seed),
     )
@@ -724,7 +766,7 @@ def run(args: argparse.Namespace) -> None:
     }
 
     test_sets = {}
-    if args.train_file.endswith(".xyz"):
+    if is_xyz(args.train_file):
         for name, subset in collections.tests:
             test_sets[name] = [
                 data.AtomicData.from_config(config, z_table=z_table, cutoff=args.r_max)
@@ -766,7 +808,7 @@ def run(args: argparse.Namespace) -> None:
             shuffle=(test_sampler is None),
             drop_last=drop_last,
             num_workers=args.num_workers,
-            pin_memory=args.pin_memory,
+            pin_memory=args.pin_memory and torch.cuda.is_available(),
         )
         all_data_loaders[test_name] = test_loader
 

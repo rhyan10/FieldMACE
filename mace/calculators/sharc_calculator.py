@@ -108,6 +108,10 @@ class SharcCalculator:
         energy_unit = {"ev": "eV", "hartree": "Hartree"}.get(str(energy_unit).lower(), energy_unit)
         distance_unit = {"ang": "Angstrom", "angstrom": "Angstrom", "bohr": "Bohr"}.get(
             str(distance_unit).lower(), distance_unit)
+        if energy_unit not in ("eV", "Hartree"):
+            raise ValueError(f"energy_unit '{energy_unit}': use 'eV' or 'Hartree' (the unit the model was trained in)")
+        if distance_unit not in ("Angstrom", "Bohr"):
+            raise ValueError(f"distance_unit '{distance_unit}': use 'Angstrom' or 'Bohr' (the model's length unit)")
         energy_to_hartree = {"eV": HARTREE_PER_EV, "Hartree": 1.0}[energy_unit]
         bohr_to_model = {"Angstrom": 1.0 / BOHR_PER_ANGSTROM, "Bohr": 1.0}[distance_unit]
         self.energy_unit_conversion = energy_to_hartree
