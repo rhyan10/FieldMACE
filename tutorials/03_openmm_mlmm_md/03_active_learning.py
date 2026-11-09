@@ -35,6 +35,7 @@ from mace.calculators import MACECalculator
 from mace.mlmm import create_fieldmace_mm_system
 from mace.mlmm.dataset import frame_to_atoms, load_setup, write_extxyz
 from mace.mlmm.io import constrain_hbonds_except, load_system
+from common import default_pdb  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 T01 = os.path.join(HERE, "..", "01_data_and_training")
@@ -47,7 +48,7 @@ def main():
                                         os.path.join(T01, "models", "aladip_FieldEMACE.model")) if os.path.exists(f)],
                    help="model files; the first one drives the MD")
     p.add_argument("--setup", default=os.path.join(T01, "data", "setup.json"))
-    p.add_argument("--pdb", default=os.path.join(T01, "inputs", "aladip_solvated.pdb"))
+    p.add_argument("--pdb", default=None, help="start structure (default: tutorial 01's equilibrated.pdb)")
     p.add_argument("--forcefield", nargs="*", default=["amber14-all.xml", "amber14/tip3p.xml"])
     p.add_argument("--n-frames", type=int, default=40)
     p.add_argument("--every", type=int, default=100, help="MD steps between stored frames")
@@ -55,6 +56,7 @@ def main():
     p.add_argument("--temperature", type=float, default=400.0, help="a bit hotter than the data, to find gaps")
     p.add_argument("--device", default=None)
     a = p.parse_args()
+    a.pdb = a.pdb or default_pdb()
     if len(a.committee) < 2:
         raise SystemExit("need at least two models (tutorial 01 trains PerAtomFieldEMACE and FieldEMACE)")
     os.makedirs(os.path.join(HERE, "work"), exist_ok=True)

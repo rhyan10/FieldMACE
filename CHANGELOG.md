@@ -40,7 +40,12 @@ CI, packaging and a documentation site.
   the LVC reference.
 - Tutorial 06: a ligand in a protein pocket. p-xylene in T4 lysozyme L99A in explicit water: system
   set-up with GAFF ligand parameters, sampling, PySCF labels, training, field effects, ML/MM MD.
-- Tutorial 03: `--backend torch`, and part 4, the automated active-learning loop.
+- Tutorial 03: `--backend torch`; part 4, the automated active-learning loop; part 5, how the
+  interface works (what it changes in the force field, link atoms and charge schemes, the embedding
+  frame, energy bookkeeping, finite-difference force checks); part 6, the same set-up from Amber,
+  GROMACS, OpenMM XML and serialized inputs; part 7, MD recipes (platform, time step, NVT/NPT,
+  reporters, energy components, restarts, cost).
+- `select_atoms`: `name` and `element` keywords, and `and` clauses (`resid 2 and name CA CB`).
 - GitHub Actions: tests with pip (Python 3.10–3.13) and with conda-forge openmm-torch, sdist and
   wheel build; weekly SHARC 4 integration tests; release to PyPI on tags (trusted publishing);
   the documentation site (MkDocs, GitHub Pages) built from the READMEs and tutorials.
@@ -49,6 +54,8 @@ CI, packaging and a documentation site.
 - OpenMM 8.3–8.5 are supported again: there `PythonForce` has no `setParticles`, so the force
   receives all particles and selects its own.
 - `pyscf_qmmm` moved to `mace.mlmm.labelers` and gained `density_fit`.
+- The tutorial-03 scripts start from tutorial 01's NPT-equilibrated structure. The raw input box has water
+  at 0.66 g/mL; the training data were sampled at 0.98 g/mL.
 
 ## [2.3.0] – 2026-11-08
 

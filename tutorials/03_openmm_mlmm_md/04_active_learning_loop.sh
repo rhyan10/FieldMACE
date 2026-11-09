@@ -14,6 +14,7 @@ cd "$(dirname "$0")"
 for f in ../01_data_and_training/data/train.xyz ../01_data_and_training/data/test.xyz; do
   [ -f "$f" ] || { [ -f "$f.gz" ] && gunzip -k "$f.gz"; } || { echo "$f missing"; exit 1; }
 done
+[ -f ../01_data_and_training/work/equilibrated.pdb ] || { echo "../01_data_and_training/work/equilibrated.pdb missing: run tutorial 01 step 1 (01_prepare_system.py)"; exit 1; }
 CONFIG=al.yaml
 if [ "${FIELDMACE_TUTORIAL_QUICK:-0}" = 1 ]; then  # tiny settings for automatic checks
   mkdir -p work

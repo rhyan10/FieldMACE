@@ -223,6 +223,44 @@ ML/MM MD with one model, a committee evaluates the frames, the most uncertain on
 them with PySCF, add them, repeat. One round here; running the same command again continues."""),
         code('print(open("al.yaml").read())'),
         code('run("bash 04_active_learning_loop.sh" + ("" if QUICK else " --rounds 1"))'),
+        md("""
+## Part 5: how the interface works
+
+What `create_fieldmace_mm_system` changes in the force field, where the link atoms go, which charges each link
+scheme hides, what the model sees (embedding frame), the energy bookkeeping with force groups, and a
+finite-difference check of the forces through link atoms and the switching function."""),
+        code('run("python 05_how_it_works.py")'),
+        code('''# the same by hand: one force group for FieldMACE, then its energy alone
+import openmm as mm
+from openmm import unit
+from mace.mlmm import create_fieldmace_mm_system
+from mace.mlmm.dataset import load_setup
+from mace.mlmm.io import load_system, constrain_hbonds_except
+from common import default_pdb
+s = load_system(pdb=default_pdb(), forcefield=["amber14-all.xml", "amber14/tip3p.xml"], constraints=None, cutoff_nm=0.9)
+qm, settings, prep = load_setup("../01_data_and_training/data/setup.json")
+constrain_hbonds_except(s.system, s.topology, qm)
+system, spec, comp = create_fieldmace_mm_system(s.system, qm, "../01_data_and_training/models/aladip_PerAtomFieldEMACE.model",
+                                                topology=s.topology, settings=settings, force_group=31,
+                                                model_kwargs=dict(device="cpu", subtract_e0=True), **prep)
+ctx = mm.Context(system, mm.VerletIntegrator(0.0005), mm.Platform.getPlatformByName("CPU"))
+ctx.setPositions(s.positions); ctx.setPeriodicBoxVectors(*s.box_vectors)
+e = lambda g: ctx.getState(getEnergy=True, groups=g).getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole)
+print(f"FieldMACE {e({31}):.2f} kJ/mol, force field {e(set(range(31))):.2f} kJ/mol")
+print("link atoms:", [(l.qm_atom, l.mm_atom, round(l.ratio, 3)) for l in spec.link_atoms], "| point charges:", comp.last["n_mm_charges"])'''),
+        md("""
+## Part 6: other force fields and inputs
+
+The same ML/MM set-up from an OpenMM force-field XML, Amber prmtop, GROMACS top/gro and a serialized System, and the
+QM-selection language. (The model was trained with Amber14 charges: train with the force field you run with.)"""),
+        code('run("python 06_other_inputs.py" + (" --steps 2" if QUICK else ""))'),
+        md("""
+## Part 7: MD recipes
+
+Platform, constraints and time step, NVT then NPT, reporters, energy components by force group, restarts, and what
+the embedding cutoff costs."""),
+        code('''run("python 07_md_recipes.py" + (" --nvt-ps 0.01 --npt-ps 0.02 --bench-steps 2" if QUICK else ""))
+display(Image("results/recipes_components.png"))'''),
     ]
 
 

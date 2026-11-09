@@ -89,31 +89,49 @@ def load_system(
 
 
 def select_atoms(topology: app.Topology, selection: str) -> List[int]:
-    """Tiny selection language, terms combined with 'or':
-        'resname LIG'          residue name(s)
-        'resid 12 13'          residue ids as in the input file
-        'index 0-21 30 31'     0-based particle indices / ranges
-        'chain B and resid 5'  is NOT supported; use index for anything fancy
-    For complex selections use MDTraj (``md.Topology.from_openmm(top).select(...)``).
+    """Small selection language. Clauses are joined with 'and', terms with 'or' ('and' binds first):
+
+        'resname LIG'                          residue name(s)
+        'resid 12 13'                          residue ids as in the input file
+        'index 0-21 30 31'                     0-based particle indices / ranges
+        'name CA CB HB1'                       atom names
+        'element C H'                          element symbols
+        'resid 2 and name CA HA CB HB1 HB2 HB3'   a side chain
+        'resname LIG or resid 88 and name OH'     ligand plus one hydroxyl O
+        'within 5.0 of resname LIG'            (not supported: use MDTraj or index lists)
+
+    For anything more complex use MDTraj: ``md.Topology.from_openmm(top).select(...)``.
     """
     atoms = list(topology.atoms())
-    out = set()
-    for term in selection.split(" or "):
-        key, *vals = term.split()
+
+    def clause(text):
+        key, *vals = text.split()
         key = key.lower()
+        if not vals:
+            raise ValueError(f"selection clause '{text}' has no values")
         if key == "resname":
-            out |= {a.index for a in atoms if a.residue.name in vals}
-        elif key == "resid":
-            out |= {a.index for a in atoms if str(a.residue.id) in vals}
-        elif key == "index":
+            return {a.index for a in atoms if a.residue.name in vals}
+        if key == "resid":
+            return {a.index for a in atoms if str(a.residue.id) in vals}
+        if key == "name":
+            return {a.index for a in atoms if a.name in vals}
+        if key == "element":
+            return {a.index for a in atoms if a.element is not None and a.element.symbol in vals}
+        if key == "index":
+            out = set()
             for v in vals:
                 if "-" in v:
                     lo, hi = map(int, v.split("-"))
                     out |= set(range(lo, hi + 1))
                 else:
                     out.add(int(v))
-        else:
-            raise ValueError(f"unknown selection keyword '{key}'")
+            return out
+        raise ValueError(f"unknown selection keyword '{key}' (resname, resid, index, name, element)")
+
+    out = set()
+    for term in selection.split(" or "):
+        parts = [clause(c) for c in term.split(" and ")]
+        out |= set.intersection(*parts)
     if not out:
         raise ValueError(f"selection '{selection}' matched no atoms")
     return sorted(out)

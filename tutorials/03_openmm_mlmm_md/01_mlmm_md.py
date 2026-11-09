@@ -33,6 +33,7 @@ from openmm import app, unit
 from mace.mlmm import create_fieldmace_mm_system
 from mace.mlmm.dataset import load_setup
 from mace.mlmm.io import constrain_hbonds_except, load_system
+from common import default_pdb  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 T01 = os.path.join(HERE, "..", "01_data_and_training")
@@ -42,7 +43,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model", default=os.path.join(T01, "models", "aladip_PerAtomFieldEMACE.model"))
     p.add_argument("--setup", default=os.path.join(T01, "data", "setup.json"))
-    p.add_argument("--pdb", default=os.path.join(T01, "inputs", "aladip_solvated.pdb"))
+    p.add_argument("--pdb", default=None, help="start structure (default: tutorial 01's equilibrated.pdb)")
     p.add_argument("--forcefield", nargs="*", default=["amber14-all.xml", "amber14/tip3p.xml"])
     p.add_argument("--nvt-ps", type=float, default=2.0)
     p.add_argument("--nve-ps", type=float, default=1.0)
@@ -54,6 +55,7 @@ def main():
                    help="python: openmm.PythonForce; torch: openmmtorch.TorchForce (model in libtorch, needs "
                         "openmm-torch from conda-forge)")
     a = p.parse_args()
+    a.pdb = a.pdb or default_pdb()
     os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
 
     # 1. the classical system, built exactly like the one used for the training data

@@ -3,7 +3,7 @@
 # Paths are relative to this file.
 work_dir: work/al
 system:
-  pdb: ../01_data_and_training/inputs/aladip_solvated.pdb
+  pdb: ../01_data_and_training/work/equilibrated.pdb   # NPT-equilibrated by tutorial 01 step 1
   forcefield: [amber14-all.xml, amber14/tip3p.xml]
   cutoff_nm: 0.9
 setup: ../01_data_and_training/data/setup.json      # QM atoms, link atoms, embedding of the data
